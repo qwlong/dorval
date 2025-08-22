@@ -1,0 +1,30 @@
+// ignore_for_file: unused_element, unnecessary_this, always_put_required_named_parameters_first, constant_identifier_names
+
+import 'package:freezed_annotation/freezed_annotation.dart';
+{{#each imports}}
+import '../{{this}}';
+{{/each}}
+
+part '{{fileName}}.freezed.dart';
+part '{{fileName}}.g.dart';
+
+{{#if description}}
+/// {{description}}
+{{/if}}
+@freezed
+class {{className}} with _${{className}} {
+  const factory {{className}}({
+    {{#each properties}}
+    {{#if description}}
+    {{{dartDoc description}}}
+    {{/if}}
+    {{#if jsonKey}}
+    @JsonKey(name: '{{jsonKey}}')
+    {{/if}}
+    {{#if required}}required {{{type}}} {{name}},{{else}}{{{type}}}? {{name}},{{/if}}
+    {{/each}}
+  }) = _{{className}};
+
+  factory {{className}}.fromJson(Map<String, dynamic> json) =>
+      _${{className}}FromJson(json);
+}

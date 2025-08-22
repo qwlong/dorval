@@ -1,0 +1,60 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+{{! json_annotation is already imported by freezed_annotation, no need to import separately }}
+{{#if hasUint8List}}
+import 'dart:typed_data';
+{{/if}}
+{{#each additionalImports}}
+import '{{this}}';
+{{/each}}
+
+part '{{fileName}}.f.freezed.dart';
+part '{{fileName}}.f.g.dart';
+{{#if hasDateTimeConverter}}
+
+// DateTime converter for JSON serialization
+DateTime _dateTimeFromJson(String json) => DateTime.parse(json);
+String _dateTimeToJson(DateTime dateTime) => dateTime.toIso8601String();
+{{/if}}
+
+{{#if description}}
+{{{dartDoc description}}}
+{{/if}}
+{{#if deprecated}}
+@Deprecated('{{deprecationMessage}}')
+{{/if}}
+@freezed
+class {{className}} with _${{className}} {
+  const factory {{className}}({
+    {{#each properties}}
+    {{#if description}}
+{{{dartDoc description indent=4}}}
+    {{/if}}
+    {{#if deprecated}}
+    @Deprecated('{{deprecationMessage}}')
+    {{/if}}
+    {{#if jsonKey}}
+    @JsonKey(name: '{{jsonKey}}') 
+    {{/if}}
+    {{#if defaultValue}}
+    @Default({{{defaultValue}}})
+    {{/if}}
+    {{#if required}}required {{/if}}{{{type}}} {{{name}}},
+    {{#unless @last}}
+
+    {{/unless}}
+    {{/each}}
+  }) = _{{className}};
+
+  factory {{className}}.fromJson(Map<String, dynamic> json) =>
+      _${{className}}FromJson(json);
+  {{#if hasCustomMethods}}
+  
+  
+  // Custom helper methods
+  const {{className}}._();
+  
+  {{#each customMethods}}
+  {{this}}
+  {{/each}}
+  {{/if}}
+}

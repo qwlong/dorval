@@ -1,0 +1,124 @@
+  {{#if description}}
+  {{{dartDoc description}}}
+  {{/if}}
+  {{#if deprecated}}
+  @Deprecated('{{deprecationMessage}}')
+  {{/if}}
+  {{#if summary}}
+  {{{dartDoc summary}}}
+  {{/if}}
+  Future<{{{returnType}}}> {{{methodName}}}({{#if hasParameters}}{{#if hasPathParams}}{{#each pathParams}}
+    String {{dartName}},{{/each}}{{/if}}{{#if hasBody}}
+    {{{bodyType}}} {{bodyParam}},{{/if}}{{#if (or hasQueryParams hasHeaders)}} {
+    {{#if hasQueryParams}}{{#if queryParamsModelName}}{{{queryParamsModelName}}}? params,{{else}}Map<String, dynamic>? params,{{/if}}{{/if}}
+    {{#if hasHeaders}}{{#if headersModelName}}{{{headersModelName}}}? headers,{{else}}Map<String, dynamic>? headers,{{/if}}{{/if}}
+  }{{/if}}{{/if}}) async {
+    {{#if hasPathParams}}
+    // Build path with parameters
+    final path = '{{path}}'{{#each pathParams}}.replaceAll('{{{originalName}}}', {{dartName}}.toString()){{/each}};
+    {{else}}
+    const path = '{{path}}';
+    {{/if}}
+    
+    {{#if hasQueryParams}}
+    // Build query parameters
+    {{#if queryParamsModelName}}
+    final paramsJson = params?.toJson() ?? <String, dynamic>{};
+    // Remove null values from query parameters
+    final queryParameters = <String, dynamic>{
+      for (final entry in paramsJson.entries)
+        if (entry.value != null) entry.key: entry.value,
+    };
+    {{else}}
+    final queryParameters = params ?? <String, dynamic>{};
+    {{/if}}
+    {{/if}}
+    
+    {{#if hasHeaders}}
+    // Build headers  
+    {{#if headersModelName}}
+    final headersJson = headers?.toJson() ?? <String, dynamic>{};
+    // Remove null values from headers - they should not be sent
+    final requestHeaders = <String, dynamic>{
+      for (final entry in headersJson.entries)
+        if (entry.value != null) entry.key: entry.value,
+    };
+    {{else}}
+    final requestHeaders = headers ?? <String, dynamic>{};
+    {{/if}}
+    {{/if}}
+    
+    try {
+      final response = await client.{{httpMethod}}(
+        path,
+        {{#if hasBody}}
+        data: {{bodyParam}},
+        {{/if}}
+        {{#if hasQueryParams}}
+        queryParameters: queryParameters,
+        {{/if}}
+        {{#if hasHeaders}}
+        options: Options(headers: requestHeaders),
+        {{else if hasSpecialOptions}}
+        options: Options(
+          {{#if responseType}}
+          responseType: ResponseType.{{responseType}},
+          {{/if}}
+          {{#if contentType}}
+          contentType: '{{contentType}}',
+          {{/if}}
+        ),
+        {{/if}}
+        {{#if hasCancelToken}}
+        cancelToken: cancelToken,
+        {{/if}}
+        {{#if hasProgressCallback}}
+        onSendProgress: onSendProgress,
+        onReceiveProgress: onReceiveProgress,
+        {{/if}}
+      );
+      
+      {{#if returnsVoid}}
+      return;
+      {{else if returnsList}}
+      return (response.data as List<dynamic>)
+          .map((item) => {{{itemType}}}.fromJson(item as Map<String, dynamic>))
+          .toList();
+      {{else if returnsModel}}
+      return {{{returnType}}}.fromJson(response.data as Map<String, dynamic>);
+      {{else if returnsPrimitive}}
+      return response.data as {{{returnType}}};
+      {{else}}
+      return response.data;
+      {{/if}}
+    } on DioException catch (e) {
+      {{#if hasErrorHandling}}
+      // Handle specific error responses
+      if (e.response != null) {
+        switch (e.response!.statusCode) {
+          {{#each errorResponses}}
+          case {{statusCode}}:
+            {{#if hasErrorModel}}
+            final error = {{errorModel}}.fromJson(e.response!.data);
+            throw ApiException(
+              statusCode: {{statusCode}},
+              message: error.message,
+              error: error,
+            );
+            {{else}}
+            throw ApiException(
+              statusCode: {{statusCode}},
+              message: '{{description}}',
+            );
+            {{/if}}
+          {{/each}}
+        }
+      }
+      {{/if}}
+      throw ApiException(
+        statusCode: e.response?.statusCode,
+        message: e.message ?? 'Unknown error occurred',
+        error: e,
+      );
+    }
+  }

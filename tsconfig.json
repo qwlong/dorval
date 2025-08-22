@@ -1,0 +1,20 @@
+{
+  "extends": "../orval-source/tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@orval-dart/core": ["./packages/orval-dart-core/src"],
+      "@orval-dart/cli": ["./packages/orval-dart-cli/src"]
+    }
+  },
+  "include": [
+    "packages/**/*.ts",
+    "packages/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ]
+}

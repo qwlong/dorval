@@ -1,0 +1,17 @@
+{
+  "name": "@dorval/tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Integration tests for Dorval code generator",
+  "scripts": {
+    "test": "./run-tests.sh",
+    "test:basic": "node ../packages/dorval/dist/bin/dorval.js generate -c configs/basic.config.ts",
+    "test:advanced": "node ../packages/dorval/dist/bin/dorval.js generate -c configs/advanced.config.ts",
+    "test:multi": "node ../packages/dorval/dist/bin/dorval.js generate -c configs/multi-api.config.ts",
+    "clean": "rm -rf generated"
+  },
+  "devDependencies": {
+    "@dorval/core": "workspace:*",
+    "dorval": "workspace:*"
+  }
+}

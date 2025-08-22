@@ -1,0 +1,63 @@
+{
+  "name": "@dorval/core",
+  "version": "0.0.5",
+  "description": "Core Dart/Flutter code generation library for OpenAPI specifications",
+  "keywords": [
+    "dart",
+    "flutter",
+    "openapi",
+    "swagger",
+    "codegen",
+    "code-generator",
+    "api-client",
+    "dio",
+    "freezed",
+    "rest-api",
+    "typescript",
+    "orval",
+    "dorval",
+    "openapi3",
+    "json-serializable"
+  ],
+  "homepage": "https://github.com/qwlong/dorval#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qwlong/dorval.git"
+  },
+  "bugs": {
+    "url": "https://github.com/qwlong/dorval/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup ./src/index.ts --clean --sourcemap --dts && cp -r src/templates dist/",
+    "dev": "tsup ./src/index.ts --clean --sourcemap --watch src --dts",
+    "lint": "eslint src/**/*.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@apidevtools/swagger-parser": "^10.1.1",
+    "@types/handlebars": "^4.1.0",
+    "chalk": "^4.1.2",
+    "handlebars": "^4.7.8",
+    "lodash": "^4.17.21",
+    "openapi-types": "^12.1.3"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.195",
+    "@types/node": "^20.13.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.2.2",
+    "vitest": "^0.6.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

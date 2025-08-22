@@ -1,0 +1,17 @@
+{
+  "name": "@dorval/petstore-sample",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Petstore sample for Dorval code generator",
+  "scripts": {
+    "generate": "node ../../packages/dorval/dist/bin/dorval.js generate",
+    "generate:watch": "node ../../packages/dorval/dist/bin/dorval.js generate --watch",
+    "clean": "rm -rf lib/api",
+    "build": "yarn generate && cd . && dart pub get && dart run build_runner build",
+    "test": "dart test"
+  },
+  "devDependencies": {
+    "dorval": "workspace:*",
+    "@dorval/core": "workspace:*"
+  }
+}

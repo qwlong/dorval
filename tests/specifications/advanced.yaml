@@ -1,0 +1,218 @@
+openapi: '3.0.0'
+info:
+  version: 1.0.0
+  title: Advanced API
+  description: Test spec with advanced features like allOf, oneOf, anyOf
+servers:
+  - url: https://api.example.com/v1
+paths:
+  /users:
+    get:
+      operationId: getUsers
+      summary: Get users with filters
+      parameters:
+        - name: role
+          in: query
+          schema:
+            $ref: '#/components/schemas/UserRole'
+        - name: status
+          in: query
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/UserStatus'
+        - name: X-API-Key
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+    post:
+      operationId: createUser
+      summary: Create a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /documents/{id}:
+    get:
+      operationId: getDocument
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+components:
+  schemas:
+    UserRole:
+      type: string
+      enum:
+        - admin
+        - user
+        - moderator
+        - guest
+    UserStatus:
+      type: string
+      enum:
+        - active
+        - inactive
+        - suspended
+        - deleted
+    BaseEntity:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    User:
+      allOf:
+        - $ref: '#/components/schemas/BaseEntity'
+        - type: object
+          required:
+            - email
+            - name
+          properties:
+            email:
+              type: string
+              format: email
+            name:
+              type: string
+            role:
+              $ref: '#/components/schemas/UserRole'
+            status:
+              $ref: '#/components/schemas/UserStatus'
+            profile:
+              $ref: '#/components/schemas/UserProfile'
+    UserProfile:
+      type: object
+      properties:
+        bio:
+          type: string
+          nullable: true
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+        preferences:
+          type: object
+          additionalProperties:
+            type: string
+    CreateUserRequest:
+      type: object
+      required:
+        - email
+        - name
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        password:
+          type: string
+          minLength: 8
+          pattern: '^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$'
+        role:
+          $ref: '#/components/schemas/UserRole'
+    Document:
+      oneOf:
+        - $ref: '#/components/schemas/TextDocument'
+        - $ref: '#/components/schemas/ImageDocument'
+        - $ref: '#/components/schemas/VideoDocument'
+      discriminator:
+        propertyName: type
+        mapping:
+          text: '#/components/schemas/TextDocument'
+          image: '#/components/schemas/ImageDocument'
+          video: '#/components/schemas/VideoDocument'
+    TextDocument:
+      allOf:
+        - $ref: '#/components/schemas/BaseEntity'
+        - type: object
+          required:
+            - type
+            - content
+          properties:
+            type:
+              type: string
+              enum: [text]
+            content:
+              type: string
+            wordCount:
+              type: integer
+    ImageDocument:
+      allOf:
+        - $ref: '#/components/schemas/BaseEntity'
+        - type: object
+          required:
+            - type
+            - url
+          properties:
+            type:
+              type: string
+              enum: [image]
+            url:
+              type: string
+              format: uri
+            width:
+              type: integer
+            height:
+              type: integer
+            format:
+              type: string
+              enum: [jpg, png, gif, webp]
+    VideoDocument:
+      allOf:
+        - $ref: '#/components/schemas/BaseEntity'
+        - type: object
+          required:
+            - type
+            - url
+          properties:
+            type:
+              type: string
+              enum: [video]
+            url:
+              type: string
+              format: uri
+            duration:
+              type: number
+              format: float
+            resolution:
+              type: string
+              enum: [720p, 1080p, 4k]

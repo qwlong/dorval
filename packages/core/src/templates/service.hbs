@@ -1,0 +1,20 @@
+import 'package:dio/dio.dart';
+import '../api_client.dart';
+import 'api_exception.dart';
+{{#each imports}}
+import '{{this}}';
+{{/each}}
+
+{{#if description}}
+{{{dartDoc description}}}
+{{/if}}
+class {{serviceName}} {
+  final ApiClient client;
+  
+  {{serviceName}}(this.client);
+  
+{{#each methods}}
+{{> service-method}}
+
+{{/each}}
+}

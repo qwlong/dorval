@@ -1,0 +1,34 @@
+{{#if description}}
+/// {{description}}
+{{/if}}
+enum {{enumName}} {
+  {{#each values}}
+  {{#if @first}}{{else}},
+  {{/if}}{{#if description}}/// {{description}}
+  {{/if}}{{name}}('{{value}}'){{/each}};
+
+  final String value;
+  
+  const {{enumName}}(this.value);
+  
+  static {{enumName}}? fromValue(String? value) {
+    if (value == null) return null;
+    
+    return {{enumName}}.values.firstWhere(
+      (e) => e.value == value,
+      orElse: () => throw ArgumentError('Invalid {{enumName}} value: $value'),
+    );
+  }
+  
+  static {{enumName}}? fromJson(dynamic json) {
+    if (json is String) {
+      return fromValue(json);
+    }
+    return null;
+  }
+  
+  dynamic toJson() => value;
+  
+  @override
+  String toString() => value;
+}

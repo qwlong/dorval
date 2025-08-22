@@ -1,0 +1,63 @@
+{
+  "name": "dorval",
+  "version": "0.0.5",
+  "description": "CLI tool for generating Dart/Flutter API clients from OpenAPI specifications",
+  "keywords": [
+    "cli",
+    "dart",
+    "flutter",
+    "openapi",
+    "swagger",
+    "codegen",
+    "code-generator",
+    "api-client",
+    "dio",
+    "freezed",
+    "rest-api",
+    "orval",
+    "dorval",
+    "openapi3",
+    "generator-cli"
+  ],
+  "homepage": "https://github.com/qwlong/dorval#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qwlong/dorval.git"
+  },
+  "bugs": {
+    "url": "https://github.com/qwlong/dorval/issues"
+  },
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "dorval": "./dist/bin/dorval.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup ./src/index.ts ./src/bin/dorval.ts --clean --sourcemap",
+    "dev": "tsup ./src/index.ts ./src/bin/dorval.ts --clean --sourcemap --watch src --dts",
+    "lint": "eslint src/**/*.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@dorval/core": "0.0.5",
+    "commander": "^11.0.0",
+    "chalk": "^4.1.2",
+    "ora": "5.4.1",
+    "cosmiconfig": "^8.2.0",
+    "fs-extra": "^11.3.0"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.13.0",
+    "typescript": "^5.2.2",
+    "tsup": "^8.5.0",
+    "vitest": "^0.6.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
