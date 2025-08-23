@@ -36,13 +36,8 @@ dorval/
 │       │   └── commands/      # CLI commands
 │       └── package.json
 │
-├── samples/                    # Example projects
-│   └── petstore/              # Petstore API example
-│
-└── reference/                 # Reference code from orval-source
-    ├── core-generators/
-    ├── core-parsers/
-    └── templates-examples/
+└── samples/                    # Example projects
+    └── petstore/              # Petstore API example
 ```
 
 ## Getting Started
