@@ -17,7 +17,15 @@ export type {
   DartClientType,
   GeneratedFile,
   DartConfig,
-  DartConfigExport
+  DartConfigExport,
+  ClientGeneratorBuilder,
+  ClientBuilder,
+  ClientHeaderBuilder,
+  ClientDependenciesBuilder,
+  ClientFooterBuilder,
+  GeneratorVerbOptions,
+  GeneratorOptions,
+  GeneratorDependency
 } from './types';
 
 // Import types for use in defineConfig

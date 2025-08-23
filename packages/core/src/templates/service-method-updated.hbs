@@ -1,0 +1,138 @@
+{{#if description}}
+{{{dartDoc description}}}
+{{/if}}
+{{#if deprecated}}
+  @Deprecated('{{deprecationMessage}}')
+{{/if}}
+{{#if summary}}
+{{{dartDoc summary}}}
+{{/if}}
+  Future<{{{returnType}}}> {{{methodName}}}({{#if hasParameters}}{{#if hasPathParams}}{{#each pathParams}}
+    String {{dartName}},{{/each}}{{/if}}{{#if hasBody}}
+    {{{bodyType}}} {{bodyParam}},{{/if}}{{#if (or hasQueryParams hasHeaders)}} {
+    {{#if hasQueryParams}}{{#if queryParamsModelName}}{{{queryParamsModelName}}}? params,{{else}}Map<String, dynamic>? params,{{/if}}{{/if}}
+    {{#if hasHeaders}}{{#if headersModelName}}{{{headersModelName}}}? headers,{{else}}Map<String, String>? headers,{{/if}}{{/if}}
+    {{#if hasCancelToken}}CancelToken? cancelToken,{{/if}}
+    {{#if hasProgressCallback}}void Function(int, int)? onSendProgress,
+    void Function(int, int)? onReceiveProgress,{{/if}}
+  }{{/if}}{{/if}}) async {
+    {{#if hasPathParams}}
+    // Build path with parameters
+    final path = '{{path}}'{{#each pathParams}}.replaceAll('{{{originalName}}}', {{dartName}}.toString()){{/each}};
+    {{else}}
+    const path = '{{path}}';
+    {{/if}}
+    
+    {{#if hasQueryParams}}
+    // Build query parameters
+    {{#if queryParamsModelName}}
+    final paramsJson = params?.toJson() ?? <String, dynamic>{};
+    // Remove null values from query parameters
+    final queryParameters = <String, dynamic>{
+      for (final entry in paramsJson.entries)
+        if (entry.value != null) entry.key: entry.value,
+    };
+    {{else}}
+    final queryParameters = params ?? <String, dynamic>{};
+    {{/if}}
+    {{/if}}
+    
+    {{#if hasHeaders}}
+    // Build headers  
+    {{#if headersModelName}}
+    final headersJson = headers?.toJson() ?? <String, dynamic>{};
+    // Remove null values from headers - they should not be sent
+    final requestHeaders = <String, String>{
+      for (final entry in headersJson.entries)
+        if (entry.value != null) entry.key: entry.value.toString(),
+    };
+    {{else}}
+    final requestHeaders = headers ?? <String, String>{};
+    {{/if}}
+    {{/if}}
+    
+    try {
+      {{#if returnsVoid}}
+      await client.{{httpMethod}}<Map<String, dynamic>>(
+      {{else if returnsList}}
+      final response = await client.{{httpMethod}}<List<dynamic>>(
+      {{else if returnsModel}}
+      final response = await client.{{httpMethod}}<Map<String, dynamic>>(
+      {{else if returnsPrimitive}}
+      final response = await client.{{httpMethod}}<{{{returnType}}}>(
+      {{else}}
+      final response = await client.{{httpMethod}}<dynamic>(
+      {{/if}}
+        path,
+        {{#if hasBody}}
+        data: {{#if bodyIsModel}}{{bodyParam}}.toJson(){{else}}{{bodyParam}}{{/if}},
+        {{/if}}
+        {{#if hasQueryParams}}
+        queryParameters: queryParameters,
+        {{/if}}
+        {{#if hasHeaders}}
+        headers: requestHeaders,
+        {{/if}}
+        {{#if hasCancelToken}}
+        cancelToken: cancelToken,
+        {{/if}}
+        {{#if hasProgressCallback}}
+        {{#if (eq httpMethod "post")}}
+        onSendProgress: onSendProgress,
+        onReceiveProgress: onReceiveProgress,
+        {{else if (eq httpMethod "put")}}
+        onSendProgress: onSendProgress,
+        onReceiveProgress: onReceiveProgress,
+        {{else if (eq httpMethod "patch")}}
+        onSendProgress: onSendProgress,
+        onReceiveProgress: onReceiveProgress,
+        {{else if (eq httpMethod "get")}}
+        onReceiveProgress: onReceiveProgress,
+        {{/if}}
+        {{/if}}
+      );
+      
+      {{#if returnsVoid}}
+      return;
+      {{else if returnsList}}
+      return response
+          .map((item) => {{{itemType}}}.fromJson(item as Map<String, dynamic>))
+          .toList();
+      {{else if returnsModel}}
+      return {{{returnType}}}.fromJson(response);
+      {{else if returnsPrimitive}}
+      return response;
+      {{else}}
+      return response;
+      {{/if}}
+    } catch (e) {
+      {{#if hasErrorHandling}}
+      // Handle specific error responses
+      if (e is ApiException) {
+        switch (e.statusCode) {
+          {{#each errorResponses}}
+          case {{statusCode}}:
+            {{#if hasErrorModel}}
+            // Error model: {{errorModel}}
+            {{/if}}
+            throw ApiException(
+              statusCode: {{statusCode}},
+              message: '{{description}}',
+              error: e.error,
+            );
+          {{/each}}
+        }
+      }
+      {{/if}}
+      
+      // Re-throw as ApiException if not already
+      if (e is ApiException) {
+        rethrow;
+      }
+      
+      throw ApiException(
+        message: e.toString(),
+        error: e,
+      );
+    }
+  }

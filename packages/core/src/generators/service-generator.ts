@@ -3,13 +3,14 @@
  */
 
 import type { OpenAPIV3 } from 'openapi-types';
-import { OpenAPIObject, DartGeneratorOptions, GeneratedFile } from '../types';
+import { OpenAPIObject, DartGeneratorOptions, GeneratedFile, ClientGeneratorBuilder } from '../types';
 import { OpenAPIParser } from '../parser/openapi-parser';
 import { EndpointGenerator, EndpointMethod } from './endpoint-generator';
 import { TemplateManager } from '../templates/template-manager';
 import { TypeMapper } from '../utils/type-mapper';
 import { ParamsGenerator } from './params-generator';
 import { ConfigurableHeaderGenerator } from './configurable-header-generator';
+import { CustomHeaderMatcher } from './custom-header-matcher';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 
@@ -26,9 +27,11 @@ export class ServiceGenerator {
   private templateManager: TemplateManager;
   private paramsGenerator: ParamsGenerator;
   private configurableHeaderGenerator: ConfigurableHeaderGenerator | null = null;
+  private customHeaderMatcher: CustomHeaderMatcher | null = null;
   private schemas: Record<string, any> = {};
   private originalSpec: OpenAPIObject | null = null;
   private options: DartGeneratorOptions | null = null;
+  private clientBuilder: ClientGeneratorBuilder | null = null;
 
   constructor() {
     this.endpointGenerator = new EndpointGenerator();
@@ -49,6 +52,54 @@ export class ServiceGenerator {
   }
 
   /**
+   * Load the appropriate client builder based on configuration
+   */
+  private loadClientBuilder(options: DartGeneratorOptions): void {
+    const clientType = options.output.client || 'dio';
+    
+    try {
+      if (clientType === 'custom' || options.output.override?.mutator) {
+        // Try to load custom client builder
+        try {
+          const customBuilder = require('@dorval/custom');
+          this.clientBuilder = customBuilder.builder()();
+          console.log('Loaded @dorval/custom client builder');
+        } catch (e) {
+          // Try relative path
+          const customBuilder = require('../../custom/dist');
+          this.clientBuilder = customBuilder.builder()();
+          console.log('Loaded custom client builder from relative path');
+        }
+      } else if (clientType === 'dio') {
+        // Try to load Dio client builder
+        try {
+          const dioBuilder = require('@dorval/dio');
+          this.clientBuilder = dioBuilder.builder()();
+          console.log('Loaded @dorval/dio client builder');
+        } catch (e) {
+          // Try relative path
+          const dioBuilder = require('../../dio/dist');
+          this.clientBuilder = dioBuilder.builder()();
+          console.log('Loaded dio client builder from relative path');
+        }
+      } else {
+        // Default to Dio
+        try {
+          const dioBuilder = require('@dorval/dio');
+          this.clientBuilder = dioBuilder.builder()();
+        } catch (e) {
+          const dioBuilder = require('../../dio/dist');
+          this.clientBuilder = dioBuilder.builder()();
+        }
+      }
+    } catch (error: any) {
+      console.warn(`Failed to load ${clientType} client builder, falling back to default templates:`, error?.message || error);
+      // Fall back to existing template-based approach
+      this.clientBuilder = null;
+    }
+  }
+
+  /**
    * Generate service classes from OpenAPI spec
    */
   async generateServices(
@@ -62,8 +113,16 @@ export class ServiceGenerator {
     // Store options
     this.options = options;
     
-    // Initialize configurable header generator if shared headers are configured
-    if (options.output.override?.sharedHeaders) {
+    // Load client builder based on configuration
+    this.loadClientBuilder(options);
+    
+    // Initialize header generators based on configuration
+    if (options.output.override?.headers && options.output.override.headers.definitions) {
+      // New headers configuration with custom-matching
+      this.customHeaderMatcher = new CustomHeaderMatcher(options.output.override.headers as any);
+      console.log('Initialized CustomHeaderMatcher with config:', options.output.override.headers);
+    } else if (options.output.override?.sharedHeaders) {
+      // Legacy shared headers configuration
       this.configurableHeaderGenerator = new ConfigurableHeaderGenerator(
         options.output.override.sharedHeaders
       );
@@ -105,7 +164,27 @@ export class ServiceGenerator {
     files.push(...paramFiles);
     
     // Add header model files
-    if (this.configurableHeaderGenerator) {
+    if (this.customHeaderMatcher) {
+      // Generate consolidated header files from custom-matcher
+      const consolidatedHeaderFiles = this.generateConsolidatedHeaderFiles();
+      files.push(...consolidatedHeaderFiles);
+      files.push(...headerFiles); // Add any non-matched header files
+      
+      // Generate index for all header files
+      const allHeaderFiles = [...consolidatedHeaderFiles, ...headerFiles];
+      if (allHeaderFiles.length > 0) {
+        const headersIndexContent = this.generateHeadersIndex(allHeaderFiles);
+        files.push({
+          path: 'models/headers/index.dart',
+          content: headersIndexContent
+        });
+      }
+      
+      // Print matching report
+      const report = this.customHeaderMatcher.generateReport();
+      console.log('\n' + report);
+      console.log(`Total header files generated: ${allHeaderFiles.length} (${consolidatedHeaderFiles.length} consolidated, ${headerFiles.length} endpoint-specific)`);
+    } else if (this.configurableHeaderGenerator) {
       // Generate shared header files
       const sharedHeaderFiles = this.configurableHeaderGenerator.generateSharedHeaderFiles();
       files.push(...sharedHeaderFiles);
@@ -264,8 +343,32 @@ export class ServiceGenerator {
       }
       
       if (endpointMethod.needsHeadersModel && endpointMethod.headers.length > 0) {
-        // Use configurable header generator if available
-        if (this.configurableHeaderGenerator) {
+        // Use custom header matcher if available
+        if (this.customHeaderMatcher) {
+          const matchedClassName = this.customHeaderMatcher.findMatchingHeaderClass(
+            path,
+            endpointMethod.headers
+          );
+          
+          if (matchedClassName) {
+            // Found a match - use the consolidated header class
+            endpointMethod.headersModelName = matchedClassName;
+            console.log(`Matched endpoint ${path} to header class: ${matchedClassName}`);
+          } else {
+            // No match - generate endpoint-specific header class
+            if (endpointMethod.headersModelName && !generatedParamModels.has(endpointMethod.headersModelName)) {
+              const headersModel = this.paramsGenerator.generateHeadersModel(
+                endpointMethod.methodName,
+                endpointMethod.headers
+              );
+              if (headersModel) {
+                headerFiles.push(headersModel);
+                generatedParamModels.add(endpointMethod.headersModelName);
+              }
+            }
+          }
+        } else if (this.configurableHeaderGenerator) {
+          // Legacy configurable header generator
           const headerModelName = this.configurableHeaderGenerator.getHeaderModelName(
             endpointMethod.methodName,
             endpointMethod.headers
@@ -426,6 +529,60 @@ ${exports}
     return `// Generated index file for header models
 ${exports}
 `;
+  }
+  
+  /**
+   * Generate consolidated header files from custom-matcher definitions
+   */
+  private generateConsolidatedHeaderFiles(): GeneratedFile[] {
+    if (!this.customHeaderMatcher || !this.options?.output.override?.headers) {
+      return [];
+    }
+    
+    const files: GeneratedFile[] = [];
+    const config = this.options.output.override.headers;
+    const generatedSignatures = new Set<string>();
+    
+    // Generate files for each unique header class (based on sorted signature)
+    if (config.definitions) {
+      Object.entries(config.definitions).forEach(([className, definition]) => {
+        const fields = Array.isArray(definition.fields) 
+          ? definition.fields.map(f => ({ name: f, required: definition.required?.includes(f) ?? true }))
+          : Object.entries(definition.fields).map(([name, info]) => ({
+              name,
+              required: typeof info === 'object' && info !== null ? info.required ?? true : true
+            }));
+        
+        // Create a signature for this header definition (sorted for consistency)
+        const signature = fields
+          .map(f => `${f.name}:${f.required ? 'R' : 'O'}`)
+          .sort()
+          .join('|');
+        
+        // Only generate if we haven't seen this signature before
+        if (!generatedSignatures.has(signature)) {
+          generatedSignatures.add(signature);
+          
+          const headerParams = fields.map(f => ({
+            originalName: f.name,
+            paramName: TypeMapper.toCamelCase(f.name.replace(/^x-/, '').replace(/-/g, '_')),
+            dartName: TypeMapper.toCamelCase(f.name.replace(/^x-/, '').replace(/-/g, '_')),
+            type: 'String',
+            required: f.required,
+            description: ''
+          }));
+          
+          const headersModel = this.paramsGenerator.generateHeadersModel(className, headerParams);
+          if (headersModel) {
+            // Update the file name to match the class name
+            headersModel.path = `models/headers/${TypeMapper.toSnakeCase(className)}.dart`;
+            files.push(headersModel);
+          }
+        }
+      });
+    }
+    
+    return files;
   }
 }
 

@@ -1,0 +1,23 @@
+{{#if useCustomClient}}
+import '../api_client_interface.dart';
+{{else}}
+import '../dio_api_client.dart';
+{{/if}}
+import 'api_exception.dart';
+{{#each imports}}
+import '{{this}}';
+{{/each}}
+
+{{#if description}}
+{{{dartDoc description}}}
+{{/if}}
+class {{serviceName}} {
+  final ApiClient client;
+  
+  {{serviceName}}(this.client);
+  
+{{#each methods}}
+{{> service-method-updated}}
+
+{{/each}}
+}

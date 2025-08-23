@@ -1,0 +1,214 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'api_client_interface.dart';
+
+/// Example custom client implementation using the http package
+/// 
+/// This is an example of how users can implement their own ApiClient.
+/// You can replace this with any HTTP library of your choice.
+class CustomApiClient implements ApiClient {
+  final String _baseUrl;
+  final Map<String, String> _defaultHeaders = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  };
+  
+  CustomApiClient({
+    String? baseUrl,
+    Map<String, String>? defaultHeaders,
+  }) : _baseUrl = baseUrl ?? '{{defaultBaseUrl}}' {
+    if (defaultHeaders != null) {
+      _defaultHeaders.addAll(defaultHeaders);
+    }
+  }
+  
+  @override
+  String get baseUrl => _baseUrl;
+  
+  @override
+  void setHeaders(Map<String, String> headers) {
+    _defaultHeaders.addAll(headers);
+  }
+  
+  Uri _buildUri(String path, Map<String, dynamic>? queryParameters) {
+    final uri = Uri.parse('$_baseUrl$path');
+    if (queryParameters != null && queryParameters.isNotEmpty) {
+      return uri.replace(queryParameters: {
+        for (final entry in queryParameters.entries)
+          entry.key: entry.value.toString(),
+      });
+    }
+    return uri;
+  }
+  
+  Map<String, String> _buildHeaders(Map<String, String>? headers) {
+    final allHeaders = Map<String, String>.from(_defaultHeaders);
+    if (headers != null) {
+      allHeaders.addAll(headers);
+    }
+    return allHeaders;
+  }
+  
+  T _parseResponse<T>(http.Response response) {
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      if (response.body.isEmpty) {
+        return null as T;
+      }
+      
+      final dynamic decoded = json.decode(response.body);
+      return decoded as T;
+    } else {
+      throw ApiException(
+        statusCode: response.statusCode,
+        message: 'HTTP error: ${response.statusCode}',
+        error: response.body,
+      );
+    }
+  }
+  
+  @override
+  Future<T> get<T>(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    Map<String, String>? headers,
+    CancelToken? cancelToken,
+    void Function(int, int)? onReceiveProgress,
+  }) async {
+    final uri = _buildUri(path, queryParameters);
+    final response = await http.get(
+      uri,
+      headers: _buildHeaders(headers),
+    );
+    return _parseResponse<T>(response);
+  }
+  
+  @override
+  Future<T> post<T>(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Map<String, String>? headers,
+    CancelToken? cancelToken,
+    void Function(int, int)? onSendProgress,
+    void Function(int, int)? onReceiveProgress,
+  }) async {
+    final uri = _buildUri(path, queryParameters);
+    final response = await http.post(
+      uri,
+      headers: _buildHeaders(headers),
+      body: data is String ? data : json.encode(data),
+    );
+    return _parseResponse<T>(response);
+  }
+  
+  @override
+  Future<T> put<T>(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Map<String, String>? headers,
+    CancelToken? cancelToken,
+    void Function(int, int)? onSendProgress,
+    void Function(int, int)? onReceiveProgress,
+  }) async {
+    final uri = _buildUri(path, queryParameters);
+    final response = await http.put(
+      uri,
+      headers: _buildHeaders(headers),
+      body: data is String ? data : json.encode(data),
+    );
+    return _parseResponse<T>(response);
+  }
+  
+  @override
+  Future<T> patch<T>(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Map<String, String>? headers,
+    CancelToken? cancelToken,
+    void Function(int, int)? onSendProgress,
+    void Function(int, int)? onReceiveProgress,
+  }) async {
+    final uri = _buildUri(path, queryParameters);
+    final response = await http.patch(
+      uri,
+      headers: _buildHeaders(headers),
+      body: data is String ? data : json.encode(data),
+    );
+    return _parseResponse<T>(response);
+  }
+  
+  @override
+  Future<T> delete<T>(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Map<String, String>? headers,
+    CancelToken? cancelToken,
+  }) async {
+    final uri = _buildUri(path, queryParameters);
+    final response = await http.delete(
+      uri,
+      headers: _buildHeaders(headers),
+      body: data != null ? (data is String ? data : json.encode(data)) : null,
+    );
+    return _parseResponse<T>(response);
+  }
+  
+  @override
+  Future<T> head<T>(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Map<String, String>? headers,
+    CancelToken? cancelToken,
+  }) async {
+    final uri = _buildUri(path, queryParameters);
+    final response = await http.head(
+      uri,
+      headers: _buildHeaders(headers),
+    );
+    return _parseResponse<T>(response);
+  }
+  
+  @override
+  void dispose() {
+    // http package doesn't need disposal
+  }
+}
+
+/// Simple implementation of CancelToken for custom client
+class CustomCancelToken implements CancelToken {
+  bool _isCancelled = false;
+  String? _reason;
+  
+  @override
+  void cancel([String? reason]) {
+    _isCancelled = true;
+    _reason = reason;
+  }
+  
+  @override
+  bool get isCancelled => _isCancelled;
+  
+  String? get reason => _reason;
+}
+
+/// API Exception class
+class ApiException implements Exception {
+  final int? statusCode;
+  final String message;
+  final dynamic error;
+  
+  ApiException({
+    this.statusCode,
+    required this.message,
+    this.error,
+  });
+  
+  @override
+  String toString() {
+    return 'ApiException: $message${statusCode != null ? ' (Status: $statusCode)' : ''}';
+  }
+}

@@ -167,6 +167,7 @@ This project reuses the OpenAPI parsing infrastructure from Orval while implemen
 - All HTTP methods (GET, POST, PUT, DELETE, PATCH)
 - Reference resolution for `$ref` schemas
 - Custom file naming conventions (`.f.dart` for Freezed models)
+- **Custom header consolidation** - Intelligent header class matching and deduplication
 
 ### 🚧 In Progress
 - Retrofit client generation
@@ -238,6 +239,35 @@ export default {
         dio: {
           baseUrl: 'https://api.example.com',  // Override base URL
           interceptors: ['AuthInterceptor']    // Custom interceptors
+        },
+        
+        // Custom header consolidation (new feature!)
+        headers: {
+          // Define reusable header classes
+          definitions: {
+            ApiKeyHeader: {
+              fields: ['x-api-key'],
+              required: ['x-api-key'],
+              description: 'API key authentication'
+            },
+            CompanyHeaders: {
+              fields: ['x-api-key', 'x-company-id', 'x-user-id'],
+              required: ['x-api-key', 'x-company-id'],  // x-user-id is optional
+              description: 'Company context headers'
+            }
+          },
+          
+          // Optional: Map specific endpoints to header classes
+          mapping: {
+            '/v1/health/*': 'ApiKeyHeader',
+            '/v1/companies/**': 'CompanyHeaders'
+          },
+          
+          // Enable smart header matching
+          customMatch: true,           // Auto-match endpoints to header definitions
+          matchStrategy: 'exact',      // 'exact' | 'subset' | 'fuzzy'
+          customConsolidate: true,     // Auto-create shared classes for common patterns
+          consolidationThreshold: 3    // Min endpoints to trigger consolidation
         }
       }
     },
@@ -289,6 +319,59 @@ export default {
   }
 }
 ```
+
+#### Header Consolidation Configuration
+
+Dorval can intelligently consolidate duplicate header classes across your API:
+
+```typescript
+export default {
+  api: {
+    input: './openapi.json',
+    output: {
+      target: './lib/api',
+      override: {
+        headers: {
+          // Define common header patterns
+          definitions: {
+            BasicAuth: {
+              fields: ['x-api-key'],
+              required: ['x-api-key']
+            },
+            UserContext: {
+              fields: ['x-api-key', 'x-user-id', 'x-session-id'],
+              required: ['x-api-key', 'x-user-id']  // x-session-id is optional
+            },
+            AdminContext: {
+              fields: ['x-api-key', 'x-admin-id', 'x-permission-level'],
+              required: ['x-api-key', 'x-admin-id', 'x-permission-level']
+            }
+          },
+          
+          // Enable automatic matching
+          customMatch: true,
+          matchStrategy: 'exact',  // Matches must have exact same fields and required status
+          
+          // Auto-consolidate common patterns
+          customConsolidate: true,
+          consolidationThreshold: 3  // Create shared class if 3+ endpoints use same headers
+        }
+      }
+    }
+  }
+}
+```
+
+**Benefits:**
+- **Reduces duplication**: Instead of 85 header classes, you might only need 5-10
+- **Order-independent**: Headers with same fields but different order are recognized as identical
+- **Required-aware**: Distinguishes between required and optional fields
+- **Smart naming**: Auto-generates meaningful names for consolidated classes
+
+**Match Strategies:**
+- `exact`: Fields and required status must match exactly (recommended)
+- `subset`: Endpoint headers can be a subset of the definition
+- `fuzzy`: Best-effort matching using similarity scoring
 
 ## Examples
 

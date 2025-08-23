@@ -1,0 +1,107 @@
+/// Abstract interface for API clients
+/// 
+/// This interface defines the contract that all HTTP clients must implement.
+/// It allows for different implementations (Dio, Custom, etc.) without
+/// coupling the generated services to a specific HTTP library.
+abstract class ApiClient {
+  /// Base URL for the API
+  String get baseUrl;
+  
+  /// Set custom headers for all requests
+  void setHeaders(Map<String, String> headers);
+  
+  /// Perform GET request
+  Future<T> get<T>(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    Map<String, String>? headers,
+    CancelToken? cancelToken,
+    void Function(int, int)? onReceiveProgress,
+  });
+  
+  /// Perform POST request
+  Future<T> post<T>(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Map<String, String>? headers,
+    CancelToken? cancelToken,
+    void Function(int, int)? onSendProgress,
+    void Function(int, int)? onReceiveProgress,
+  });
+  
+  /// Perform PUT request
+  Future<T> put<T>(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Map<String, String>? headers,
+    CancelToken? cancelToken,
+    void Function(int, int)? onSendProgress,
+    void Function(int, int)? onReceiveProgress,
+  });
+  
+  /// Perform PATCH request
+  Future<T> patch<T>(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Map<String, String>? headers,
+    CancelToken? cancelToken,
+    void Function(int, int)? onSendProgress,
+    void Function(int, int)? onReceiveProgress,
+  });
+  
+  /// Perform DELETE request
+  Future<T> delete<T>(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Map<String, String>? headers,
+    CancelToken? cancelToken,
+  });
+  
+  /// Perform HEAD request
+  Future<T> head<T>(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Map<String, String>? headers,
+    CancelToken? cancelToken,
+  });
+  
+  /// Dispose of resources
+  void dispose();
+}
+
+/// Cancel token for cancelling requests
+abstract class CancelToken {
+  /// Cancel the request
+  void cancel([String? reason]);
+  
+  /// Check if cancelled
+  bool get isCancelled;
+}
+
+/// Request configuration for custom clients
+class RequestConfig {
+  final String path;
+  final String method;
+  final Map<String, dynamic>? queryParameters;
+  final Map<String, String>? headers;
+  final dynamic data;
+  final CancelToken? cancelToken;
+  final void Function(int, int)? onSendProgress;
+  final void Function(int, int)? onReceiveProgress;
+  
+  RequestConfig({
+    required this.path,
+    required this.method,
+    this.queryParameters,
+    this.headers,
+    this.data,
+    this.cancelToken,
+    this.onSendProgress,
+    this.onReceiveProgress,
+  });
+}

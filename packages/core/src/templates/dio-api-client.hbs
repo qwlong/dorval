@@ -1,0 +1,244 @@
+import 'package:dio/dio.dart' as dio;
+import 'package:flutter/foundation.dart';
+import 'api_client_interface.dart';
+export 'api_client_interface.dart';
+
+/// Dio implementation of ApiClient
+class DioApiClient implements ApiClient {
+  late final dio.Dio _dio;
+  final String _baseUrl;
+  {{#if hasAuth}}
+  String? _authToken;
+  {{/if}}
+  
+  DioApiClient({
+    String? baseUrl,
+    dio.Dio? dioClient,
+    List<dio.Interceptor>? interceptors,
+    {{#if hasAuth}}
+    String? authToken,
+    {{/if}}
+  }) : _baseUrl = baseUrl ?? '{{defaultBaseUrl}}' {
+    _dio = dioClient ?? dio.Dio();
+    _dio.options.baseUrl = _baseUrl;
+    
+    // Set default headers
+    _dio.options.headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      {{#each defaultHeaders}}
+      '{{@key}}': '{{this}}',
+      {{/each}}
+    };
+    
+    // Set default timeout
+    _dio.options.connectTimeout = const Duration(seconds: {{connectTimeout}});
+    _dio.options.receiveTimeout = const Duration(seconds: {{receiveTimeout}});
+    
+    {{#if hasAuth}}
+    // Set auth token if provided
+    if (authToken != null) {
+      setAuthToken(authToken);
+    }
+    {{/if}}
+    
+    // Add custom interceptors
+    if (interceptors != null) {
+      _dio.interceptors.addAll(interceptors);
+    }
+    
+    // Add logging interceptor in debug mode
+    if ({{enableLogging}}) {
+      _dio.interceptors.add(dio.LogInterceptor(
+        request: true,
+        requestHeader: true,
+        requestBody: true,
+        responseHeader: true,
+        responseBody: true,
+        error: true,
+        logPrint: (obj) => debugPrint(obj.toString()),
+      ));
+    }
+  }
+  
+  @override
+  String get baseUrl => _baseUrl;
+  
+  @override
+  void setHeaders(Map<String, String> headers) {
+    _dio.options.headers.addAll(headers);
+  }
+  
+  {{#if hasAuth}}
+  /// Set authentication token
+  void setAuthToken(String token) {
+    _authToken = token;
+    _dio.options.headers['Authorization'] = 'Bearer $token';
+  }
+  
+  /// Clear authentication token
+  void clearAuthToken() {
+    _authToken = null;
+    _dio.options.headers.remove('Authorization');
+  }
+  
+  /// Get current auth token
+  String? get authToken => _authToken;
+  {{/if}}
+  
+  @override
+  Future<T> get<T>(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    Map<String, String>? headers,
+    CancelToken? cancelToken,
+    void Function(int, int)? onReceiveProgress,
+  }) async {
+    final response = await _dio.get<T>(
+      path,
+      queryParameters: queryParameters,
+      options: headers != null ? dio.Options(headers: headers) : null,
+      cancelToken: cancelToken != null ? DioCancelToken(cancelToken) : null,
+      onReceiveProgress: onReceiveProgress,
+    );
+    return response.data as T;
+  }
+  
+  @override
+  Future<T> post<T>(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Map<String, String>? headers,
+    CancelToken? cancelToken,
+    void Function(int, int)? onSendProgress,
+    void Function(int, int)? onReceiveProgress,
+  }) async {
+    final response = await _dio.post<T>(
+      path,
+      data: data,
+      queryParameters: queryParameters,
+      options: headers != null ? dio.Options(headers: headers) : null,
+      cancelToken: cancelToken != null ? DioCancelToken(cancelToken) : null,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+    return response.data as T;
+  }
+  
+  @override
+  Future<T> put<T>(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Map<String, String>? headers,
+    CancelToken? cancelToken,
+    void Function(int, int)? onSendProgress,
+    void Function(int, int)? onReceiveProgress,
+  }) async {
+    final response = await _dio.put<T>(
+      path,
+      data: data,
+      queryParameters: queryParameters,
+      options: headers != null ? dio.Options(headers: headers) : null,
+      cancelToken: cancelToken != null ? DioCancelToken(cancelToken) : null,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+    return response.data as T;
+  }
+  
+  @override
+  Future<T> patch<T>(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Map<String, String>? headers,
+    CancelToken? cancelToken,
+    void Function(int, int)? onSendProgress,
+    void Function(int, int)? onReceiveProgress,
+  }) async {
+    final response = await _dio.patch<T>(
+      path,
+      data: data,
+      queryParameters: queryParameters,
+      options: headers != null ? dio.Options(headers: headers) : null,
+      cancelToken: cancelToken != null ? DioCancelToken(cancelToken) : null,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+    return response.data as T;
+  }
+  
+  @override
+  Future<T> delete<T>(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Map<String, String>? headers,
+    CancelToken? cancelToken,
+  }) async {
+    final response = await _dio.delete<T>(
+      path,
+      data: data,
+      queryParameters: queryParameters,
+      options: headers != null ? dio.Options(headers: headers) : null,
+      cancelToken: cancelToken != null ? DioCancelToken(cancelToken) : null,
+    );
+    return response.data as T;
+  }
+  
+  @override
+  Future<T> head<T>(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Map<String, String>? headers,
+    CancelToken? cancelToken,
+  }) async {
+    final response = await _dio.head<T>(
+      path,
+      data: data,
+      queryParameters: queryParameters,
+      options: headers != null ? dio.Options(headers: headers) : null,
+      cancelToken: cancelToken != null ? DioCancelToken(cancelToken) : null,
+    );
+    return response.data as T;
+  }
+  
+  @override
+  void dispose() {
+    _dio.close();
+  }
+}
+
+/// Adapter to convert ApiClient CancelToken to Dio CancelToken
+class DioCancelToken extends dio.CancelToken {
+  final CancelToken _token;
+  
+  DioCancelToken(this._token);
+  
+  @override
+  void cancel([dynamic reason]) {
+    _token.cancel(reason?.toString());
+    super.cancel(reason);
+  }
+  
+  @override
+  bool get isCancelled => _token.isCancelled;
+}
+
+/// Dio implementation of CancelToken
+class DioCancelTokenImpl implements CancelToken {
+  final dio.CancelToken _dioCancelToken = dio.CancelToken();
+  
+  @override
+  void cancel([String? reason]) {
+    _dioCancelToken.cancel(reason);
+  }
+  
+  @override
+  bool get isCancelled => _dioCancelToken.isCancelled;
+  
+  dio.CancelToken get dioCancelToken => _dioCancelToken;
+}
