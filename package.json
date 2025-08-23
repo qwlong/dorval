@@ -1,6 +1,6 @@
 {
   "name": "dorval-workspace",
-  "version": "0.0.1",
+  "version": "0.0.9",
   "description": "Dart code generator for OpenAPI specifications",
   "private": true,
   "workspaces": [

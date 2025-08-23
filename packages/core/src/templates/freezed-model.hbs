@@ -35,10 +35,7 @@ class {{className}} with _${{className}} {
     {{#if jsonKey}}
     @JsonKey(name: '{{jsonKey}}') 
     {{/if}}
-    {{#if defaultValue}}
-    @Default({{{defaultValue}}})
-    {{/if}}
-    {{#if required}}required {{/if}}{{{type}}} {{{name}}},
+    {{#if defaultValue}}@Default({{{defaultValue}}}) {{/if}}{{#if required}}required {{/if}}{{{type}}} {{{name}}},
     {{#unless @last}}
 
     {{/unless}}
