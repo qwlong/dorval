@@ -1,5 +1,5 @@
 {
-  "extends": "../orval-source/tsconfig.base.json",
+  "extends": "../orval/tsconfig.base.json",
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {

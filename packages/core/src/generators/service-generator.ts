@@ -71,9 +71,9 @@ export class ServiceGenerator {
     
     // Store the original spec - it should already have $refs preserved from parseOpenAPISpec
     this.originalSpec = spec;
-    const parser = new OpenAPIParser();
-    // Use parseWithoutDereference to preserve $refs
-    await parser.parseWithoutDereference(spec);
+    
+    // Debug: Check if the original spec still has $refs
+    console.log('DEBUG: Original spec paths at service generator start:', JSON.stringify(this.originalSpec?.paths, null, 2));
     
     // Store schemas for reference resolution
     this.schemas = spec.components?.schemas || {};
@@ -87,11 +87,11 @@ export class ServiceGenerator {
     this.endpointGenerator.setMethodNaming(methodNaming);
     
     // Get endpoints grouped by tag
-    const endpointsByTag = this.getEndpointsByTag(parser);
+    const endpointsByTag = this.getEndpointsByTag();
     
     // Generate a service class for each tag
     for (const [tag, endpoints] of endpointsByTag.entries()) {
-      const service = this.createServiceClass(tag, endpoints, parser, paramFiles, headerFiles);
+      const service = this.createServiceClass(tag, endpoints, paramFiles, headerFiles);
       const content = this.renderService(service);
       
       const fileName = TypeMapper.toSnakeCase(service.serviceName);
@@ -159,7 +159,7 @@ export class ServiceGenerator {
   /**
    * Get endpoints grouped by tag
    */
-  private getEndpointsByTag(parser: OpenAPIParser): Map<string, EndpointInfo[]> {
+  private getEndpointsByTag(): Map<string, EndpointInfo[]> {
     const grouped = new Map<string, EndpointInfo[]>();
     // Use the original spec paths to preserve $ref
     const paths = this.originalSpec?.paths || {};
@@ -201,7 +201,6 @@ export class ServiceGenerator {
   private createServiceClass(
     tag: string,
     endpoints: EndpointInfo[],
-    parser: OpenAPIParser,
     paramFiles: GeneratedFile[],
     headerFiles: GeneratedFile[]
   ): ServiceClass {
@@ -322,8 +321,8 @@ export class ServiceGenerator {
       imports.add('../models/headers/index.dart');
     }
     
-    // Get tag description if available
-    const tagInfo = parser.getTags().find(t => t.name === tag);
+    // Get tag description if available from the spec
+    const tagInfo = this.originalSpec?.tags?.find(t => t.name === tag);
     
     return {
       serviceName,

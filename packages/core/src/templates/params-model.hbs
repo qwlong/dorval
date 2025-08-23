@@ -16,7 +16,7 @@ class {{className}} with _${{className}} {
   const factory {{className}}({
     {{#each properties}}
     {{#if description}}
-    {{{dartDoc description}}}
+{{{dartDoc description indent=4}}}
     {{/if}}
     {{#if jsonKey}}
     @JsonKey(name: '{{jsonKey}}')

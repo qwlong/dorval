@@ -1,37 +1,35 @@
-import { defineConfig } from '../../packages/core/src';
+import { defineConfig } from '@dorval/core';
 
 export default defineConfig({
   advanced: {
-    input: {
-      target: '../specifications/advanced.yaml',
-      validation: true,
-    },
+    input: './specifications/advanced.yaml',
     output: {
       mode: 'split',
-      target: '../generated/advanced',
-      client: 'dart-dio',
-      clean: true,
+      target: './generated/advanced',
+      client: 'dio',
       override: {
         generator: {
           freezed: true,
           jsonSerializable: true,
           nullSafety: true,
-          copyWith: true,
-          equal: true,
-          toString: true,
+          // Note: These options are not yet supported in DartGeneratorOptions
+          // copyWith: true,
+          // equal: true,
+          // toString: true,
         },
-        // Test custom headers
-        operations: {
-          getUsers: {
-            headers: {
-              'X-Custom-Header': 'test-value',
-            },
-          },
-        },
+        // Note: Custom headers per operation not yet supported
+        // operations: {
+        //   getUsers: {
+        //     headers: {
+        //       'X-Custom-Header': 'test-value',
+        //     },
+        //   },
+        // },
       },
     },
-    hooks: {
-      afterAllFilesWrite: 'dart format ../generated/advanced',
-    },
+    // Note: hooks not yet supported in DartGeneratorOptions
+    // hooks: {
+    //   afterAllFilesWrite: 'dart format ./generated/advanced',
+    // },
   },
 });

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart'; // for kDebugMode
 {{#if hasInterceptors}}
 import 'package:dio/io.dart';
 {{/if}}
@@ -121,7 +122,9 @@ class ApiClient {
   {{#if hasErrorInterceptor}}
   void _handleUnauthorized() {
     // Clear auth token and redirect to login
+    {{#if hasAuth}}
     clearAuthToken();
+    {{/if}}
     // You can emit an event or call a callback here
   }
   

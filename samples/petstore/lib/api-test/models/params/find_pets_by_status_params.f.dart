@@ -9,7 +9,7 @@ part 'find_pets_by_status_params.f.g.dart';
 @freezed
 class FindPetsByStatusParams with _$FindPetsByStatusParams {
   const factory FindPetsByStatusParams({
-        /// Status values that need to be considered for filter
+    /// Status values that need to be considered for filter
     required List<String> status,
   }) = _FindPetsByStatusParams;
 

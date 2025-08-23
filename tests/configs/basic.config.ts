@@ -1,14 +1,12 @@
-import { defineConfig } from '../../packages/core/src';
+import { defineConfig } from '@dorval/core';
 
 export default defineConfig({
   petstore: {
-    input: {
-      target: '../specifications/petstore.yaml',
-    },
+    input: './specifications/petstore.yaml',
     output: {
       mode: 'split',
-      target: '../generated/petstore',
-      client: 'dart-dio',
+      target: './generated/petstore',
+      client: 'dio',
       override: {
         generator: {
           freezed: true,

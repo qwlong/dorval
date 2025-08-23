@@ -19,7 +19,7 @@ Thank you for your interest in contributing to Dorval! We welcome contributions 
    ```bash
    # Fork on GitHub first, then:
    git clone https://github.com/YOUR_USERNAME/dorval.git
-   cd orval-dart
+   cd dorval
    
    # Add upstream remote
    git remote add upstream https://github.com/qwlong/dorval.git
@@ -43,7 +43,7 @@ Thank you for your interest in contributing to Dorval! We welcome contributions 
 ## 📁 Project Structure
 
 ```
-orval-dart/
+dorval/
 ├── packages/
 │   ├── core/                   # Core generation logic (@dorval/core)
 │   │   ├── src/

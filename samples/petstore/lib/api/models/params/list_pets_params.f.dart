@@ -9,9 +9,9 @@ part 'list_pets_params.f.g.dart';
 @freezed
 class ListPetsParams with _$ListPetsParams {
   const factory ListPetsParams({
-        /// How many items to return at one time (max 100)
+    /// How many items to return at one time (max 100)
     int? limit,
-        /// The offset for pagination
+    /// The offset for pagination
     int? offset,
   }) = _ListPetsParams;
 

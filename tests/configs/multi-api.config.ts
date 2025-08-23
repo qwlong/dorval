@@ -1,16 +1,14 @@
-import { defineConfig } from '../../packages/core/src';
+import { defineConfig } from '@dorval/core';
 
 // Test configuration with multiple APIs
 export default defineConfig({
   // First API - Petstore
   petstore: {
-    input: {
-      target: '../specifications/petstore.yaml',
-    },
+    input: './specifications/petstore.yaml',
     output: {
       mode: 'split',
-      target: '../generated/multi/petstore',
-      client: 'dart-dio',
+      target: './generated/multi/petstore',
+      client: 'dio',
       override: {
         generator: {
           freezed: true,
@@ -22,13 +20,11 @@ export default defineConfig({
   
   // Second API - Advanced features
   advanced: {
-    input: {
-      target: '../specifications/advanced.yaml',
-    },
+    input: './specifications/advanced.yaml',
     output: {
       mode: 'split',
-      target: '../generated/multi/advanced',
-      client: 'dart-dio',
+      target: './generated/multi/advanced',
+      client: 'dio',
       override: {
         generator: {
           freezed: true,
@@ -40,13 +36,11 @@ export default defineConfig({
   
   // Third API - Single file mode test
   singleFile: {
-    input: {
-      target: '../specifications/petstore.yaml',
-    },
+    input: './specifications/petstore.yaml',
     output: {
       mode: 'single',
-      target: '../generated/multi/single/api.dart',
-      client: 'dart-dio',
+      target: './generated/multi/single/api.dart',
+      client: 'dio',
     },
   },
 });

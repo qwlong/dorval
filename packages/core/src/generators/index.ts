@@ -23,8 +23,10 @@ export async function generateDartCode(options: DartGeneratorOptions): Promise<G
   const client = await generateClient(spec, options);
   files.push(...client);
   
-  // Generate services - parse fresh spec to preserve $refs
-  const freshSpec = await parseOpenAPISpec(options.input);
+  // Generate services - create a deep copy to preserve $refs
+  const freshSpec = typeof options.input === 'object' 
+    ? JSON.parse(JSON.stringify(options.input)) 
+    : await parseOpenAPISpec(options.input);
   const services = await generateServices(freshSpec, options);
   files.push(...services);
   
