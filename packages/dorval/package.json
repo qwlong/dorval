@@ -1,6 +1,6 @@
 {
   "name": "dorval",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "CLI tool for generating Dart/Flutter API clients from OpenAPI specifications",
   "keywords": [
     "cli",
@@ -43,7 +43,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@dorval/core": "0.0.7",
+    "@dorval/core": "0.0.8",
     "commander": "^11.0.0",
     "chalk": "^4.1.2",
     "ora": "5.4.1",

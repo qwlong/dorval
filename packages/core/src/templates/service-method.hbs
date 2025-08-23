@@ -1,12 +1,12 @@
-  {{#if description}}
-  {{{dartDoc description}}}
-  {{/if}}
-  {{#if deprecated}}
+{{#if description}}
+{{{dartDoc description}}}
+{{/if}}
+{{#if deprecated}}
   @Deprecated('{{deprecationMessage}}')
-  {{/if}}
-  {{#if summary}}
-  {{{dartDoc summary}}}
-  {{/if}}
+{{/if}}
+{{#if summary}}
+{{{dartDoc summary}}}
+{{/if}}
   Future<{{{returnType}}}> {{{methodName}}}({{#if hasParameters}}{{#if hasPathParams}}{{#each pathParams}}
     String {{dartName}},{{/each}}{{/if}}{{#if hasBody}}
     {{{bodyType}}} {{bodyParam}},{{/if}}{{#if (or hasQueryParams hasHeaders)}} {

@@ -53,7 +53,7 @@ export class TemplateManager {
       if (!text) return '';
       
       // Check if indentLevel is passed as a hash parameter
-      const indentLevel = options?.hash?.indent ?? 4;
+      const indentLevel = options?.hash?.indent ?? 2;
       const indentStr = ' '.repeat(indentLevel);
       
       // Split by newlines
@@ -67,7 +67,7 @@ export class TemplateManager {
         lines.pop();
       }
       
-      // Format each line with /// prefix
+      // Format each line with /// prefix, all with same indentation
       const formattedLines = lines.map((line) => {
         const trimmed = line.trim();
         return trimmed ? `${indentStr}/// ${trimmed}` : `${indentStr}///`;

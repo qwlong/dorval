@@ -119,7 +119,8 @@ export class ModelGenerator {
       properties: model.properties.map(prop => ({
         name: prop.name,
         type: prop.type,
-        required: prop.required,
+        // If a field has a default value, it should not be marked as required in Freezed
+        required: prop.required && !prop.defaultValue,
         nullable: prop.nullable,
         description: prop.description,
         jsonKey: prop.jsonKey,
