@@ -224,7 +224,7 @@ export class CustomHeaderMatcher {
     
     // Fallback: use header composition to name it
     const hasApiKey = headers.some(h => h.originalName === 'x-api-key');
-    const hasCompany = headers.some(h => h.originalName === 'x-core-company-id');
+    const hasCompany = headers.some(h => h.originalName === 'x-core-company-id' || h.originalName === 'x-company-id');
     const hasStaff = headers.some(h => h.originalName === 'x-company-staff-id');
     const hasMember = headers.some(h => h.originalName === 'x-team-member-id');
     
@@ -234,7 +234,20 @@ export class CustomHeaderMatcher {
     if (hasMember) name += 'Member';
     if (name === '') name = 'Common';
     
-    return `${name}Headers`;
+    // Add suffix to distinguish different required patterns
+    const requiredCount = headers.filter(h => h.required).length;
+    const totalCount = headers.length;
+    
+    if (requiredCount === totalCount) {
+      // All required - no suffix needed
+      return `${name}Headers`;
+    } else if (requiredCount === 0) {
+      // All optional
+      return `${name}OptionalHeaders`;
+    } else {
+      // Mixed - add a suffix to distinguish
+      return `${name}Headers${requiredCount}R${totalCount - requiredCount}O`;
+    }
   }
   
   /**

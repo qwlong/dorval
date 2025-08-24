@@ -11,7 +11,7 @@ describe('Enum Generation', () => {
       'Pet status in the store'
     );
 
-    expect(result.path).toBe('models/pet_status.dart');
+    expect(result.path).toBe('models/pet_status.f.dart');
     expect(result.content).toContain('enum PetStatus');
     expect(result.content).toContain("available('available')");
     expect(result.content).toContain("pending('pending')");

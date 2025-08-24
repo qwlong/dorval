@@ -230,6 +230,15 @@ export class TypeMapper {
   }
 
   /**
+   * Convert to PascalCase
+   */
+  static toPascalCase(str: string): string {
+    return str
+      .replace(/[-_\s]+(.)?/g, (_, char) => char ? char.toUpperCase() : '')
+      .replace(/^(.)/, (_, char) => char.toUpperCase());
+  }
+
+  /**
    * Get Dart imports needed for a type
    */
   static getImportsForType(type: string): string[] {

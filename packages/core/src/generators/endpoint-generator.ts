@@ -70,6 +70,7 @@ export interface QueryParameter {
 export interface HeaderParameter {
   dartName: string;
   originalName: string;
+  paramName?: string; // Optional for backward compatibility
   required: boolean;
   type?: string;
   description?: string;

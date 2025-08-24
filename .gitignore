@@ -12,6 +12,8 @@ build/
 coverage/
 *.lcov
 .nyc_output
+test-output*
+test-output-*
 
 # IDE
 .vscode/

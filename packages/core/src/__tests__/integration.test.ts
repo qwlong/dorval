@@ -41,8 +41,8 @@ describe('Integration Test', () => {
     const modelFiles = files.filter(f => f.path.startsWith('models/'));
     expect(modelFiles.length).toBeGreaterThan(0);
     
-    // Should have Pet model
-    const petModel = files.find(f => f.path === 'models/pet.dart');
+    // Should have Pet model (with .f.dart extension for Freezed)
+    const petModel = files.find(f => f.path === 'models/pet.f.dart');
     expect(petModel).toBeDefined();
     if (petModel) {
       expect(petModel.content).toContain('@freezed');
@@ -98,7 +98,7 @@ describe('Integration Test', () => {
       
       // Check for proper async/await usage
       expect(content).toContain('async {');
-      expect(content).toContain('await dio.');
+      expect(content).toContain('await client.');
       
       // Check for error handling
       expect(content).toContain('try {');
@@ -141,16 +141,16 @@ describe('Integration Test', () => {
     const allServiceContent = serviceFiles.map(f => f.content).join('\n');
     
     // Check for different HTTP methods
-    const httpMethods = ['dio.get', 'dio.post', 'dio.put', 'dio.delete'];
+    const httpMethods = ['client.get', 'client.post', 'client.put', 'client.delete'];
     const foundMethods = httpMethods.filter(method => 
       allServiceContent.includes(method)
     );
     
     // Should have at least GET and POST
-    expect(foundMethods).toContain('dio.get');
+    expect(foundMethods).toContain('client.get');
     // POST might be in the petstore spec
     if (allServiceContent.includes('create')) {
-      expect(foundMethods).toContain('dio.post');
+      expect(foundMethods).toContain('client.post');
     }
     
     // Clean up
