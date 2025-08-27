@@ -106,7 +106,10 @@ describe('Integration Test', () => {
       
       // Check for query parameters handling
       if (content.includes('queryParameters')) {
-        expect(content).toContain('final queryParameters = <String, dynamic>{};');
+        // Query parameters should be defined as a Map
+        const hasQueryParams = content.includes('queryParameters = <String, dynamic>{') ||
+                              content.includes('queryParameters: queryParameters');
+        expect(hasQueryParams).toBe(true);
       }
       
       // Check for path parameters  

@@ -572,12 +572,31 @@ ${exports}
             description: ''
           }));
           
-          const headersModel = this.paramsGenerator.generateHeadersModel(className, headerParams);
-          if (headersModel) {
-            // Update the file name to match the class name
-            headersModel.path = `models/headers/${TypeMapper.toSnakeCase(className)}.dart`;
-            files.push(headersModel);
-          }
+          // Create a custom header model directly with the correct class name
+          const headersClassName = className.endsWith('Headers') ? className : className + 'Headers';
+          const fileName = TypeMapper.toSnakeCase(className);
+          
+          const properties = headerParams.map(header => ({
+            name: header.dartName,
+            type: header.type || 'String',
+            required: header.required,
+            description: header.description,
+            jsonKey: header.dartName !== header.originalName ? header.originalName : undefined
+          }));
+          
+          const content = this.templateManager.render('freezed-model', {
+            className: headersClassName,
+            fileName: fileName,  // Pass the actual file name without extension
+            isEnum: false,
+            properties,
+            hasJsonKey: properties.some(p => p.jsonKey),
+            hasDescription: properties.some(p => p.description)
+          });
+          
+          files.push({
+            path: `models/headers/${fileName}.dart`,
+            content
+          });
         }
       });
     }

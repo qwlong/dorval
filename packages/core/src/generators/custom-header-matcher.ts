@@ -13,9 +13,9 @@ export interface HeaderDefinition {
 
 export interface CustomMatchConfig {
   definitions: { [className: string]: HeaderDefinition };
-  autoMatch?: boolean;
+  customMatch?: boolean;
   matchStrategy?: 'exact' | 'subset' | 'fuzzy';
-  autoConsolidate?: boolean;
+  customConsolidate?: boolean;  // 改为 customConsolidate 保持一致性
   consolidationThreshold?: number;
 }
 
@@ -206,6 +206,8 @@ export class CustomHeaderMatcher {
     // Try to find common pattern in endpoints
     const commonPrefix = this.findCommonPrefix(endpoints);
     
+    let baseName = '';
+    
     if (commonPrefix && commonPrefix.length > 3) {
       // Clean up the prefix and create a meaningful name
       const cleanPrefix = commonPrefix
@@ -218,21 +220,22 @@ export class CustomHeaderMatcher {
         .join('');
       
       if (cleanPrefix) {
-        return `${cleanPrefix}Headers`;
+        baseName = cleanPrefix;
       }
     }
     
-    // Fallback: use header composition to name it
-    const hasApiKey = headers.some(h => h.originalName === 'x-api-key');
-    const hasCompany = headers.some(h => h.originalName === 'x-core-company-id' || h.originalName === 'x-company-id');
-    const hasStaff = headers.some(h => h.originalName === 'x-company-staff-id');
-    const hasMember = headers.some(h => h.originalName === 'x-team-member-id');
-    
-    let name = '';
-    if (hasCompany) name += 'Company';
-    if (hasStaff) name += 'Staff';
-    if (hasMember) name += 'Member';
-    if (name === '') name = 'Common';
+    // If no base name from common prefix, use header composition
+    if (!baseName) {
+      const hasApiKey = headers.some(h => h.originalName === 'x-api-key');
+      const hasCompany = headers.some(h => h.originalName === 'x-core-company-id' || h.originalName === 'x-company-id');
+      const hasStaff = headers.some(h => h.originalName === 'x-company-staff-id');
+      const hasMember = headers.some(h => h.originalName === 'x-team-member-id');
+      
+      if (hasCompany) baseName += 'Company';
+      if (hasStaff) baseName += 'Staff';
+      if (hasMember) baseName += 'Member';
+      if (baseName === '') baseName = 'Common';
+    }
     
     // Add suffix to distinguish different required patterns
     const requiredCount = headers.filter(h => h.required).length;
@@ -240,13 +243,13 @@ export class CustomHeaderMatcher {
     
     if (requiredCount === totalCount) {
       // All required - no suffix needed
-      return `${name}Headers`;
+      return `${baseName}Headers`;
     } else if (requiredCount === 0) {
       // All optional
-      return `${name}OptionalHeaders`;
+      return `${baseName}OptionalHeaders`;
     } else {
       // Mixed - add a suffix to distinguish
-      return `${name}Headers${requiredCount}R${totalCount - requiredCount}O`;
+      return `${baseName}Headers${requiredCount}R${totalCount - requiredCount}O`;
     }
   }
   
