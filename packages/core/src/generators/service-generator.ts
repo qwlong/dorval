@@ -565,8 +565,8 @@ ${exports}
           
           const headerParams = fields.map(f => ({
             originalName: f.name,
-            paramName: TypeMapper.toCamelCase(f.name.replace(/^x-/, '').replace(/-/g, '_')),
-            dartName: TypeMapper.toCamelCase(f.name.replace(/^x-/, '').replace(/-/g, '_')),
+            paramName: TypeMapper.toCamelCase(f.name.replace(/-/g, '_')),
+            dartName: TypeMapper.toCamelCase(f.name.replace(/-/g, '_')),
             type: 'String',
             required: f.required,
             description: ''
