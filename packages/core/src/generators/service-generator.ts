@@ -416,13 +416,8 @@ export class ServiceGenerator {
       });
     });
     
-    // Add imports for parameter and header models if any were generated
-    if (paramFiles.length > 0) {
-      imports.add('../models/params/index.dart');
-    }
-    if (headerFiles.length > 0) {
-      imports.add('../models/headers/index.dart');
-    }
+    // No need to add separate imports for params and headers
+    // They are already exported from models/index.dart
     
     // Get tag description if available from the spec
     const tagInfo = this.originalSpec?.tags?.find(t => t.name === tag);
