@@ -42,7 +42,7 @@ export class ParamsGenerator {
     }
 
     const className = TypeMapper.toDartClassName(methodName + 'Params');
-    const fileName = TypeMapper.toSnakeCase(className) + '.f';
+    const fileName = TypeMapper.toSnakeCase(className);
     
     // Collect imports from parameter types
     const imports = new Set<string>();
@@ -83,7 +83,7 @@ export class ParamsGenerator {
     const content = this.renderParamsModel(model);
     
     return {
-      path: `models/params/${fileName}.dart`,
+      path: `models/params/${fileName}.f.dart`,
       content
     };
   }
@@ -102,7 +102,7 @@ export class ParamsGenerator {
     }
 
     const className = TypeMapper.toDartClassName(methodName + 'Headers');
-    const fileName = TypeMapper.toSnakeCase(className) + '.f';
+    const fileName = TypeMapper.toSnakeCase(className);
     
     // Collect imports from header types
     const imports = new Set<string>();
@@ -139,7 +139,7 @@ export class ParamsGenerator {
     const content = this.renderParamsModel(model);
     
     return {
-      path: `models/headers/${fileName}.dart`,
+      path: `models/headers/${fileName}.f.dart`,
       content
     };
   }

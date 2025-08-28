@@ -3,7 +3,6 @@
  */
 
 import { HeaderParameter } from './endpoint-generator';
-import { TypeMapper } from '../utils/type-mapper';
 
 export interface HeaderDefinition {
   fields: string[] | { [fieldName: string]: any };
@@ -15,15 +14,11 @@ export interface CustomMatchConfig {
   definitions: { [className: string]: HeaderDefinition };
   customMatch?: boolean;
   matchStrategy?: 'exact' | 'subset' | 'fuzzy';
-  customConsolidate?: boolean;  // 改为 customConsolidate 保持一致性
-  consolidationThreshold?: number;
 }
 
 export class CustomHeaderMatcher {
   private config: CustomMatchConfig;
-  private headerSignatures: Map<string, string[]> = new Map();
-  private matchCache: Map<string, string> = new Map();
-  private consolidatedClasses: Map<string, string> = new Map();
+  private matchCache: Map<string, string | null> = new Map();
   
   constructor(config: CustomMatchConfig) {
     this.config = config;
@@ -36,7 +31,8 @@ export class CustomHeaderMatcher {
     endpoint: string,
     headers: HeaderParameter[]
   ): string | null {
-    if (!this.config.customMatch || headers.length === 0) {
+    // If custom matching is disabled or no headers, return null
+    if (this.config.customMatch === false || headers.length === 0) {
       return null;
     }
     
@@ -51,17 +47,10 @@ export class CustomHeaderMatcher {
     // Try to find matching definition
     const matchedClass = this.findBestMatch(headers);
     
-    if (matchedClass) {
-      this.matchCache.set(signature, matchedClass);
-      return matchedClass;
-    }
+    // Cache the result (even if null)
+    this.matchCache.set(signature, matchedClass);
     
-    // No match found - check if we should custom-consolidate
-    if (this.config.customConsolidate) {
-      return this.checkForConsolidation(signature, headers, endpoint);
-    }
-    
-    return null;
+    return matchedClass;
   }
   
   /**
@@ -156,104 +145,6 @@ export class CustomHeaderMatcher {
   }
   
   /**
-   * Check if headers should be consolidated
-   */
-  private checkForConsolidation(
-    signature: string,
-    headers: HeaderParameter[],
-    endpoint: string
-  ): string | null {
-    if (!this.config.customConsolidate) {
-      return null;
-    }
-    
-    // Track this signature
-    if (!this.headerSignatures.has(signature)) {
-      this.headerSignatures.set(signature, []);
-    }
-    this.headerSignatures.get(signature)!.push(endpoint);
-    
-    const endpoints = this.headerSignatures.get(signature)!;
-    const threshold = this.config.consolidationThreshold || 3;
-    
-    // If we've seen this signature enough times, create consolidated class
-    if (endpoints.length >= threshold) {
-      if (!this.consolidatedClasses.has(signature)) {
-        const className = this.generateConsolidatedClassName(endpoints, headers);
-        this.consolidatedClasses.set(signature, className);
-        
-        // Add to definitions for future use
-        this.config.definitions[className] = {
-          fields: headers.map(h => h.originalName),
-          required: headers.filter(h => h.required).map(h => h.originalName),
-          description: `Custom-consolidated headers for ${endpoints.length} endpoints`
-        };
-      }
-      
-      return this.consolidatedClasses.get(signature)!;
-    }
-    
-    return null;
-  }
-  
-  /**
-   * Generate name for consolidated header class
-   */
-  private generateConsolidatedClassName(
-    endpoints: string[],
-    headers: HeaderParameter[]
-  ): string {
-    // Try to find common pattern in endpoints
-    const commonPrefix = this.findCommonPrefix(endpoints);
-    
-    let baseName = '';
-    
-    if (commonPrefix && commonPrefix.length > 3) {
-      // Clean up the prefix and create a meaningful name
-      const cleanPrefix = commonPrefix
-        .replace(/^\/+/, '')
-        .replace(/\/+$/, '')
-        .replace(/[^a-zA-Z0-9]/g, ' ')
-        .split(' ')
-        .filter(p => p.length > 0)
-        .map(p => TypeMapper.toPascalCase(p))
-        .join('');
-      
-      if (cleanPrefix) {
-        baseName = cleanPrefix;
-      }
-    }
-    
-    // If no base name from common prefix, use header composition
-    if (!baseName) {
-      const hasApiKey = headers.some(h => h.originalName === 'x-api-key');
-      const hasCompany = headers.some(h => h.originalName === 'x-core-company-id' || h.originalName === 'x-company-id');
-      const hasStaff = headers.some(h => h.originalName === 'x-company-staff-id');
-      const hasMember = headers.some(h => h.originalName === 'x-team-member-id');
-      
-      if (hasCompany) baseName += 'Company';
-      if (hasStaff) baseName += 'Staff';
-      if (hasMember) baseName += 'Member';
-      if (baseName === '') baseName = 'Common';
-    }
-    
-    // Add suffix to distinguish different required patterns
-    const requiredCount = headers.filter(h => h.required).length;
-    const totalCount = headers.length;
-    
-    if (requiredCount === totalCount) {
-      // All required - no suffix needed
-      return `${baseName}Headers`;
-    } else if (requiredCount === 0) {
-      // All optional
-      return `${baseName}OptionalHeaders`;
-    } else {
-      // Mixed - add a suffix to distinguish
-      return `${baseName}Headers${requiredCount}R${totalCount - requiredCount}O`;
-    }
-  }
-  
-  /**
    * Create a signature for headers (for caching and comparison)
    */
   private createHeaderSignature(headers: HeaderParameter[]): string {
@@ -292,56 +183,20 @@ export class CustomHeaderMatcher {
   }
   
   /**
-   * Find common prefix in paths
-   */
-  private findCommonPrefix(paths: string[]): string {
-    if (paths.length === 0) return '';
-    if (paths.length === 1) return paths[0];
-    
-    let prefix = '';
-    const firstPath = paths[0];
-    
-    for (let i = 0; i < firstPath.length; i++) {
-      const char = firstPath[i];
-      if (paths.every(p => p[i] === char)) {
-        prefix += char;
-      } else {
-        break;
-      }
-    }
-    
-    // Clean up to last complete path segment
-    const lastSlash = prefix.lastIndexOf('/');
-    if (lastSlash > 0) {
-      prefix = prefix.substring(0, lastSlash);
-    }
-    
-    return prefix;
-  }
-  
-  /**
    * Get statistics about header matching
    */
   getMatchingStats(): {
     totalEndpoints: number;
     matchedEndpoints: number;
-    consolidatedClasses: number;
-    unmatchedSignatures: number;
+    unmatchedEndpoints: number;
   } {
-    let totalEndpoints = 0;
-    let matchedEndpoints = 0;
-    
-    for (const endpoints of this.headerSignatures.values()) {
-      totalEndpoints += endpoints.length;
-    }
-    
-    matchedEndpoints = Array.from(this.matchCache.values()).filter(v => v !== null).length;
+    const matchedEndpoints = Array.from(this.matchCache.values()).filter(v => v !== null).length;
+    const totalEndpoints = this.matchCache.size;
     
     return {
       totalEndpoints,
       matchedEndpoints,
-      consolidatedClasses: this.consolidatedClasses.size,
-      unmatchedSignatures: this.headerSignatures.size - this.consolidatedClasses.size
+      unmatchedEndpoints: totalEndpoints - matchedEndpoints
     };
   }
   
@@ -355,8 +210,7 @@ export class CustomHeaderMatcher {
     report += `## Statistics\n`;
     report += `- Total endpoints analyzed: ${stats.totalEndpoints}\n`;
     report += `- Endpoints matched to definitions: ${stats.matchedEndpoints}\n`;
-    report += `- Custom-consolidated classes created: ${stats.consolidatedClasses}\n`;
-    report += `- Unmatched signatures: ${stats.unmatchedSignatures}\n\n`;
+    report += `- Unmatched endpoints: ${stats.unmatchedEndpoints}\n\n`;
     
     report += `## Header Class Usage\n`;
     const classUsage = new Map<string, number>();
@@ -368,19 +222,6 @@ export class CustomHeaderMatcher {
     
     for (const [className, count] of classUsage.entries()) {
       report += `- ${className}: ${count} endpoints\n`;
-    }
-    
-    if (this.consolidatedClasses.size > 0) {
-      report += `\n## Custom-Consolidated Classes\n`;
-      for (const [signature, className] of this.consolidatedClasses.entries()) {
-        const endpoints = this.headerSignatures.get(signature) || [];
-        report += `\n### ${className}\n`;
-        report += `Signature: ${signature}\n`;
-        report += `Endpoints (${endpoints.length}):\n`;
-        endpoints.forEach(ep => {
-          report += `- ${ep}\n`;
-        });
-      }
     }
     
     return report;

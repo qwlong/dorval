@@ -45,7 +45,7 @@ export class ConfigurableHeaderGenerator {
         if (!this.headerModels.has(className)) {
           this.headerModels.set(className, {
             className,
-            fileName: TypeMapper.toSnakeCase(className) + '.f',
+            fileName: TypeMapper.toSnakeCase(className),
             headers,
             isShared: true
           });
@@ -62,7 +62,7 @@ export class ConfigurableHeaderGenerator {
     if (!this.headerModels.has(uniqueClassName)) {
       this.headerModels.set(uniqueClassName, {
         className: uniqueClassName,
-        fileName: TypeMapper.toSnakeCase(uniqueClassName) + '.f',
+        fileName: TypeMapper.toSnakeCase(uniqueClassName),
         headers,
         isShared: false
       });
@@ -91,7 +91,7 @@ export class ConfigurableHeaderGenerator {
 
     // Generate unique model file
     const className = TypeMapper.toDartClassName(methodName + 'Headers');
-    const fileName = TypeMapper.toSnakeCase(className) + '.f';
+    const fileName = TypeMapper.toSnakeCase(className);
     
     const properties = headers.map(header => ({
       name: header.dartName,
@@ -111,7 +111,7 @@ export class ConfigurableHeaderGenerator {
     });
 
     return {
-      path: `models/headers/${fileName}.dart`,
+      path: `models/headers/${fileName}.f.dart`,
       content
     };
   }
@@ -145,7 +145,7 @@ export class ConfigurableHeaderGenerator {
       });
 
       files.push({
-        path: `models/headers/${model.fileName}.dart`,
+        path: `models/headers/${model.fileName}.f.dart`,
         content
       });
     }

@@ -547,10 +547,15 @@ ${exports}
     if (config.definitions) {
       Object.entries(config.definitions).forEach(([className, definition]) => {
         const fields = Array.isArray(definition.fields) 
-          ? definition.fields.map(f => ({ name: f, required: definition.required?.includes(f) ?? true }))
+          ? definition.fields.map(f => ({ 
+              name: f, 
+              required: definition.required?.includes(f) ?? true,
+              type: 'String' // Default type for array-style definitions
+            }))
           : Object.entries(definition.fields).map(([name, info]) => ({
               name,
-              required: typeof info === 'object' && info !== null ? info.required ?? true : true
+              required: typeof info === 'object' && info !== null ? info.required ?? true : true,
+              type: typeof info === 'object' && info !== null && 'type' in info ? (info as any).type : 'String'
             }));
         
         // Create a signature for this header definition (sorted for consistency)
@@ -567,7 +572,7 @@ ${exports}
             originalName: f.name,
             paramName: TypeMapper.toCamelCase(f.name.replace(/-/g, '_')),
             dartName: TypeMapper.toCamelCase(f.name.replace(/-/g, '_')),
-            type: 'String',
+            type: f.type || 'String',
             required: f.required,
             description: ''
           }));
@@ -594,7 +599,7 @@ ${exports}
           });
           
           files.push({
-            path: `models/headers/${fileName}.dart`,
+            path: `models/headers/${fileName}.f.dart`,
             content
           });
         }

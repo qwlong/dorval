@@ -28,9 +28,7 @@ describe('CustomHeaderMatcher', () => {
       }
     },
     customMatch: true,
-    matchStrategy: 'exact',
-    customConsolidate: true,
-    consolidationThreshold: 3
+    matchStrategy: 'exact'
   };
 
   beforeEach(() => {
@@ -161,92 +159,36 @@ describe('CustomHeaderMatcher', () => {
     });
   });
 
-  describe('auto consolidation', () => {
-    it('should consolidate headers when threshold is met', () => {
-      const consolidationConfig: CustomMatchConfig = {
-        definitions: {},
-        customMatch: true,
-        customConsolidate: true,
-        consolidationThreshold: 2
-      };
-      
-      const consolidationMatcher = new CustomHeaderMatcher(consolidationConfig);
-      
-      const headers: HeaderParameter[] = [
-        { originalName: 'x-custom-1', paramName: 'xCustom1', dartName: 'xCustom1', type: 'String', required: true, description: '' },
-        { originalName: 'x-custom-2', paramName: 'xCustom2', dartName: 'xCustom2', type: 'String', required: false, description: '' }
-      ];
-      
-      // First endpoint - no match yet
-      const result1 = consolidationMatcher.findMatchingHeaderClass('/api/endpoint1', headers);
-      expect(result1).toBe(null);
-      
-      // Second endpoint with same headers - should trigger consolidation
-      const result2 = consolidationMatcher.findMatchingHeaderClass('/api/endpoint2', headers);
-      expect(result2).toContain('Headers'); // Should create a consolidated class
-      
-      // Third endpoint should use the same consolidated class
-      const result3 = consolidationMatcher.findMatchingHeaderClass('/api/endpoint3', headers);
-      expect(result3).toBe(result2);
-    });
-
-    it('should generate meaningful names for consolidated classes', () => {
-      const consolidationConfig: CustomMatchConfig = {
-        definitions: {},
-        customMatch: true,
-        customConsolidate: true,
-        consolidationThreshold: 2
-      };
-      
-      const consolidationMatcher = new CustomHeaderMatcher(consolidationConfig);
-      
-      const companyHeaders: HeaderParameter[] = [
-        { originalName: 'x-api-key', paramName: 'xApiKey', dartName: 'xApiKey', type: 'String', required: true, description: '' },
-        { originalName: 'x-core-company-id', paramName: 'xCoreCompanyId', dartName: 'xCoreCompanyId', type: 'String', required: true, description: '' }
-      ];
-      
-      // Generate consolidation
-      consolidationMatcher.findMatchingHeaderClass('/v1/companies/list', companyHeaders);
-      const result = consolidationMatcher.findMatchingHeaderClass('/v1/companies/details', companyHeaders);
-      
-      expect(result).toMatch(/Compan/i); // Should recognize company context (Company or Companies)
-    });
-  });
-
   describe('signature generation', () => {
-    it('should create consistent signatures regardless of order', () => {
+    it('should cache results with consistent signatures', () => {
       const headers1: HeaderParameter[] = [
-        { originalName: 'x-a', paramName: 'xA', dartName: 'xA', type: 'String', required: true, description: '' },
-        { originalName: 'x-b', paramName: 'xB', dartName: 'xB', type: 'String', required: false, description: '' },
-        { originalName: 'x-c', paramName: 'xC', dartName: 'xC', type: 'String', required: true, description: '' }
-      ];
-      
-      const headers2: HeaderParameter[] = [
-        { originalName: 'x-c', paramName: 'xC', dartName: 'xC', type: 'String', required: true, description: '' },
         { originalName: 'x-a', paramName: 'xA', dartName: 'xA', type: 'String', required: true, description: '' },
         { originalName: 'x-b', paramName: 'xB', dartName: 'xB', type: 'String', required: false, description: '' }
       ];
       
-      // Use private method through consolidation
+      const headers2: HeaderParameter[] = [
+        { originalName: 'x-b', paramName: 'xB', dartName: 'xB', type: 'String', required: false, description: '' },
+        { originalName: 'x-a', paramName: 'xA', dartName: 'xA', type: 'String', required: true, description: '' }
+      ];
+      
+      // Configure matcher with no matching definitions
       const testConfig: CustomMatchConfig = {
         definitions: {},
-        customMatch: true,
-        customConsolidate: true,
-        consolidationThreshold: 3
+        customMatch: true
       };
       
       const testMatcher = new CustomHeaderMatcher(testConfig);
       
-      // Trigger signature creation
-      testMatcher.findMatchingHeaderClass('/test1', headers1);
-      testMatcher.findMatchingHeaderClass('/test2', headers2);
-      testMatcher.findMatchingHeaderClass('/test3', headers1);
+      // Both should return null (no match) but should be cached
+      const result1 = testMatcher.findMatchingHeaderClass('/test1', headers1);
+      const result2 = testMatcher.findMatchingHeaderClass('/test2', headers2);
       
-      // Both should consolidate to the same class
-      const result1 = testMatcher.findMatchingHeaderClass('/test4', headers1);
-      const result2 = testMatcher.findMatchingHeaderClass('/test5', headers2);
+      expect(result1).toBe(null);
+      expect(result2).toBe(null);
       
-      expect(result1).toBe(result2);
+      // Should use cache for same signature
+      const result3 = testMatcher.findMatchingHeaderClass('/test3', headers1);
+      expect(result3).toBe(null);
     });
   });
 
@@ -264,8 +206,9 @@ describe('CustomHeaderMatcher', () => {
       
       expect(stats).toHaveProperty('totalEndpoints');
       expect(stats).toHaveProperty('matchedEndpoints');
-      expect(stats).toHaveProperty('consolidatedClasses');
-      expect(stats).toHaveProperty('unmatchedSignatures');
+      expect(stats).toHaveProperty('unmatchedEndpoints');
+      expect(stats.totalEndpoints).toBe(1); // Same signature counted once
+      expect(stats.matchedEndpoints).toBe(1);
     });
 
     it('should generate readable report', () => {
