@@ -55,19 +55,30 @@ export class ModelGenerator {
         let dartType: string;
         if (this.refResolver) {
           const resolved = this.refResolver.resolvePropertyType(propSchema, isRequired);
-          dartType = resolved.type;
+          dartType = resolved.type;  // RefResolver already handles nullable
           resolved.imports.forEach(imp => imports.add(imp));
         } else if ('$ref' in propSchema) {
           // Handle reference without RefResolver
           const modelName = TypeMapper.extractTypeFromRef(propSchema.$ref);
-          dartType = TypeMapper.toDartClassName(modelName);
+          const baseType = TypeMapper.toDartClassName(modelName);
           const fileName = TypeMapper.toSnakeCase(modelName);
           imports.add(`${fileName}.f.dart`);
+          
+          // Check if needs nullable for references
+          const propDetails = {} as OpenAPIV3.SchemaObject;
+          const hasDefault = propDetails.default !== undefined;
+          const needsNullable = !isRequired && !hasDefault;
+          dartType = needsNullable && !baseType.endsWith('?') ? `${baseType}?` : baseType;
         } else {
           const prop = propSchema as OpenAPIV3.SchemaObject;
-          dartType = TypeMapper.mapType(prop);
-          const typeImports = TypeMapper.getImportsForType(dartType);
+          const baseType = TypeMapper.mapType(prop);
+          const typeImports = TypeMapper.getImportsForType(baseType);
           typeImports.forEach(imp => imports.add(imp));
+          
+          // Check if needs nullable for regular types
+          const hasDefault = prop.default !== undefined;
+          const needsNullable = !isRequired && !hasDefault;
+          dartType = needsNullable && !baseType.endsWith('?') ? `${baseType}?` : baseType;
         }
         
         // Get property details from the schema

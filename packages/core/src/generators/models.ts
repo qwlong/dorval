@@ -82,5 +82,9 @@ function generateIndexFile(files: GeneratedFile[]): string {
   
   return `// Generated index file for models
 ${exports}
+
+// Export params and headers if they exist
+export 'params/index.dart';
+export 'headers/index.dart';
 `;
 }

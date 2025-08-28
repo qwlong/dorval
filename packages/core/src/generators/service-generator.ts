@@ -10,7 +10,7 @@ import { TemplateManager } from '../templates/template-manager';
 import { TypeMapper } from '../utils/type-mapper';
 import { ParamsGenerator } from './params-generator';
 import { ConfigurableHeaderGenerator } from './configurable-header-generator';
-import { CustomHeaderMatcher } from './custom-header-matcher';
+import { HeadersGenerator } from './headers-generator';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 
@@ -27,7 +27,7 @@ export class ServiceGenerator {
   private templateManager: TemplateManager;
   private paramsGenerator: ParamsGenerator;
   private configurableHeaderGenerator: ConfigurableHeaderGenerator | null = null;
-  private customHeaderMatcher: CustomHeaderMatcher | null = null;
+  private headersGenerator: HeadersGenerator | null = null;
   private schemas: Record<string, any> = {};
   private originalSpec: OpenAPIObject | null = null;
   private options: DartGeneratorOptions | null = null;
@@ -119,8 +119,8 @@ export class ServiceGenerator {
     // Initialize header generators based on configuration
     if (options.output.override?.headers && options.output.override.headers.definitions) {
       // New headers configuration with custom-matching
-      this.customHeaderMatcher = new CustomHeaderMatcher(options.output.override.headers as any);
-      console.log('Initialized CustomHeaderMatcher with config:', options.output.override.headers);
+      this.headersGenerator = new HeadersGenerator(options.output.override.headers as any);
+      console.log('Initialized HeadersGenerator with config:', options.output.override.headers);
     } else if (options.output.override?.sharedHeaders) {
       // Legacy shared headers configuration
       this.configurableHeaderGenerator = new ConfigurableHeaderGenerator(
@@ -164,9 +164,9 @@ export class ServiceGenerator {
     files.push(...paramFiles);
     
     // Add header model files
-    if (this.customHeaderMatcher) {
-      // Generate consolidated header files from custom-matcher
-      const consolidatedHeaderFiles = this.generateConsolidatedHeaderFiles();
+    if (this.headersGenerator) {
+      // Generate consolidated header files from headers generator
+      const consolidatedHeaderFiles = this.headersGenerator.generateConfiguredHeaderFiles();
       files.push(...consolidatedHeaderFiles);
       files.push(...headerFiles); // Add any non-matched header files
       
@@ -181,7 +181,7 @@ export class ServiceGenerator {
       }
       
       // Print matching report
-      const report = this.customHeaderMatcher.generateReport();
+      const report = this.headersGenerator.generateReport();
       console.log('\n' + report);
       console.log(`Total header files generated: ${allHeaderFiles.length} (${consolidatedHeaderFiles.length} consolidated, ${headerFiles.length} endpoint-specific)`);
     } else if (this.configurableHeaderGenerator) {
@@ -344,8 +344,8 @@ export class ServiceGenerator {
       
       if (endpointMethod.needsHeadersModel && endpointMethod.headers.length > 0) {
         // Use custom header matcher if available
-        if (this.customHeaderMatcher) {
-          const matchedClassName = this.customHeaderMatcher.findMatchingHeaderClass(
+        if (this.headersGenerator) {
+          const matchedClassName = this.headersGenerator.findMatchingHeaderClass(
             path,
             endpointMethod.headers
           );
@@ -529,84 +529,6 @@ ${exports}
     return `// Generated index file for header models
 ${exports}
 `;
-  }
-  
-  /**
-   * Generate consolidated header files from custom-matcher definitions
-   */
-  private generateConsolidatedHeaderFiles(): GeneratedFile[] {
-    if (!this.customHeaderMatcher || !this.options?.output.override?.headers) {
-      return [];
-    }
-    
-    const files: GeneratedFile[] = [];
-    const config = this.options.output.override.headers;
-    const generatedSignatures = new Set<string>();
-    
-    // Generate files for each unique header class (based on sorted signature)
-    if (config.definitions) {
-      Object.entries(config.definitions).forEach(([className, definition]) => {
-        const fields = Array.isArray(definition.fields) 
-          ? definition.fields.map(f => ({ 
-              name: f, 
-              required: definition.required?.includes(f) ?? true,
-              type: 'String' // Default type for array-style definitions
-            }))
-          : Object.entries(definition.fields).map(([name, info]) => ({
-              name,
-              required: typeof info === 'object' && info !== null ? info.required ?? true : true,
-              type: typeof info === 'object' && info !== null && 'type' in info ? (info as any).type : 'String'
-            }));
-        
-        // Create a signature for this header definition (sorted for consistency)
-        const signature = fields
-          .map(f => `${f.name}:${f.required ? 'R' : 'O'}`)
-          .sort()
-          .join('|');
-        
-        // Only generate if we haven't seen this signature before
-        if (!generatedSignatures.has(signature)) {
-          generatedSignatures.add(signature);
-          
-          const headerParams = fields.map(f => ({
-            originalName: f.name,
-            paramName: TypeMapper.toCamelCase(f.name.replace(/-/g, '_')),
-            dartName: TypeMapper.toCamelCase(f.name.replace(/-/g, '_')),
-            type: f.type || 'String',
-            required: f.required,
-            description: ''
-          }));
-          
-          // Create a custom header model directly with the correct class name
-          const headersClassName = className.endsWith('Headers') ? className : className + 'Headers';
-          const fileName = TypeMapper.toSnakeCase(className);
-          
-          const properties = headerParams.map(header => ({
-            name: header.dartName,
-            type: header.type || 'String',
-            required: header.required,
-            description: header.description,
-            jsonKey: header.dartName !== header.originalName ? header.originalName : undefined
-          }));
-          
-          const content = this.templateManager.render('freezed-model', {
-            className: headersClassName,
-            fileName: fileName,  // Pass the actual file name without extension
-            isEnum: false,
-            properties,
-            hasJsonKey: properties.some(p => p.jsonKey),
-            hasDescription: properties.some(p => p.description)
-          });
-          
-          files.push({
-            path: `models/headers/${fileName}.f.dart`,
-            content
-          });
-        }
-      });
-    }
-    
-    return files;
   }
 }
 

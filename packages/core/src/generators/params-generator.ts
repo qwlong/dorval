@@ -136,7 +136,7 @@ export class ParamsGenerator {
       imports: Array.from(imports)
     };
 
-    const content = this.renderParamsModel(model);
+    const content = this.renderHeadersModel(model);
     
     return {
       path: `models/headers/${fileName}.f.dart`,
@@ -149,7 +149,16 @@ export class ParamsGenerator {
    */
   private renderParamsModel(model: ParameterModel): string {
     // Use the template manager to get access to the dartDoc helper
-    const template = this.templateManager.loadTemplateSync('params-model');
+    const template = this.templateManager.loadTemplateSync('freezed-params-model');
+    return template(model);
+  }
+  
+  /**
+   * Render a headers model using the template
+   */
+  private renderHeadersModel(model: ParameterModel): string {
+    // Use the template manager to get access to the dartDoc helper
+    const template = this.templateManager.loadTemplateSync('freezed-headers-model');
     return template(model);
   }
   

@@ -101,7 +101,7 @@ export class ConfigurableHeaderGenerator {
       jsonKey: header.dartName !== header.originalName ? header.originalName : undefined
     }));
 
-    const content = this.templateManager.render('freezed-model', {
+    const content = this.templateManager.render('freezed-headers-model', {
       className,
       fileName,
       isEnum: false,
@@ -135,7 +135,7 @@ export class ConfigurableHeaderGenerator {
         jsonKey: header.dartName !== header.originalName ? header.originalName : undefined
       }));
 
-      const content = this.templateManager.render('freezed-model', {
+      const content = this.templateManager.render('freezed-headers-model', {
         className: model.className,
         fileName: model.fileName,
         isEnum: false,
