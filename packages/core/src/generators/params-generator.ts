@@ -95,12 +95,9 @@ export class ParamsGenerator {
     methodName: string,
     headers: HeaderParameter[]
   ): GeneratedFile | null {
-    // Filter out common headers that are usually handled by the HTTP client
-    const customHeaders = headers.filter(h => 
-      !['Authorization', 'Content-Type', 'Accept'].includes(h.originalName)
-    );
-
-    if (customHeaders.length === 0) {
+    // Don't filter headers - if they're defined in OpenAPI, they should be included
+    // The OpenAPI spec author knows what headers are needed
+    if (headers.length === 0) {
       return null;
     }
 
@@ -110,7 +107,7 @@ export class ParamsGenerator {
     // Collect imports from header types
     const imports = new Set<string>();
     
-    const properties: ParameterProperty[] = customHeaders.map(header => {
+    const properties: ParameterProperty[] = headers.map(header => {
       const headerType = header.type || 'String';
       
       // Check if the type needs an import
