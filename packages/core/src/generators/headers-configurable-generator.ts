@@ -11,7 +11,7 @@ export interface SharedHeaderConfig {
   [className: string]: string[];  // className -> [header names]
 }
 
-export class ConfigurableHeaderGenerator {
+export class HeadersConfigurableGenerator {
   private templateManager: TemplateManager;
   private sharedHeaderConfig: SharedHeaderConfig;
   private headerModels: Map<string, SharedHeaderModel> = new Map();

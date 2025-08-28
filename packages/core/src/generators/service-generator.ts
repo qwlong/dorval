@@ -4,12 +4,11 @@
 
 import type { OpenAPIV3 } from 'openapi-types';
 import { OpenAPIObject, DartGeneratorOptions, GeneratedFile, ClientGeneratorBuilder } from '../types';
-import { OpenAPIParser } from '../parser/openapi-parser';
 import { EndpointGenerator, EndpointMethod } from './endpoint-generator';
 import { TemplateManager } from '../templates/template-manager';
 import { TypeMapper } from '../utils/type-mapper';
 import { ParamsGenerator } from './params-generator';
-import { ConfigurableHeaderGenerator } from './configurable-header-generator';
+import { HeadersConfigurableGenerator } from './headers-configurable-generator';
 import { HeadersGenerator } from './headers-generator';
 import * as fs from 'fs-extra';
 import * as path from 'path';
@@ -26,7 +25,7 @@ export class ServiceGenerator {
   private endpointGenerator: EndpointGenerator;
   private templateManager: TemplateManager;
   private paramsGenerator: ParamsGenerator;
-  private configurableHeaderGenerator: ConfigurableHeaderGenerator | null = null;
+  private headersConfigurableGenerator: HeadersConfigurableGenerator | null = null;
   private headersGenerator: HeadersGenerator | null = null;
   private schemas: Record<string, any> = {};
   private originalSpec: OpenAPIObject | null = null;
@@ -123,7 +122,7 @@ export class ServiceGenerator {
       console.log('Initialized HeadersGenerator with config:', options.output.override.headers);
     } else if (options.output.override?.sharedHeaders) {
       // Legacy shared headers configuration
-      this.configurableHeaderGenerator = new ConfigurableHeaderGenerator(
+      this.headersConfigurableGenerator = new HeadersConfigurableGenerator(
         options.output.override.sharedHeaders
       );
     }
@@ -184,9 +183,9 @@ export class ServiceGenerator {
       const report = this.headersGenerator.generateReport();
       console.log('\n' + report);
       console.log(`Total header files generated: ${allHeaderFiles.length} (${consolidatedHeaderFiles.length} consolidated, ${headerFiles.length} endpoint-specific)`);
-    } else if (this.configurableHeaderGenerator) {
+    } else if (this.headersConfigurableGenerator) {
       // Generate shared header files
-      const sharedHeaderFiles = this.configurableHeaderGenerator.generateSharedHeaderFiles();
+      const sharedHeaderFiles = this.headersConfigurableGenerator.generateSharedHeaderFiles();
       files.push(...sharedHeaderFiles);
       files.push(...headerFiles); // Add any non-shared header files
       
@@ -367,9 +366,9 @@ export class ServiceGenerator {
               }
             }
           }
-        } else if (this.configurableHeaderGenerator) {
+        } else if (this.headersConfigurableGenerator) {
           // Legacy configurable header generator
-          const headerModelName = this.configurableHeaderGenerator.getHeaderModelName(
+          const headerModelName = this.headersConfigurableGenerator.getHeaderModelName(
             endpointMethod.methodName,
             endpointMethod.headers
           );
@@ -378,9 +377,9 @@ export class ServiceGenerator {
             endpointMethod.headersModelName = headerModelName;
             
             // Only generate individual file if it's not a shared model
-            if (!this.configurableHeaderGenerator.isSharedModel(headerModelName) &&
+            if (!this.headersConfigurableGenerator.isSharedModel(headerModelName) &&
                 !generatedParamModels.has(headerModelName)) {
-              const headersModel = this.configurableHeaderGenerator.generateHeaderModel(
+              const headersModel = this.headersConfigurableGenerator.generateHeaderModel(
                 endpointMethod.methodName,
                 endpointMethod.headers
               );
