@@ -1,0 +1,26 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "freezed",
+    "openapi",
+    "swagger",
+    "apidevtools",
+    "dorval",
+    "orval",
+    "vitest",
+    "dio",
+    "jsonc",
+    "camelcase",
+    "nullable",
+    "dto",
+    "dtos"
+  ],
+  "ignorePaths": [
+    "node_modules/**",
+    "dist/**",
+    "coverage/**",
+    "*.min.js",
+    "*.log"
+  ]
+}

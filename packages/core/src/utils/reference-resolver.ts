@@ -6,7 +6,7 @@ import type { OpenAPIV3 } from 'openapi-types';
 import { TypeMapper } from './type-mapper';
 
 export class ReferenceResolver {
-  private spec: OpenAPIV3.Document;
+  private readonly spec: OpenAPIV3.Document;
   
   constructor(spec: OpenAPIV3.Document) {
     this.spec = spec;
@@ -85,10 +85,15 @@ export class ReferenceResolver {
     return TypeMapper.mapType(schemaObj);
   }
   
+  // TODO: These methods may be needed for future functionality
+  // Keeping them commented out to avoid unused warnings
+  /*
   /**
    * Get response type from an operation
+   * @internal May be used by other modules
    */
-  getResponseType(operation: OpenAPIV3.OperationObject): string {
+  /*
+  _getResponseType(operation: OpenAPIV3.OperationObject): string {
     const responses = operation.responses;
     if (!responses) {
       return 'void';
@@ -133,11 +138,14 @@ export class ReferenceResolver {
     
     return 'dynamic';
   }
+  */
   
   /**
    * Get request body type from an operation
+   * @internal May be used by other modules
    */
-  getRequestBodyType(operation: OpenAPIV3.OperationObject): string | null {
+  /*
+  _getRequestBodyType(operation: OpenAPIV3.OperationObject): string | null {
     if (!operation.requestBody) {
       return null;
     }
@@ -170,5 +178,179 @@ export class ReferenceResolver {
     }
     
     return null;
+  }
+  */
+  
+  /**
+   * Generic resolve method that resolves any $ref in the spec
+   */
+  resolve(obj: any): any {
+    if (!obj || typeof obj !== 'object') {
+      return obj;
+    }
+    
+    if (ReferenceResolver.isReference(obj)) {
+      const resolved = this.resolveReference(obj.$ref);
+      // Always return the original object if reference can't be resolved
+      return resolved || obj;
+    }
+    
+    return obj;
+  }
+  
+  /**
+   * Deep resolve that handles nested references
+   */
+  resolveDeep(obj: any, visited: Set<string> = new Set()): any {
+    if (!obj || typeof obj !== 'object') {
+      return obj;
+    }
+    
+    if (ReferenceResolver.isReference(obj)) {
+      if (visited.has(obj.$ref)) {
+        // Circular reference detected
+        return { $ref: obj.$ref };
+      }
+      visited.add(obj.$ref);
+      const resolved = this.resolveReference(obj.$ref);
+      return resolved ? this.resolveDeep(resolved, visited) : null;
+    }
+    
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.resolveDeep(item, visited));
+    }
+    
+    const result: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (key === 'allOf' && Array.isArray(value)) {
+        // Special handling for allOf - merge the schemas
+        const merged = this.mergeAllOf(value);
+        Object.assign(result, this.resolveDeep(merged, visited));
+      } else {
+        result[key] = this.resolveDeep(value, visited);
+      }
+    }
+    return result;
+  }
+  
+  /**
+   * Get model type from a schema
+   */
+  getModelType(schema: any, nullable: boolean = true): string {
+    const type = this.getDartType(schema);
+    return !nullable && type !== 'dynamic' ? `${type}?` : type;
+  }
+  
+  /**
+   * Get imports needed for a schema
+   */
+  getImports(schema: any): string[] {
+    const imports: Set<string> = new Set();
+    
+    const addImportsForType = (s: any) => {
+      if (!s || typeof s !== 'object') {
+        return;
+      }
+      
+      if (ReferenceResolver.isReference(s)) {
+        const modelName = ReferenceResolver.extractModelNameFromRef(s.$ref);
+        const fileName = TypeMapper.toSnakeCase(modelName);
+        
+        // Check if it's an enum
+        const resolved = this.resolveReference(s.$ref);
+        if (resolved && (resolved as OpenAPIV3.SchemaObject).enum) {
+          imports.add(`${fileName}.dart`);
+        } else {
+          imports.add(`${fileName}.f.dart`);
+        }
+      } else if ((s as OpenAPIV3.SchemaObject)?.type === 'array' && (s as OpenAPIV3.ArraySchemaObject).items) {
+        addImportsForType((s as OpenAPIV3.ArraySchemaObject).items);
+      } else if ((s as OpenAPIV3.SchemaObject)?.type === 'string' && (s as OpenAPIV3.SchemaObject).format === 'binary') {
+        imports.add('dart:typed_data');
+      } else if ((s as OpenAPIV3.SchemaObject)?.type === 'object' && (s as OpenAPIV3.SchemaObject).properties) {
+        // Check properties for imports
+        for (const prop of Object.values((s as OpenAPIV3.SchemaObject).properties!)) {
+          addImportsForType(prop);
+        }
+      }
+    };
+    
+    if (Array.isArray(schema)) {
+      schema.forEach(addImportsForType);
+    } else {
+      addImportsForType(schema);
+    }
+    
+    return Array.from(imports);
+  }
+  
+  /**
+   * Check if a reference creates a circular dependency
+   */
+  isCircularReference(ref: string, path: string[] = []): boolean {
+    // Simple check: if the reference is already in the path, it's circular
+    return path.includes(ref);
+  }
+  
+  /**
+   * Merge allOf schemas into a single schema
+   */
+  mergeAllOf(schemaOrArray: any): OpenAPIV3.SchemaObject {
+    // Handle both array and object with allOf property
+    const schemas = Array.isArray(schemaOrArray) ? schemaOrArray : (schemaOrArray?.allOf || []);
+    
+    const merged: OpenAPIV3.SchemaObject = {
+      type: 'object',
+      properties: {},
+      required: []
+    };
+    
+    for (const schema of schemas) {
+      let resolved: OpenAPIV3.SchemaObject;
+      
+      if (ReferenceResolver.isReference(schema)) {
+        const r = this.resolveReference(schema.$ref);
+        if (!r) continue;
+        resolved = r;
+      } else {
+        resolved = schema;
+      }
+      
+      // Merge properties
+      if (resolved.properties) {
+        merged.properties = { ...merged.properties, ...resolved.properties };
+      }
+      
+      // Merge required arrays
+      if (resolved.required) {
+        merged.required = [...new Set([...(merged.required || []), ...resolved.required])];
+      }
+      
+      // Merge other properties
+      if (resolved.description && !merged.description) {
+        merged.description = resolved.description;
+      }
+    }
+    
+    return merged;
+  }
+  
+  /**
+   * Get schema name from a reference
+   */
+  getSchemaName(ref: any): string | null {
+    if (!ref || typeof ref !== 'string') {
+      if (ReferenceResolver.isReference(ref)) {
+        return this.getSchemaName(ref.$ref);
+      }
+      return null;
+    }
+    
+    if (!ref.startsWith('#/components/schemas/')) {
+      return null;
+    }
+    
+    const parts = ref.split('/');
+    return parts[parts.length - 1] || null;
   }
 }

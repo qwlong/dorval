@@ -7,7 +7,7 @@ This sample demonstrates how to use Dorval to generate a type-safe Dart API clie
 ```
 petstore/
 ├── petstore.yaml          # OpenAPI specification
-├── orval.config.ts        # Orval configuration
+├── dorval.config.js       # Dorval configuration
 ├── generate.js            # Generation script
 ├── pubspec.yaml           # Dart dependencies
 ├── lib/
@@ -22,8 +22,10 @@ petstore/
 │       │   └── params/          # Parameter models
 │       └── services/            # API services
 │           └── pets_service.dart # Pet endpoints
-└── bin/
-    └── main.dart         # Example usage
+├── bin/
+│   └── main.dart         # Interactive example
+└── test/
+    └── pets_service_test.dart # Unit tests
 ```
 
 ## 🚀 Getting Started
@@ -141,24 +143,46 @@ print('Created pet with ID: ${created['id']}');
 
 ## 🔧 Configuration
 
-The `orval.config.ts` file controls generation:
+The `dorval.config.js` file controls generation:
 
-```typescript
-{
-  input: './petstore.yaml',        // OpenAPI spec
-  output: {
-    mode: 'split',                 // File organization
-    target: './lib/api',           // Output directory
-    client: 'dart-dio',            // Client type
-    override: {
-      generator: {
-        freezed: true,             // Use Freezed
-        jsonSerializable: true,    // JSON support
-        nullSafety: true,          // Null safety
+```javascript
+module.exports = {
+  petstore: {
+    input: './petstore.yaml',        // OpenAPI spec
+    output: {
+      mode: 'split',                 // File organization
+      target: './lib/api',           // Output directory
+      client: 'dio',                 // Client type
+      clean: true,                   // Clean output directory
+      override: {
+        generator: {
+          freezed: true,             // Use Freezed
+          jsonSerializable: true,    // JSON support
+          nullSafety: true,          // Null safety
+          copyWith: true,            // Generate copyWith
+          equal: true,               // Generate equality
+        },
+        dio: {
+          baseUrl: 'https://petstore.swagger.io/v1',
+        },
+        methodNaming: 'operationId', // Use operationId for method names
       }
     }
   }
 }
+```
+
+### Generation Options
+
+```bash
+# Use inline configuration (default)
+yarn generate
+
+# Use dorval.config.js file
+yarn generate:config
+
+# Clean and build everything
+yarn build
 ```
 
 ## 📚 API Documentation

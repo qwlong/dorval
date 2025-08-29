@@ -43,11 +43,40 @@ export class ModelGenerator {
     const properties: DartProperty[] = [];
     const imports: Set<string> = new Set();
     
+    // Handle allOf composition - merge all schemas
+    let mergedProperties: Record<string, any> = {};
+    let mergedRequired: string[] = [];
+    
+    if (schema.allOf) {
+      for (const subSchema of schema.allOf) {
+        let resolved: OpenAPIV3.SchemaObject;
+        
+        // Resolve references in allOf
+        if ('$ref' in subSchema && this.refResolver) {
+          resolved = this.refResolver.resolveReference(subSchema.$ref) as OpenAPIV3.SchemaObject;
+        } else {
+          resolved = subSchema as OpenAPIV3.SchemaObject;
+        }
+        
+        if (resolved && resolved.properties) {
+          mergedProperties = { ...mergedProperties, ...resolved.properties };
+        }
+        
+        if (resolved && resolved.required) {
+          mergedRequired = [...mergedRequired, ...resolved.required];
+        }
+      }
+    }
+    
+    // Use merged properties if we had allOf, otherwise use schema.properties
+    const finalProperties = Object.keys(mergedProperties).length > 0 ? mergedProperties : (schema.properties || {});
+    const finalRequired = mergedRequired.length > 0 ? [...new Set(mergedRequired)] : (schema.required || []);
+    
     // Process properties
-    if (schema.properties) {
-      const requiredFields = new Set(schema.required || []);
+    if (finalProperties && Object.keys(finalProperties).length > 0) {
+      const requiredFields = new Set(finalRequired);
       
-      Object.entries(schema.properties).forEach(([propName, propSchema]) => {
+      Object.entries(finalProperties).forEach(([propName, propSchema]) => {
         const dartName = TypeMapper.toDartPropertyName(propName);
         const isRequired = requiredFields.has(propName);
         

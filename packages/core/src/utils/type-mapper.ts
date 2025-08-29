@@ -120,21 +120,71 @@ export class TypeMapper {
    * Extract type name from $ref
    */
   static extractTypeFromRef(ref: string): string {
+    if (!ref || typeof ref !== 'string') {
+      return '';
+    }
+    
+    // Handle external references (e.g., 'external.yaml#/components/schemas/User')
+    let actualRef = ref;
+    if (ref.includes('#')) {
+      actualRef = ref.substring(ref.indexOf('#'));
+    }
+    
+    // Check if it's a valid reference path
+    if (!actualRef.startsWith('#/')) {
+      return '';
+    }
+    
+    // Must have a valid path structure
+    const parts = actualRef.split('/');
+    if (parts.length < 3) {
+      return '';
+    }
+    
+    // Validate that it's a proper reference path
+    const validPaths = ['components', 'definitions'];
+    const validSubPaths = ['schemas', 'parameters', 'responses', 'examples', 'requestBodies', 'headers', 'securitySchemes', 'links', 'callbacks'];
+    
+    // Check if it's a valid component reference
+    if (parts[1] === 'components') {
+      if (!validSubPaths.includes(parts[2])) {
+        return '';
+      }
+    } else if (parts[1] !== 'definitions') {
+      // If not components or definitions, it's invalid
+      return '';
+    }
+    
     // #/components/schemas/Pet -> Pet
-    const parts = ref.split('/');
-    return parts[parts.length - 1];
+    // #/definitions/BaseEntity -> BaseEntity
+    return parts[parts.length - 1] || '';
   }
 
   /**
    * Convert OpenAPI property name to Dart property name
    */
   static toDartPropertyName(name: string): string {
-    // Convert snake_case to camelCase (handle both uppercase and lowercase after underscore)
-    let result = name.replace(/_([a-zA-Z])/g, (_, letter) => letter.toUpperCase());
+    // Handle all uppercase with underscores first (USER_NAME -> userName)
+    if (name === name.toUpperCase() && name.includes('_')) {
+      const parts = name.toLowerCase().split('_');
+      return parts[0] + parts.slice(1).map(p => p.charAt(0).toUpperCase() + p.slice(1)).join('');
+    }
+    
+    // First handle underscores and hyphens to create camelCase
+    let result = name
+      .replace(/[-_]([a-zA-Z])/g, (_, letter) => letter.toUpperCase())
+      .replace(/\.([a-zA-Z])/g, (_, letter) => letter.toUpperCase());
+    
+    // If the result is all uppercase (and not a single char), convert to lowercase
+    if (result === result.toUpperCase() && result.length > 1) {
+      result = result.toLowerCase();
+    }
+    
     // Ensure first character is lowercase for camelCase
     if (result.length > 0) {
       result = result.charAt(0).toLowerCase() + result.slice(1);
     }
+    
     return result;
   }
   
@@ -184,13 +234,24 @@ export class TypeMapper {
    * Convert to Dart class name (PascalCase)
    */
   static toDartClassName(name: string): string {
-    // If already in PascalCase (starts with uppercase, no underscores/spaces), return as is
-    if (/^[A-Z][a-zA-Z0-9]*$/.test(name) && !name.includes('_') && !name.includes(' ')) {
-      return name;
+    // Handle all-caps acronyms (APIResponse -> ApiResponse)
+    let result = name.replace(/([A-Z])([A-Z]+)([A-Z][a-z]|$)/g, (match, p1, p2, p3) => {
+      if (p3) {
+        // APIResponse -> Api + Response
+        return p1 + p2.toLowerCase() + p3;
+      } else {
+        // End of string, e.g. API -> Api
+        return p1 + p2.toLowerCase();
+      }
+    });
+    
+    // If already in PascalCase after acronym handling, return
+    if (/^[A-Z][a-zA-Z0-9]*$/.test(result) && !result.includes('_') && !result.includes(' ')) {
+      return result;
     }
     
     // Replace non-word characters (except underscore) with spaces
-    const normalized = name.replace(/[^\w_]+/g, ' ');
+    const normalized = result.replace(/[^\w_]+/g, ' ');
     
     // Split by spaces and underscores
     const words = normalized.split(/[\s_]+/).filter(word => word.length > 0);
@@ -249,7 +310,7 @@ export class TypeMapper {
     }
 
     if (type.includes('Uint8List')) {
-      imports.push("import 'dart:typed_data';");
+      imports.push('dart:typed_data');
     }
 
     return imports;

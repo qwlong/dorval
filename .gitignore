@@ -61,6 +61,7 @@ tests/generated/
 .cache/
 tmp/
 temp/
+packages/core/test
 
 # Project specific
 CLAUDE.md

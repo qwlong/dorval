@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { OpenAPIParser } from '../parser/openapi-parser';
+import { OpenAPIParser } from '../../parser/openapi-parser';
 import * as path from 'path';
 
 describe('OpenAPIParser', () => {

@@ -2,16 +2,27 @@
   "name": "@dorval/petstore-sample",
   "version": "1.0.0",
   "private": true,
-  "description": "Petstore sample for Dorval code generator",
+  "description": "Petstore sample demonstrating Dorval - Dart/Flutter code generator for OpenAPI",
   "scripts": {
-    "generate": "node ../../packages/dorval/dist/bin/dorval.js generate",
-    "generate:watch": "node ../../packages/dorval/dist/bin/dorval.js generate --watch",
+    "generate": "node generate.js",
+    "generate:config": "node generate.js --config",
+    "generate:direct": "node -e \"require('../../packages/core/dist').generateDartCode({input:'./petstore.yaml',output:{target:'./lib/api',mode:'split',client:'dart-dio',clean:true}}).then(r=>console.log('Generated',r.length,'files'))\"",
     "clean": "rm -rf lib/api",
-    "build": "yarn generate && cd . && dart pub get && dart run build_runner build",
-    "test": "dart test"
+    "clean:all": "rm -rf lib/api node_modules .dart_tool build",
+    "build": "yarn generate && dart pub get && dart run build_runner build --delete-conflicting-outputs",
+    "build:config": "yarn generate:config && dart pub get && dart run build_runner build --delete-conflicting-outputs",
+    "test": "dart test",
+    "test:coverage": "dart test --coverage=coverage",
+    "run": "dart run bin/main.dart",
+    "demo": "yarn build && yarn run",
+    "format": "dart format lib test bin",
+    "analyze": "dart analyze",
+    "check": "yarn format && yarn analyze && yarn test"
   },
   "devDependencies": {
-    "dorval": "workspace:*",
     "@dorval/core": "workspace:*"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

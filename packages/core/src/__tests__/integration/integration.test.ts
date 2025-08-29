@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateDartCode } from '../generators';
+import { generateDartCode } from '../../generators';
 import * as path from 'path';
 import * as fs from 'fs-extra';
 
