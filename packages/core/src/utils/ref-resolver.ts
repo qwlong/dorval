@@ -15,16 +15,23 @@ export interface ResolvedReference {
 export class RefResolver {
   private schemaNames: Map<string, string> = new Map();
   private processedSchemas: Set<string> = new Set();
-  private schemas: Record<string, OpenAPIV3.SchemaObject>;
+  private schemas: Record<string, OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject>;
   private spec: OpenAPIV3.Document;
   
   constructor(specOrSchemas: OpenAPIV3.Document | Record<string, OpenAPIV3.SchemaObject>) {
     // Handle both OpenAPI spec and direct schemas object
-    if ('openapi' in specOrSchemas) {
-      this.spec = specOrSchemas;
-      this.schemas = specOrSchemas.components?.schemas || {};
+    if ('openapi' in specOrSchemas && 'info' in specOrSchemas && 'paths' in specOrSchemas) {
+      this.spec = specOrSchemas as OpenAPIV3.Document;
+      const schemas = (specOrSchemas as OpenAPIV3.Document).components?.schemas || {};
+      // Filter out references and keep only schema objects
+      this.schemas = {};
+      for (const [key, value] of Object.entries(schemas)) {
+        if (!('$ref' in value)) {
+          this.schemas[key] = value as OpenAPIV3.SchemaObject;
+        }
+      }
     } else {
-      this.schemas = specOrSchemas;
+      this.schemas = specOrSchemas as Record<string, OpenAPIV3.SchemaObject>;
       this.spec = {} as OpenAPIV3.Document;
     }
     // Build a map of schema objects to their names
@@ -51,25 +58,35 @@ export class RefResolver {
     }
     
     const schemaName = ref.replace('#/components/schemas/', '');
-    return this.schemas[schemaName] || null;
+    const schema = this.schemas[schemaName];
+    if (!schema || '$ref' in schema) {
+      return null;
+    }
+    return schema as OpenAPIV3.SchemaObject;
   }
   
   /**
    * Get a unique key for a schema object
    */
-  private getSchemaKey(schema: OpenAPIV3.SchemaObject): string {
+  private getSchemaKey(schema: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject): string {
     // Ensure schema is an object
     if (!schema || typeof schema !== 'object') {
       return JSON.stringify(schema);
     }
     
+    // Handle references differently
+    if ('$ref' in schema) {
+      return JSON.stringify({ $ref: schema.$ref });
+    }
+    
     // Create a deterministic key based on schema properties
+    const schemaObj = schema as OpenAPIV3.SchemaObject;
     const key = {
-      type: schema.type,
-      properties: schema.properties ? Object.keys(schema.properties).sort() : undefined,
-      required: schema.required?.sort(),
-      enum: schema.enum,
-      items: schema && typeof schema === 'object' && 'items' in schema ? schema.items : undefined,
+      type: schemaObj.type,
+      properties: schemaObj.properties ? Object.keys(schemaObj.properties).sort() : undefined,
+      required: schemaObj.required?.sort(),
+      enum: schemaObj.enum,
+      items: schemaObj && typeof schemaObj === 'object' && 'items' in schemaObj ? schemaObj.items : undefined,
     };
     return JSON.stringify(key);
   }
@@ -185,8 +202,8 @@ export class RefResolver {
       if ('$ref' in propSchema) {
         const schemaName = propSchema.$ref.replace('#/components/schemas/', '');
         const schema = this.schemas[schemaName];
-        if (schema) {
-          isEnum = this.isEnumSchema(schema);
+        if (schema && !('$ref' in schema)) {
+          isEnum = this.isEnumSchema(schema as OpenAPIV3.SchemaObject);
         }
       }
       
@@ -233,7 +250,7 @@ export class RefResolver {
     visited.add(schemaName);
     const schema = this.schemas[schemaName];
     
-    if (!schema || !schema.properties) {
+    if (!schema || '$ref' in schema || !('properties' in schema) || !schema.properties) {
       return false;
     }
     
@@ -280,7 +297,7 @@ export class RefResolver {
     const fileName = TypeMapper.toSnakeCase(type);
     
     // Check if it's an enum
-    const isEnum = this.isEnumSchema(schema);
+    const isEnum = !('$ref' in schema) && this.isEnumSchema(schema as OpenAPIV3.SchemaObject);
     const importPath = isEnum ? `${fileName}.dart` : `${fileName}.f.dart`;
     
     return {
