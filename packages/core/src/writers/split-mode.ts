@@ -86,7 +86,6 @@ function categorizeFiles(files: GeneratedFile[]): {
       services.push(file);
     } else if (
       file.path === 'api_client.dart' ||
-      file.path === 'api_config.dart' ||
       file.path === 'api_exception.dart'
     ) {
       client.push(file);
@@ -174,7 +173,6 @@ export 'services/index.dart';
 
 // Client
 export 'api_client.dart';
-export 'api_config.dart';
 `;
   
   return {

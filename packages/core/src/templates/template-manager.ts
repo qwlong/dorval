@@ -52,11 +52,6 @@ export class TemplateManager {
     this.handlebars.registerHelper('dartDoc', (text: string, options?: any) => {
       if (!text) return '';
       
-      // Debug: log the input
-      if (text.includes('batch resource')) {
-        console.log('DEBUG dartDoc input:', JSON.stringify(text));
-      }
-      
       // Check if indentLevel is passed as a hash parameter
       const indentLevel = options?.hash?.indent ?? 2;
       const indentStr = ' '.repeat(indentLevel);
@@ -83,11 +78,6 @@ export class TemplateManager {
         });
       
       const result = formattedLines.join('\n');
-      
-      // Debug: log the output
-      if (text.includes('batch resource')) {
-        console.log('DEBUG dartDoc output:', JSON.stringify(result));
-      }
       
       // Use Handlebars.SafeString to prevent escaping
       return new this.handlebars.SafeString(result);
@@ -187,13 +177,6 @@ export class TemplateManager {
   render(templateName: string, data: any): string {
     const template = this.loadTemplateSync(templateName);
     const result = template(data);
-    
-    // Debug: Log raw template output for freezed-model
-    if (templateName === 'freezed-model' && data.className && ['JobResponseDto', 'EarningResponseDto'].includes(data.className)) {
-      console.log(`\n=== RAW TEMPLATE OUTPUT for ${data.className} ===`);
-      console.log(result);
-      console.log(`=== END RAW OUTPUT ===\n`);
-    }
     
     return result;
   }

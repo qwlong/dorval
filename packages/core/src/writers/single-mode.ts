@@ -108,8 +108,7 @@ function organizeSections(files: GeneratedFile[], organizeByType: boolean): {
     } else if (file.path.startsWith('services/')) {
       services.push(file);
     } else if (
-      file.path === 'api_client.dart' ||
-      file.path === 'api_config.dart'
+      file.path === 'api_client.dart'
     ) {
       client.push(file);
     } else if (file.path === 'services/api_exception.dart') {

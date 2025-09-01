@@ -122,9 +122,8 @@ export function getServiceImports(
     imports.push(DART_CORE_IMPORTS.dio);
   }
   
-  // Add API client and config
+  // Add API client
   imports.push(createImport('../api_client.dart'));
-  imports.push(createImport('../api_config.dart'));
   imports.push(createImport('api_exception.dart'));
   
   // Add model imports

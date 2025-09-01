@@ -35,7 +35,6 @@ describe('Integration Test', () => {
     
     // Should have API client
     expect(filePaths).toContain('api_client.dart');
-    expect(filePaths).toContain('api_config.dart');
     
     // Should have models
     const modelFiles = files.filter(f => f.path.startsWith('models/'));

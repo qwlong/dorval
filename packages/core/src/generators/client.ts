@@ -26,13 +26,6 @@ export async function generateClient(
     content: clientContent
   });
   
-  // Generate API configuration
-  const configContent = generateApiConfig(parser, options);
-  files.push({
-    path: 'api_config.dart',
-    content: configContent
-  });
-  
   return files;
 }
 
