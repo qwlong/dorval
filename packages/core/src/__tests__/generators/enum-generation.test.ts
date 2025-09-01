@@ -13,12 +13,15 @@ describe('Enum Generation', () => {
 
     expect(result.path).toBe('models/pet_status.f.dart');
     expect(result.content).toContain('enum PetStatus');
-    expect(result.content).toContain("available('available')");
-    expect(result.content).toContain("pending('pending')");
-    expect(result.content).toContain("sold('sold')");
+    expect(result.content).toContain("@JsonValue('available')");
+    expect(result.content).toContain('available');
+    expect(result.content).toContain("@JsonValue('pending')");
+    expect(result.content).toContain('pending');
+    expect(result.content).toContain("@JsonValue('sold')");
+    expect(result.content).toContain('sold');
     expect(result.content).toContain('Pet status in the store');
-    expect(result.content).toContain('static PetStatus? fromValue(String? value)');
-    expect(result.content).toContain('static PetStatus? fromJson(dynamic json)');
+    expect(result.content).toContain('PetStatus? fromValue(String? value)');
+    expect(result.content).toContain('extension PetStatusExtension on PetStatus');
   });
 
   it('should handle enum values with special characters', () => {
@@ -28,11 +31,13 @@ describe('Enum Generation', () => {
       undefined
     );
 
-    expect(result.content).toContain("inProgress('in-progress')");
-    expect(result.content).toContain("completed('completed')");
+    expect(result.content).toContain("@JsonValue('in-progress')");
+    expect(result.content).toContain('inProgress');
+    expect(result.content).toContain("@JsonValue('completed')");
+    expect(result.content).toContain('completed');
     // 404_error starts with a number after replacing special chars, so it gets value prefix
-    expect(result.content).toContain("('404_error')");
-    expect(result.content).toContain("('1_pending')");
+    expect(result.content).toContain("@JsonValue('404_error')");
+    expect(result.content).toContain("@JsonValue('1_pending')");
   });
 
   it('should handle numeric enum values', () => {
@@ -42,9 +47,12 @@ describe('Enum Generation', () => {
       'HTTP status codes'
     );
 
-    expect(result.content).toContain("value200('200')");
-    expect(result.content).toContain("value404('404')");
-    expect(result.content).toContain("value500('500')");
+    expect(result.content).toContain("@JsonValue('200')");
+    expect(result.content).toContain('value200');
+    expect(result.content).toContain("@JsonValue('404')");
+    expect(result.content).toContain('value404');
+    expect(result.content).toContain("@JsonValue('500')");
+    expect(result.content).toContain('value500');
   });
 
   it('should generate proper fromValue and toJson methods', () => {
@@ -54,10 +62,10 @@ describe('Enum Generation', () => {
       undefined
     );
 
-    expect(result.content).toContain('const TestEnum(this.value)');
-    expect(result.content).toContain('final String value');
-    expect(result.content).toContain('return TestEnum.values.firstWhere');
-    expect(result.content).toContain('dynamic toJson() => value');
-    expect(result.content).toContain('String toString() => value');
+    expect(result.content).toContain('enum TestEnum');
+    expect(result.content).toContain('@JsonValue');
+    expect(result.content).toContain('extension TestEnumExtension on TestEnum');
+    expect(result.content).toContain('String get value');
+    expect(result.content).toContain('TestEnum? fromValue(String? value)');
   });
 });

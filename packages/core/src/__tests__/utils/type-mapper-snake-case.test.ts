@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { TypeMapper } from '../utils/type-mapper';
+import { TypeMapper } from '../../utils/type-mapper';
 
 describe('Snake Case Conversion', () => {
   it('should correctly convert V2Dto pattern', () => {

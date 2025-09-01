@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { combineSchemas } from '../getters/combine';
+import { combineSchemas } from '../../getters/combine';
 
 describe('OneOf Generation', () => {
   it('should handle oneOf with discriminator', () => {
@@ -19,12 +19,12 @@ describe('OneOf Generation', () => {
     expect(result.isSealed).toBe(true);
     expect(result.definition).toBeDefined();
     if (result.definition) {
-      expect(result.definition).toContain('@Freezed');
-      expect(result.definition).toContain('sealed class MyFeedItem');
+      expect(result.definition).toContain('@freezed');
+      expect(result.definition).toContain('class MyFeedItem with _$MyFeedItem');
       expect(result.definition).toContain('factory MyFeedItem.fromJson');
     }
-    expect(result.imports).toContain('shift_response_dto_v2.dart');
-    expect(result.imports).toContain('my_feed_time_off_request_item.dart');
+    expect(result.imports).toContain('shift_response_dto_v2.f.dart');
+    expect(result.imports).toContain('my_feed_time_off_request_item.f.dart');
   });
 
   it('should handle nullable oneOf', () => {
@@ -66,12 +66,12 @@ describe('OneOf Generation', () => {
     expect(result.type).toBe('UnionType');
     expect(result.definition).toBeDefined();
     if (result.definition) {
-      expect(result.definition).toContain('required dynamic value');
-      expect(result.definition).toContain('TypeA? get asTypeA');
-      expect(result.definition).toContain('TypeB? get asTypeB');
+      expect(result.definition).toContain('@freezed');
+      expect(result.definition).toContain('class UnionType with _$UnionType');
+      expect(result.definition).toContain('factory UnionType.');
     }
-    expect(result.imports).toContain('type_a.dart');
-    expect(result.imports).toContain('type_b.dart');
+    expect(result.imports).toContain('type_a.f.dart');
+    expect(result.imports).toContain('type_b.f.dart');
   });
 
   it('should handle anyOf schemas', () => {

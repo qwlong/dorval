@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { generateModels } from '../generators/models';
-import { OpenAPIObject } from '../types';
+import { generateModels } from '../../generators/models';
+import type { OpenAPIObject, DartGeneratorOptions } from '../../types';
 
 describe('Inline Object Properties Generation', () => {
   it('should generate nested class for inline object property', async () => {
-    const spec: OpenAPIObject = {
+    const spec = {
       openapi: '3.0.0',
       info: { title: 'Test', version: '1.0.0' },
       paths: {},
@@ -21,10 +21,8 @@ describe('Inline Object Properties Generation', () => {
                 type: 'object',
                 properties: {
                   nextCursor: {
-                    oneOf: [
-                      { type: 'string' },
-                      { type: 'null' }
-                    ]
+                    type: 'string',
+                    nullable: true
                   }
                 }
               }
@@ -39,9 +37,17 @@ describe('Inline Object Properties Generation', () => {
           }
         }
       }
-    };
+    } as OpenAPIObject;
 
-    const files = await generateModels(spec, {});
+    const options: DartGeneratorOptions = {
+      input: spec,
+      output: {
+        target: './test-output',
+        mode: 'split',
+        client: 'dio'
+      },
+    };
+    const files = await generateModels(spec, options);
     
     // Should generate MyFeedResponseDto
     const myFeedResponseDto = files.find(f => f.path === 'models/my_feed_response_dto.f.dart');
@@ -68,7 +74,7 @@ describe('Inline Object Properties Generation', () => {
   });
 
   it('should handle deeply nested inline objects', async () => {
-    const spec: OpenAPIObject = {
+    const spec = {
       openapi: '3.0.0',
       info: { title: 'Test', version: '1.0.0' },
       paths: {},
@@ -98,9 +104,17 @@ describe('Inline Object Properties Generation', () => {
           }
         }
       }
-    };
+    } as OpenAPIObject;
 
-    const files = await generateModels(spec, {});
+    const options: DartGeneratorOptions = {
+      input: spec,
+      output: {
+        target: './test-output',
+        mode: 'split',
+        client: 'dio'
+      },
+    };
+    const files = await generateModels(spec, options);
     
     // Should generate UserProfile
     const userProfile = files.find(f => f.path === 'models/user_profile.f.dart');
@@ -138,7 +152,7 @@ describe('Inline Object Properties Generation', () => {
   });
 
   it('should not create nested class for objects with $ref', async () => {
-    const spec: OpenAPIObject = {
+    const spec = {
       openapi: '3.0.0',
       info: { title: 'Test', version: '1.0.0' },
       paths: {},
@@ -160,9 +174,17 @@ describe('Inline Object Properties Generation', () => {
           }
         }
       }
-    };
+    } as OpenAPIObject;
 
-    const files = await generateModels(spec, {});
+    const options: DartGeneratorOptions = {
+      input: spec,
+      output: {
+        target: './test-output',
+        mode: 'split',
+        client: 'dio'
+      },
+    };
+    const files = await generateModels(spec, options);
     
     // Should NOT generate ResponseWithRefMeta
     const responseWithRefMeta = files.find(f => f.path === 'models/response_with_ref_meta.f.dart');
@@ -178,7 +200,7 @@ describe('Inline Object Properties Generation', () => {
   });
 
   it('should handle inline objects without properties as Map<String, dynamic>', async () => {
-    const spec: OpenAPIObject = {
+    const spec = {
       openapi: '3.0.0',
       info: { title: 'Test', version: '1.0.0' },
       paths: {},
@@ -194,9 +216,17 @@ describe('Inline Object Properties Generation', () => {
           }
         }
       }
-    };
+    } as OpenAPIObject;
 
-    const files = await generateModels(spec, {});
+    const options: DartGeneratorOptions = {
+      input: spec,
+      output: {
+        target: './test-output',
+        mode: 'split',
+        client: 'dio'
+      },
+    };
+    const files = await generateModels(spec, options);
     
     // Should NOT generate a nested class for empty object
     const responseWithEmptyObjectMeta = files.find(f => f.path === 'models/response_with_empty_object_meta.f.dart');

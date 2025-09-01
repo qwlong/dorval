@@ -74,10 +74,13 @@ export class TemplateManager {
       }
       
       // Format each line with /// prefix, all with same indentation
-      const formattedLines = lines.map((line) => {
-        const trimmed = line.trim();
-        return trimmed ? `${indentStr}/// ${trimmed}` : `${indentStr}///`;
-      });
+      // Skip empty lines to avoid /// with no content
+      const formattedLines = lines
+        .filter(line => line.trim() !== '') // Skip empty lines
+        .map((line) => {
+          const trimmed = line.trim();
+          return `${indentStr}/// ${trimmed}`;
+        });
       
       const result = formattedLines.join('\n');
       

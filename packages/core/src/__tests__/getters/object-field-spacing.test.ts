@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest';
 import * as handlebars from 'handlebars';
-import { TemplateManager } from '../templates/template-manager';
+import { TemplateManager } from '../../templates/template-manager';
 import * as path from 'path';
 
 describe('Freezed Model Field Spacing', () => {

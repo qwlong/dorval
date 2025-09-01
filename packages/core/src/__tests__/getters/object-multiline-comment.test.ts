@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getObject } from '../getters/object';
+import { getObject } from '../../getters/object';
 import { OpenAPIV3 } from 'openapi-types';
 
 describe('Multiline comment formatting in object.ts', () => {
