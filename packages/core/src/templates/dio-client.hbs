@@ -3,12 +3,18 @@ import 'package:flutter/foundation.dart'; // for kDebugMode
 {{#if hasInterceptors}}
 import 'package:dio/io.dart';
 {{/if}}
+import 'services/index.dart';
 
 /// Base API client using Dio
 /// 
 /// This client handles all HTTP requests to the {{apiTitle}} API.
 /// Base URL: {{baseUrl}}
 class ApiClient {
+  // API Configuration Constants
+  static const String apiVersion = '{{apiVersion}}';
+  static const String apiTitle = '{{apiTitle}}';
+  static const String defaultBaseUrl = '{{defaultBaseUrl}}';
+  
   late final Dio dio;
   final String baseUrl;
   {{#if hasAuth}}

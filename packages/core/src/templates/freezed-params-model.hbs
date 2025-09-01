@@ -22,6 +22,9 @@ class {{className}} with _${{className}} {
     @JsonKey(name: '{{jsonKey}}')
     {{/if}}
     {{#if required}}required {{{type}}} {{name}},{{else}}{{{type}}}? {{name}},{{/if}}
+{{#unless @last}}
+
+{{/unless}}
     {{/each}}
   }) = _{{className}};
 

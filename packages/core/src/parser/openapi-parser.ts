@@ -17,8 +17,18 @@ export class OpenAPIParser {
    */
   async parse(input: string | OpenAPIObject): Promise<this> {
     try {
-      // Parse and validate the spec
-      this.spec = await SwaggerParser.validate(input) as OpenAPIObject;
+      // Parse the spec first
+      if (typeof input === 'string') {
+        this.spec = await SwaggerParser.parse(input) as OpenAPIObject;
+      } else {
+        this.spec = input;
+      }
+      
+      // Normalize oneOf patterns with null before validation
+      this.normalizeNullableOneOf(this.spec);
+      
+      // Now validate the normalized spec
+      this.spec = await SwaggerParser.validate(this.spec) as OpenAPIObject;
       
       // Dereference all $refs
       this.spec = await SwaggerParser.dereference(this.spec) as OpenAPIObject;
@@ -136,6 +146,63 @@ export class OpenAPIParser {
   getTags(): OpenAPIV3.TagObject[] {
     this.ensureParsed();
     return this.spec.tags || [];
+  }
+
+  /**
+   * Normalize oneOf patterns with null to use nullable: true instead
+   * This converts oneOf: [{type: "string"}, {type: "null"}] to {type: "string", nullable: true}
+   */
+  private normalizeNullableOneOf(obj: any): void {
+    if (!obj || typeof obj !== 'object') {
+      return;
+    }
+
+    // Handle arrays
+    if (Array.isArray(obj)) {
+      obj.forEach(item => this.normalizeNullableOneOf(item));
+      return;
+    }
+
+    // Check if this object has a nullable oneOf pattern
+    if (obj.oneOf && Array.isArray(obj.oneOf) && obj.oneOf.length === 2) {
+      const hasNull = obj.oneOf.some((s: any) => s && s.type === 'null');
+      const nonNullSchema = obj.oneOf.find((s: any) => s && s.type !== 'null');
+      
+      if (hasNull && nonNullSchema) {
+        // Convert to nullable pattern
+        delete obj.oneOf;
+        
+        // Copy properties from non-null schema
+        Object.assign(obj, nonNullSchema);
+        
+        // Add nullable flag
+        obj.nullable = true;
+      }
+    }
+    
+    // Also handle anyOf with null pattern
+    if (obj.anyOf && Array.isArray(obj.anyOf) && obj.anyOf.length === 2) {
+      const hasNull = obj.anyOf.some((s: any) => s && s.type === 'null');
+      const nonNullSchema = obj.anyOf.find((s: any) => s && s.type !== 'null');
+      
+      if (hasNull && nonNullSchema) {
+        // Convert to nullable pattern
+        delete obj.anyOf;
+        
+        // Copy properties from non-null schema
+        Object.assign(obj, nonNullSchema);
+        
+        // Add nullable flag
+        obj.nullable = true;
+      }
+    }
+
+    // Recursively process all properties
+    Object.keys(obj).forEach(key => {
+      if (key !== 'oneOf') { // Skip if we just processed oneOf
+        this.normalizeNullableOneOf(obj[key]);
+      }
+    });
   }
 
   /**

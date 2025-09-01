@@ -24,7 +24,9 @@ export async function writeToDisk(
     
     // Write file
     if (file.overwrite !== false || !(await fs.pathExists(filePath))) {
-      await fs.writeFile(filePath, file.content, 'utf-8');
+      // Ensure file ends with a newline
+      const content = file.content.endsWith('\n') ? file.content : file.content + '\n';
+      await fs.writeFile(filePath, content, 'utf-8');
     }
   }
 }

@@ -26,7 +26,7 @@ export async function generateClient(
     content: clientContent
   });
   
-  // Generate API configuration file
+  // Generate API configuration
   const configContent = generateApiConfig(parser, options);
   files.push({
     path: 'api_config.dart',
@@ -53,6 +53,8 @@ function generateDioClient(
   
   const templateData = {
     apiTitle: info.title,
+    apiVersion: info.version || '1.0',
+    apiDescription: info.description || '',
     baseUrl: baseUrl,
     defaultBaseUrl: baseUrl || 'https://api.example.com',
     hasAuth: hasAuth || hasBearerAuth,

@@ -167,6 +167,28 @@ export class RefResolver {
       };
     }
     
+    // Handle allOf schemas
+    if ('allOf' in propSchema && propSchema.allOf) {
+      // If allOf has a single $ref, treat it as a direct reference
+      if (propSchema.allOf.length === 1 && '$ref' in propSchema.allOf[0]) {
+        console.log('DEBUG: Found allOf with single $ref:', propSchema.allOf[0]);
+        return this.resolvePropertyType(propSchema.allOf[0], required);
+      }
+      // For more complex allOf, might need to merge - for now treat as dynamic
+      // TODO: Implement proper allOf merging
+      console.log('DEBUG: Complex allOf, returning dynamic');
+      return {
+        type: 'dynamic',
+        imports: [],
+        isModel: false
+      };
+    }
+    
+    // Handle oneOf schemas
+    if ('oneOf' in propSchema && propSchema.oneOf) {
+      return this.resolveOneOfType(propSchema as OpenAPIV3.SchemaObject, required);
+    }
+    
     const baseType = this.resolveSchemaType(propSchema);
     const imports: string[] = [];
     
@@ -360,5 +382,57 @@ export class RefResolver {
     // OpenAPI spec: requestBody is optional by default unless marked required
     const required = 'required' in requestBody ? !!requestBody.required : false;
     return this.resolvePropertyType(content.schema, required);
+  }
+  
+  /**
+   * Resolve oneOf type
+   */
+  private resolveOneOfType(
+    schema: OpenAPIV3.SchemaObject,
+    required: boolean
+  ): {
+    type: string;
+    imports: string[];
+    isModel: boolean;
+  } {
+    const oneOfSchemas = schema.oneOf || [];
+    
+    // Check if this is a simple nullable oneOf (one type + null)
+    if (oneOfSchemas.length === 2) {
+      const hasNull = oneOfSchemas.some((s: any) => s.type === 'null');
+      const nonNullSchema = oneOfSchemas.find((s: any) => s.type !== 'null');
+      
+      if (hasNull && nonNullSchema) {
+        // This is a nullable type
+        const baseType = this.resolveSchemaType(nonNullSchema as any);
+        const imports: string[] = [];
+        
+        // Check if it's a model type that needs imports
+        const isModel = !['String', 'int', 'double', 'bool', 'num', 'dynamic', 'void', 'DateTime', 'Uint8List'].includes(baseType) &&
+                        !baseType.startsWith('List<') &&
+                        !baseType.startsWith('Map<');
+        
+        if (isModel) {
+          const fileName = TypeMapper.toSnakeCase(baseType);
+          imports.push(`${fileName}.f.dart`);
+        } else if (baseType === 'Uint8List') {
+          imports.push('dart:typed_data');
+        }
+        
+        return {
+          type: `${baseType}?`,
+          imports,
+          isModel
+        };
+      }
+    }
+    
+    // Complex oneOf - for now return dynamic
+    // TODO: Generate proper union types when we have discriminator support
+    return {
+      type: 'dynamic',
+      imports: [],
+      isModel: false
+    };
   }
 }

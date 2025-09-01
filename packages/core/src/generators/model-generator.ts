@@ -7,10 +7,12 @@ import { DartModel, DartProperty, GeneratedFile } from '../types';
 import { TypeMapper } from '../utils/type-mapper';
 import { RefResolver } from '../utils/ref-resolver';
 import { TemplateManager } from '../templates/template-manager';
+import { isNullableScalar, getNonNullType } from '../getters/scalar';
 
 export class ModelGenerator {
   private templateManager: TemplateManager;
   private refResolver?: RefResolver;
+  private debugCount: number = 0;
 
   constructor() {
     this.templateManager = new TemplateManager();
@@ -100,13 +102,17 @@ export class ModelGenerator {
           dartType = needsNullable && !baseType.endsWith('?') ? `${baseType}?` : baseType;
         } else {
           const prop = propSchema as OpenAPIV3.SchemaObject;
-          const baseType = TypeMapper.mapType(prop);
+          
+          // Check if this property uses nullable patterns
+          const isNullable = TypeMapper.isNullable(prop);
+          const baseSchema = TypeMapper.getBaseTypeFromNullable(prop);
+          const baseType = TypeMapper.mapType(baseSchema);
           const typeImports = TypeMapper.getImportsForType(baseType);
           typeImports.forEach(imp => imports.add(imp));
           
-          // Check if needs nullable for regular types
+          // Determine if type should be nullable
           const hasDefault = prop.default !== undefined;
-          const needsNullable = !isRequired && !hasDefault;
+          const needsNullable = (!isRequired && !hasDefault) || isNullable;
           dartType = needsNullable && !baseType.endsWith('?') ? `${baseType}?` : baseType;
         }
         
@@ -182,6 +188,17 @@ export class ModelGenerator {
       customMethods: []
     };
     
+    // Debug: Log first few models
+    if (this.debugCount === undefined) {
+      this.debugCount = 0;
+    }
+    if (this.debugCount++ < 3) {
+      console.log(`DEBUG: Model ${model.name}:`, JSON.stringify({
+        className: templateData.className,
+        propertiesCount: templateData.properties.length
+      }, null, 2));
+    }
+
     return this.templateManager.render('freezed-model', templateData);
   }
 
@@ -226,8 +243,26 @@ export class ModelGenerator {
     
     // Convert enum values to valid Dart enum names
     const enumValues = values.map(value => {
+      // Handle null values
+      if (value === null || value === 'null') {
+        return {
+          name: 'nullValue',
+          value: 'null',
+          description: 'Null value'
+        };
+      }
+      
+      // Handle empty string
+      if (value === '') {
+        return {
+          name: 'empty',
+          value: '',
+          description: 'Empty string'
+        };
+      }
+      
       // Start with the original value
-      let dartName = value;
+      let dartName = String(value);
       
       // Handle numeric-only values or values starting with numbers
       if (/^\d/.test(dartName)) {

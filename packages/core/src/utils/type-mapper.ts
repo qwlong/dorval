@@ -52,6 +52,30 @@ export class TypeMapper {
     // Cast to non-reference schema for property access
     const nonRefSchema = schema as OpenAPIV3.SchemaObject;
     
+    // Handle OpenAPI 3.1 type arrays (e.g., type: ["string", "null"])
+    if (Array.isArray(nonRefSchema.type)) {
+      const types = nonRefSchema.type as string[];
+      const nonNullTypes = types.filter(t => t !== 'null');
+      
+      if (nonNullTypes.length === 1) {
+        // Single type plus null - map the non-null type
+        const baseSchema: OpenAPIV3.SchemaObject = { 
+          ...nonRefSchema, 
+          type: nonNullTypes[0] as any
+        };
+        return this.mapType(baseSchema);
+      } else if (nonNullTypes.length > 1) {
+        // Multiple types - return dynamic
+        return 'dynamic';
+      }
+    }
+    
+    // Handle oneOf with nullable pattern
+    if (nonRefSchema.oneOf && this.isNullableOneOf(nonRefSchema)) {
+      const nonNullType = this.getNonNullTypeFromOneOf(nonRefSchema);
+      return this.mapType(nonNullType);
+    }
+    
     // Handle arrays
     if (nonRefSchema.type === 'array') {
       const itemType = nonRefSchema.items ? this.mapType(nonRefSchema.items as SchemaObject) : 'dynamic';
@@ -211,6 +235,25 @@ export class TypeMapper {
   }
 
   /**
+   * Extract inner type from List<T> or Map<K,V>
+   */
+  static extractInnerType(type: string): string {
+    // Match List<Type>
+    const listMatch = type.match(/^List<(.+)>$/);
+    if (listMatch) {
+      return listMatch[1];
+    }
+    
+    // Match Map<String, Type>
+    const mapMatch = type.match(/^Map<String,\s*(.+)>$/);
+    if (mapMatch) {
+      return mapMatch[1];
+    }
+    
+    return type;
+  }
+
+  /**
    * Convert to camelCase (specifically for parameter names)
    */
   static toCamelCase(name: string): string {
@@ -273,6 +316,8 @@ export class TypeMapper {
   static toSnakeCase(str: string): string {
     // Handle camelCase and PascalCase by inserting underscores
     let result = str
+      // Special handling for V2Dto, V2Meta patterns - add underscore before Dto/Meta that follows V2
+      .replace(/V2(Dto|Meta)/g, 'V2_$1')
       // Insert underscore before uppercase letters that follow lowercase letters
       .replace(/([a-z])([A-Z])/g, '$1_$2')
       // Insert underscore before uppercase letters that follow numbers
@@ -400,5 +445,101 @@ export class TypeMapper {
     }
 
     return null;
+  }
+
+  /**
+   * Check if a schema is using oneOf pattern for nullable types
+   * Both patterns are valid in OpenAPI 3.0:
+   * 1. nullable: true (recommended in OpenAPI 3.0.x)
+   * 2. oneOf: [{type: "string"}, {type: "null"}] (valid, especially for complex nullable unions)
+   */
+  static isNullableOneOf(schema: OpenAPIV3.SchemaObject): boolean {
+    if (!schema.oneOf || !Array.isArray(schema.oneOf) || schema.oneOf.length !== 2) {
+      return false;
+    }
+    
+    // Check if one of the schemas is null type
+    const hasNull = schema.oneOf.some((s: any) => 
+      s && typeof s === 'object' && s.type === 'null'
+    );
+    
+    // Check if the other schema is a non-null type
+    const hasNonNull = schema.oneOf.some((s: any) => 
+      s && typeof s === 'object' && (
+        (s.type && s.type !== 'null') || 
+        s.$ref
+      )
+    );
+    
+    return hasNull && hasNonNull;
+  }
+
+  /**
+   * Extract the non-null type from a nullable oneOf pattern
+   */
+  static getNonNullTypeFromOneOf(schema: OpenAPIV3.SchemaObject): SchemaObject {
+    if (!schema.oneOf || !this.isNullableOneOf(schema)) {
+      return schema;
+    }
+    
+    // Find the non-null schema
+    const nonNullSchema = schema.oneOf.find((s: any) => 
+      s && typeof s === 'object' && s.type !== 'null'
+    );
+    
+    return nonNullSchema || { type: 'string' };
+  }
+
+  /**
+   * Check if a schema is nullable (either via nullable: true or oneOf pattern)
+   */
+  static isNullable(schema: SchemaObject): boolean {
+    if ('$ref' in schema) {
+      return false;
+    }
+    
+    const nonRefSchema = schema as OpenAPIV3.SchemaObject;
+    
+    // Check OpenAPI 3.0 nullable property
+    if (nonRefSchema.nullable === true) {
+      return true;
+    }
+    
+    // Check OpenAPI 3.1 type array pattern (e.g., type: ["string", "null"])
+    if (Array.isArray(nonRefSchema.type)) {
+      const types = nonRefSchema.type as string[];
+      return types.includes('null');
+    }
+    
+    // Check oneOf pattern for nullable
+    if (this.isNullableOneOf(nonRefSchema)) {
+      return true;
+    }
+    
+    // Check anyOf pattern for nullable
+    if (nonRefSchema.anyOf && Array.isArray(nonRefSchema.anyOf)) {
+      return nonRefSchema.anyOf.some((s: any) => s && s.type === 'null');
+    }
+    
+    return false;
+  }
+
+  /**
+   * Get base type from nullable schema
+   */
+  static getBaseTypeFromNullable(schema: SchemaObject): SchemaObject {
+    if ('$ref' in schema) {
+      return schema;
+    }
+    
+    const nonRefSchema = schema as OpenAPIV3.SchemaObject;
+    
+    // If using oneOf nullable pattern, extract the non-null type
+    if (this.isNullableOneOf(nonRefSchema)) {
+      return this.getNonNullTypeFromOneOf(nonRefSchema);
+    }
+    
+    // Otherwise return the schema as-is (nullable flag will be handled separately)
+    return schema;
   }
 }

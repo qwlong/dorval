@@ -52,12 +52,18 @@ export class TemplateManager {
     this.handlebars.registerHelper('dartDoc', (text: string, options?: any) => {
       if (!text) return '';
       
+      // Debug: log the input
+      if (text.includes('batch resource')) {
+        console.log('DEBUG dartDoc input:', JSON.stringify(text));
+      }
+      
       // Check if indentLevel is passed as a hash parameter
       const indentLevel = options?.hash?.indent ?? 2;
       const indentStr = ' '.repeat(indentLevel);
       
-      // Split by newlines
-      const lines = text.split('\n');
+      // Normalize line endings and split by newlines
+      const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      const lines = normalizedText.split('\n');
       
       // Filter out empty lines at the beginning and end
       while (lines.length > 0 && lines[0].trim() === '') {
@@ -73,7 +79,15 @@ export class TemplateManager {
         return trimmed ? `${indentStr}/// ${trimmed}` : `${indentStr}///`;
       });
       
-      return formattedLines.join('\n');
+      const result = formattedLines.join('\n');
+      
+      // Debug: log the output
+      if (text.includes('batch resource')) {
+        console.log('DEBUG dartDoc output:', JSON.stringify(result));
+      }
+      
+      // Use Handlebars.SafeString to prevent escaping
+      return new this.handlebars.SafeString(result);
     });
 
     // Helper to convert to camelCase
@@ -169,7 +183,16 @@ export class TemplateManager {
    */
   render(templateName: string, data: any): string {
     const template = this.loadTemplateSync(templateName);
-    return template(data);
+    const result = template(data);
+    
+    // Debug: Log raw template output for freezed-model
+    if (templateName === 'freezed-model' && data.className && ['JobResponseDto', 'EarningResponseDto'].includes(data.className)) {
+      console.log(`\n=== RAW TEMPLATE OUTPUT for ${data.className} ===`);
+      console.log(result);
+      console.log(`=== END RAW OUTPUT ===\n`);
+    }
+    
+    return result;
   }
 
   /**

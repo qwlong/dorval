@@ -1,11 +1,20 @@
-# Dorval
+# 🎯 Dorval
 
-🚀 Generate type-safe Dart API clients from OpenAPI specifications.
+<div align="center">
+  <img src="https://img.shields.io/npm/v/dorval.svg" alt="npm version" />
+  <img src="https://img.shields.io/npm/dm/dorval.svg" alt="npm downloads" />
+  <img src="https://img.shields.io/github/license/qwlong/dorval.svg" alt="license" />
+  <img src="https://img.shields.io/badge/Dart-3.0%2B-blue" alt="dart version" />
+  <img src="https://img.shields.io/badge/TypeScript-5.0%2B-blue" alt="typescript version" />
+</div>
 
-[![npm version](https://img.shields.io/npm/v/dorval.svg)](https://www.npmjs.com/package/dorval)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Dart](https://img.shields.io/badge/Dart-3.0%2B-blue)](https://dart.dev)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0%2B-blue)](https://www.typescriptlang.org/)
+<div align="center">
+  <strong>Generate type-safe Dart/Flutter API clients from OpenAPI specifications</strong>
+</div>
+
+<div align="center">
+  <sub>Dorval = Dart + Orval. Built on the solid foundation of <a href="https://github.com/orval-labs/orval">Orval</a>'s architecture.</sub>
+</div>
 
 ## Overview
 
