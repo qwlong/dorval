@@ -6,6 +6,8 @@
 import { OpenAPIV3 } from 'openapi-types';
 import { combineSchemas } from './combine';
 import { TypeMapper } from '../utils/type-mapper';
+import { TemplateManager } from '../templates/template-manager';
+import { DartProperty } from '../types';
 
 export interface ObjectResult {
   type: string;
@@ -197,90 +199,90 @@ function processProperty(
 }
 
 /**
- * Generate Freezed model for object
+ * Generate Freezed model for object using template system
  */
 function generateObjectModel(
   name: string,
   properties: Map<string, PropertyInfo>,
   imports: string[]
 ): string {
-  const className = TypeMapper.toDartClassName(name);
-  const fileName = TypeMapper.toSnakeCase(name);
-  const propertyLines: string[] = [];
+  // Create a TemplateManager instance to render the template
+  const templateManager = new TemplateManager();
   
-  properties.forEach(prop => {
-    let line = '    ';
-    
-    // Add JsonKey if needed
-    if (prop.jsonKey) {
-      line += `@JsonKey(name: '${prop.jsonKey}') `;
-    }
-    
-    // Add description as comment with proper multiline handling
-    if (prop.description) {
-      // First normalize and clean the description
-      const cleanDesc = prop.description.trim()
-        .replace(/\s+/g, ' ') // Replace multiple spaces/newlines with single space
-        .replace(/;\s*/g, ';\n') // Add newline after semicolons
-        .replace(/\.\s+/g, '.\n'); // Add newline after periods followed by space
-      
-      // Split by newlines (from semicolons and periods) or wrap long lines
-      const lines = cleanDesc.split('\n');
-      
-      lines.forEach(line => {
-        const trimmedLine = line.trim();
-        if (trimmedLine) {
-          // If line is too long (>80 chars), wrap it
-          if (trimmedLine.length > 80) {
-            const words = trimmedLine.split(' ');
-            let currentLine = '';
-            
-            words.forEach(word => {
-              if ((currentLine + ' ' + word).length > 80 && currentLine) {
-                propertyLines.push(`    /// ${currentLine.trim()}`);
-                currentLine = word;
-              } else {
-                currentLine = currentLine ? `${currentLine} ${word}` : word;
-              }
-            });
-            
-            if (currentLine) {
-              propertyLines.push(`    /// ${currentLine.trim()}`);
-            }
-          } else {
-            propertyLines.push(`    /// ${trimmedLine}`);
-          }
-        }
-      });
-    }
-    
-    // Add default value if present
-    if (prop.defaultValue !== undefined) {
-      line += `@Default(${formatDefaultValue(prop.defaultValue, prop.type)}) `;
-    }
-    
-    // Add property declaration
-    line += prop.required ? 'required ' : '';
-    line += `${prop.type} ${prop.name},`;
-    
-    propertyLines.push(line);
-  });
+  // Convert PropertyInfo map to DartProperty array
+  const dartProperties: DartProperty[] = Array.from(properties.values()).map(prop => ({
+    name: prop.name,
+    type: prop.type,
+    required: prop.required,
+    nullable: prop.nullable,
+    description: prop.description,
+    defaultValue: prop.defaultValue,
+    jsonKey: prop.jsonKey
+  }));
+  
+  const fileName = TypeMapper.toSnakeCase(name);
+  const className = TypeMapper.toDartClassName(name);
+  
+  // Check for special imports
+  const hasUint8List = dartProperties.some(p => p.type.includes('Uint8List'));
+  
+  // Prepare template data - matching what ModelGenerator.renderModel does
+  const templateData = {
+    className,
+    fileName,
+    description: undefined,
+    hasUint8List,
+    additionalImports: imports.filter(imp => 
+      !imp.includes('dart:') && 
+      !imp.includes('freezed') && 
+      !imp.includes('json_annotation')
+    ),
+    properties: dartProperties.map(prop => ({
+      name: prop.name,
+      type: prop.type,
+      required: prop.required && !prop.defaultValue,
+      nullable: prop.nullable,
+      description: prop.description,
+      jsonKey: prop.jsonKey,
+      defaultValue: formatDefaultValueForTemplate(prop.defaultValue, prop.type)
+    }))
+  };
+  
+  // Use TemplateManager to render the freezed-model template
+  return templateManager.render('freezed-model', templateData);
+}
 
-  return `import 'package:freezed_annotation/freezed_annotation.dart';
-${imports.filter((imp, idx, arr) => imp && arr.indexOf(imp) === idx).map(imp => `import '${imp}';`).join('\n')}
-
-part '${fileName}.f.freezed.dart';
-part '${fileName}.f.g.dart';
-
-@freezed
-class ${className} with _\$${className} {
-  const factory ${className}({
-${propertyLines.join('\n')}
-  }) = _${className};
-
-  factory ${className}.fromJson(Map<String, dynamic> json) =>
-      _\$${className}FromJson(json);
-}`;
+/**
+ * Format default value for template (matching ModelGenerator's formatDefaultValue)
+ */
+function formatDefaultValueForTemplate(value: any, type: string): string | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  
+  // Format based on type
+  if (type === 'String' || type === 'String?') {
+    return `'${value}'`;
+  }
+  
+  if (type === 'int' || type === 'double' || 
+      type === 'int?' || type === 'double?') {
+    return String(value);
+  }
+  
+  if (type === 'bool' || type === 'bool?') {
+    return String(value);
+  }
+  
+  if (type.startsWith('List')) {
+    return 'const []';
+  }
+  
+  if (type.startsWith('Map')) {
+    return 'const {}';
+  }
+  
+  return null;
 }
 
 /**

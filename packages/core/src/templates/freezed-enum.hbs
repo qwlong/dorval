@@ -1,0 +1,39 @@
+import 'package:json_annotation/json_annotation.dart';
+
+{{#if description}}
+/// {{description}}
+{{/if}}
+enum {{enumName}} {
+{{#each values}}
+  @JsonValue('{{value}}')
+  {{name}}{{#unless @last}},{{/unless}}
+{{#if description}}
+  /// {{description}}
+{{/if}}
+
+{{/each}}
+}
+
+/// Extension methods for {{enumName}}
+extension {{enumName}}Extension on {{enumName}} {
+  String get value {
+    switch (this) {
+{{#each values}}
+      case {{../enumName}}.{{name}}:
+        return '{{value}}';
+{{/each}}
+    }
+  }
+
+  static {{enumName}}? fromValue(String? value) {
+    if (value == null) return null;
+    switch (value) {
+{{#each values}}
+      case '{{value}}':
+        return {{../enumName}}.{{name}};
+{{/each}}
+      default:
+        return null;
+    }
+  }
+}

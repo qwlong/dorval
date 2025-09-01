@@ -300,7 +300,7 @@ export class ModelGenerator {
       values: enumValues
     };
     
-    const content = this.templateManager.render('enum', templateData);
+    const content = this.templateManager.render('freezed-enum', templateData);
     
     return {
       path: `models/${fileName}.f.dart`,

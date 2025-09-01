@@ -1,0 +1,62 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+{{#each imports}}
+import '{{this}}';
+{{/each}}
+
+part '{{fileName}}.f.freezed.dart';
+part '{{fileName}}.f.g.dart';
+
+{{#if description}}
+/// {{description}}
+{{/if}}
+@freezed
+class {{className}} with _${{className}} {
+  const {{className}}._();
+  
+{{#each unions}}
+  const factory {{../className}}.{{factoryName}}({
+    {{#if discriminatorValue}}
+    @Default('{{discriminatorValue}}') String {{discriminatorProperty}},
+
+    {{/if}}
+    {{#each properties}}
+    {{#if description}}
+    /// {{description}}
+    {{/if}}
+    {{#if jsonKey}}
+    @JsonKey(name: '{{jsonKey}}')
+    {{/if}}
+    {{#if defaultValue}}
+    @Default({{{defaultValue}}}) {{{type}}} {{{name}}},
+    {{else}}
+    {{#if required}}required {{{type}}} {{{name}}},{{else}}{{{type}}} {{{name}}},{{/if}}
+    {{/if}}
+
+    {{/each}}
+  }) = _{{../className}}{{pascalFactoryName}};
+{{#unless @last}}
+
+{{/unless}}
+{{/each}}
+
+  factory {{className}}.fromJson(Map<String, dynamic> json) =>
+      _${{className}}FromJson(json);
+{{#if customFromJson}}
+  
+  // Custom fromJson implementation for discriminated union
+  factory {{className}}.fromJsonWithDiscriminator(Map<String, dynamic> json) {
+    final type = json['{{discriminatorProperty}}'] as String?;
+    switch (type) {
+      {{#each unions}}
+      case '{{discriminatorValue}}':
+        return {{../className}}.{{factoryName}}(
+          {{discriminatorProperty}}: '{{discriminatorValue}}',
+          {{unionProperty}}: {{type}}.fromJson(json['{{unionProperty}}'] as Map<String, dynamic>),
+        );
+      {{/each}}
+      default:
+        throw Exception('Unknown {{discriminatorProperty}}: $type');
+    }
+  }
+{{/if}}
+}

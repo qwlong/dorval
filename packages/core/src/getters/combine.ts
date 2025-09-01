@@ -4,6 +4,7 @@
  */
 
 import { OpenAPIV3 } from 'openapi-types';
+import { TemplateManager } from '../templates/template-manager';
 
 // Separator type matching Orval
 type Separator = 'allOf' | 'anyOf' | 'oneOf';
@@ -234,7 +235,7 @@ function generateSealedClass(
   discriminator: any,
   imports: string[]
 ): CombineResult {
-  const unions: string[] = [];
+  const templateManager = new TemplateManager();
   const discriminatorProperty = discriminator.propertyName || discriminator.discriminatorProperty || 'itemType';
   const discriminatorValues = discriminator.values || ['shift', 'time_off_request'];
   const unionProperty = discriminator.unionProperty || 'item';
@@ -242,8 +243,8 @@ function generateSealedClass(
   // Handle schemas from discriminated union pattern
   const unionSchemas = discriminator.unionSchemas || schemas;
   
-  // Generate proper Freezed union types with discriminator pattern
-  unionSchemas.forEach((schema: any, index: number) => {
+  // Build union data for template
+  const unions = unionSchemas.map((schema: any, index: number) => {
     const typeName = extractType(schema);
     if (typeName && typeName !== 'dynamic') {
       // Handle List types - extract the inner type for imports
@@ -260,55 +261,41 @@ function generateSealedClass(
                                  getDiscriminatorValue(schema, discriminatorProperty, index);
       const factoryName = toCamelCase(discriminatorValue);
       
-      // Generate factory constructor
-      unions.push(`  const factory ${name}.${factoryName}({
-    @Default('${discriminatorValue}') String ${discriminatorProperty},
-
-    required ${typeName} ${unionProperty},
-
-  }) = _${name}${toPascalCase(factoryName)};`);
+      return {
+        factoryName,
+        pascalFactoryName: toPascalCase(factoryName),
+        discriminatorProperty,
+        discriminatorValue,
+        unionProperty,
+        type: typeName,
+        properties: [
+          {
+            name: unionProperty,
+            type: typeName,
+            required: true
+          }
+        ]
+      };
     }
-  });
+    return null;
+  }).filter(Boolean);
 
-  const fileName = toSnakeCase(name);
-  
-  // Generate custom fromJson method for discriminator-based deserialization
-  const fromJsonCases = unionSchemas.map((schema: any, index: number) => {
-    const typeName = extractType(schema);
-    const discriminatorValue = discriminatorValues?.[index] || 
-                               getDiscriminatorValue(schema, discriminatorProperty, index);
-    const factoryName = toCamelCase(discriminatorValue);
-    
-    // Handle array types differently
-    const fromJsonCall = typeName.startsWith('List<') 
-      ? `(json['${unionProperty}'] as List).map((e) => ${typeName.replace('List<', '').replace('>', '')}.fromJson(e as Map<String, dynamic>)).toList()`
-      : `${typeName}.fromJson(json['${unionProperty}'] as Map<String, dynamic>)`;
-    
-    return `      case '${discriminatorValue}':
-        return ${name}.${factoryName}(
-          ${unionProperty}: ${fromJsonCall},
-        );`;
-  }).join('\n');
-  
   // Remove duplicates from imports
   const uniqueImports = [...new Set(imports.filter(imp => imp))];
   
-  const definition = `import 'package:freezed_annotation/freezed_annotation.dart';
-${uniqueImports.map(imp => `import '${imp}';`).join('\n')}
-
-part '${fileName}.f.freezed.dart';
-part '${fileName}.f.g.dart';
-
-@freezed
-class ${name} with _\$${name} {
-  const ${name}._();
+  // Prepare template data
+  const templateData = {
+    className: name,
+    fileName: toSnakeCase(name),
+    imports: uniqueImports,
+    unions,
+    discriminatorProperty,
+    unionProperty,
+    customFromJson: false // Set to true if you want custom fromJson
+  };
   
-${unions.join('\n\n')}
-
-  factory ${name}.fromJson(Map<String, dynamic> json) =>
-      _\$${name}FromJson(json);
-}
-`;
+  // Render using template
+  const definition = templateManager.render('freezed-union', templateData);
 
   return {
     type: name,
@@ -377,7 +364,7 @@ ${generateTypeGetters(types)}
 }
 
 /**
- * Generate Freezed class definition
+ * Generate Freezed class definition using template
  */
 function generateFreezedClass(
   name: string,
@@ -385,45 +372,80 @@ function generateFreezedClass(
   required: Set<string>,
   imports: string[]
 ): string {
+  const templateManager = new TemplateManager();
   const fileName = toSnakeCase(name);
-  const propertyLines: string[] = [];
   
-  properties.forEach((propSchema, propName) => {
+  // Convert properties map to array for template
+  const templateProperties = Array.from(properties.entries()).map(([propName, propSchema]) => {
     const dartName = toCamelCase(propName);
     const dartType = extractType(propSchema);
     const isRequired = required.has(propName);
     const nullable = !isRequired || propSchema.nullable;
     
-    let line = `    `;
-    if (dartName !== propName) {
-      line += `@JsonKey(name: '${propName}') `;
-    }
-    line += `${isRequired ? 'required ' : ''}`;
-    line += `${dartType}${nullable && !dartType.endsWith('?') ? '?' : ''} ${dartName},`;
-    
-    propertyLines.push(line);
+    return {
+      name: dartName,
+      type: dartType + (nullable && !dartType.endsWith('?') ? '?' : ''),
+      required: isRequired,
+      nullable,
+      description: propSchema.description,
+      jsonKey: dartName !== propName ? propName : undefined,
+      defaultValue: propSchema.default ? formatDefaultValue(propSchema.default, dartType) : undefined
+    };
   });
 
   // Remove duplicates from imports
   const uniqueImports = [...new Set(imports.filter(imp => imp))];
+  
+  // Check for special imports
+  const hasUint8List = templateProperties.some(p => p.type.includes('Uint8List'));
+  
+  // Prepare template data
+  const templateData = {
+    className: name,
+    fileName,
+    description: undefined,
+    hasUint8List,
+    additionalImports: uniqueImports.filter(imp => 
+      !imp.includes('dart:') && 
+      !imp.includes('freezed') && 
+      !imp.includes('json_annotation')
+    ),
+    properties: templateProperties
+  };
 
-  return `import 'package:freezed_annotation/freezed_annotation.dart';
-${uniqueImports.map(imp => `import '${imp}';`).join('\n')}
-
-part '${fileName}.f.freezed.dart';
-part '${fileName}.f.g.dart';
-
-@freezed
-class ${name} with _\$${name} {
-  const factory ${name}({
-${propertyLines.join('\n\n')}
-
-  }) = _${name};
-
-  factory ${name}.fromJson(Map<String, dynamic> json) =>
-      _\$${name}FromJson(json);
+  // Render using the regular model template
+  return templateManager.render('freezed-model', templateData);
 }
-`;
+
+/**
+ * Format default value for template
+ */
+function formatDefaultValue(value: any, type: string): string | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  
+  if (type === 'String') {
+    return `'${value}'`;
+  }
+  
+  if (type === 'int' || type === 'double') {
+    return String(value);
+  }
+  
+  if (type === 'bool') {
+    return String(value);
+  }
+  
+  if (type.startsWith('List')) {
+    return 'const []';
+  }
+  
+  if (type.startsWith('Map')) {
+    return 'const {}';
+  }
+  
+  return null;
 }
 
 // Helper functions

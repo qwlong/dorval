@@ -116,17 +116,19 @@ export function getEnumDescriptions(schema: OpenAPIV3.SchemaObject): Record<stri
   const descriptions: Record<string, string> = {};
   
   // Check for x-enum-descriptions extension
-  if (schema['x-enum-descriptions']) {
-    const enumDescriptions = schema['x-enum-descriptions'] as Record<string, string>;
+  const xEnumDescriptions = (schema as any)['x-enum-descriptions'];
+  if (xEnumDescriptions) {
+    const enumDescriptions = xEnumDescriptions as Record<string, string>;
     Object.entries(enumDescriptions).forEach(([key, desc]) => {
       descriptions[key] = desc;
     });
   }
   
   // Check for x-enumNames (alternative format)
-  if (schema['x-enumNames'] && Array.isArray(schema['x-enumNames'])) {
+  const xEnumNames = (schema as any)['x-enumNames'];
+  if (xEnumNames && Array.isArray(xEnumNames)) {
     const enumValues = getEnumValues(schema);
-    const enumNames = schema['x-enumNames'] as string[];
+    const enumNames = xEnumNames as string[];
     enumValues.forEach((value, index) => {
       if (enumNames[index]) {
         descriptions[String(value)] = enumNames[index];
@@ -162,6 +164,6 @@ export function getEnumImplementation(data: EnumData): string {
 export function isNullableEnum(schema: OpenAPIV3.SchemaObject): boolean {
   return isEnum(schema) && (
     schema.nullable === true ||
-    (schema.enum && schema.enum.includes(null))
+    Boolean(schema.enum && schema.enum.includes(null))
   );
 }
