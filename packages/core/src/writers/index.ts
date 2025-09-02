@@ -3,7 +3,8 @@
  * This module handles all file output operations
  */
 
-import * as fs from 'fs-extra';
+import * as fs from 'fs/promises';
+import * as fsSync from 'fs';
 import * as path from 'path';
 import { GeneratedFile } from '../types';
 
@@ -19,7 +20,7 @@ export async function writeFiles(
   outputPath: string
 ): Promise<void> {
   // Ensure output directory exists
-  await fs.ensureDir(outputPath);
+  await fs.mkdir(outputPath, { recursive: true });
 
   // Write each file
   for (const file of files) {
@@ -27,7 +28,7 @@ export async function writeFiles(
     const fileDir = path.dirname(filePath);
     
     // Ensure directory exists
-    await fs.ensureDir(fileDir);
+    await fs.mkdir(fileDir, { recursive: true });
     
     // Write file content
     await fs.writeFile(filePath, file.content, 'utf-8');
@@ -44,7 +45,7 @@ export async function writeFile(
   const fileDir = path.dirname(filePath);
   
   // Ensure directory exists
-  await fs.ensureDir(fileDir);
+  await fs.mkdir(fileDir, { recursive: true });
   
   // Write file
   await fs.writeFile(filePath, content, 'utf-8');
@@ -54,18 +55,25 @@ export async function writeFile(
  * Clean output directory
  */
 export async function cleanOutputDir(outputPath: string): Promise<void> {
-  if (await fs.pathExists(outputPath)) {
-    await fs.emptyDir(outputPath);
-  } else {
-    await fs.ensureDir(outputPath);
+  try {
+    // Try to remove the directory and recreate it
+    await fs.rm(outputPath, { recursive: true, force: true });
+  } catch (error) {
+    // Directory might not exist, ignore error
   }
+  await fs.mkdir(outputPath, { recursive: true });
 }
 
 /**
  * Check if file exists
  */
 export async function fileExists(filePath: string): Promise<boolean> {
-  return fs.pathExists(filePath);
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -80,8 +88,8 @@ export async function readFile(filePath: string): Promise<string> {
  */
 export async function copyFile(src: string, dest: string): Promise<void> {
   const destDir = path.dirname(dest);
-  await fs.ensureDir(destDir);
-  await fs.copy(src, dest);
+  await fs.mkdir(destDir, { recursive: true });
+  await fs.copyFile(src, dest);
 }
 
 /**
@@ -166,7 +174,7 @@ export async function writeFilesParallel(
     const dirPath = path.join(outputPath, dir);
     
     // Ensure directory exists
-    await fs.ensureDir(dirPath);
+    await fs.mkdir(dirPath, { recursive: true });
     
     // Write all files in this directory in parallel
     for (const file of dirFiles) {

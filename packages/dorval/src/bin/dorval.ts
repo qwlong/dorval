@@ -6,8 +6,8 @@
 
 import { program } from 'commander';
 import chalk from 'chalk';
-import { generateCommand } from '../commands/generate';
-import { watchCommand } from '../commands/watch';
+import { generateCommand } from '../commands/generate.js';
+import { watchCommand } from '../commands/watch.js';
 import { version } from '../../package.json';
 
 program

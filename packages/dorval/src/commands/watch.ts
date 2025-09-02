@@ -5,46 +5,16 @@
 import chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
+import ora from 'ora';
 import { generateDartCode } from '@dorval/core';
-import { loadConfig } from '../config';
-
-// Simple spinner implementation (same as in generate.ts)
-class SimpleSpinner {
-  private message: string;
-  
-  constructor(message: string) {
-    this.message = message;
-  }
-  
-  start() {
-    console.log(chalk.cyan(`⏳ ${this.message}`));
-    return this;
-  }
-  
-  succeed(message?: string) {
-    console.log(chalk.green(`✅ ${message || this.message}`));
-    return this;
-  }
-  
-  fail(message?: string) {
-    console.log(chalk.red(`❌ ${message || this.message}`));
-    return this;
-  }
-  
-  text(message: string) {
-    this.message = message;
-    console.log(chalk.cyan(`⏳ ${message}`));
-    return this;
-  }
-}
+import { loadConfig } from '../config.js';
 
 interface WatchOptions {
   config?: string;
 }
 
 export async function watchCommand(options: WatchOptions) {
-  const spinner = new SimpleSpinner('Starting watch mode...');
-  spinner.start();
+  const spinner = ora('Starting watch mode...').start();
   
   try {
     // Load configuration
