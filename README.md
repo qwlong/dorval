@@ -4,7 +4,7 @@
   <img src="https://github.com/qwlong/dorval/actions/workflows/ci.yml/badge.svg" alt="CI Status" />
   <img src="https://img.shields.io/npm/v/dorval.svg" alt="npm version" />
   <img src="https://img.shields.io/npm/dm/dorval.svg" alt="npm downloads" />
-  <img src="https://codecov.io/gh/qwlong/dorval/branch/master/graph/badge.svg" alt="codecov" />
+  <img src="https://codecov.io/gh/qwlong/dorval/branch/main/graph/badge.svg" alt="codecov" />
   <img src="https://img.shields.io/github/license/qwlong/dorval.svg" alt="license" />
   <img src="https://img.shields.io/badge/Dart-3.0%2B-blue" alt="dart version" />
   <img src="https://img.shields.io/badge/TypeScript-5.0%2B-blue" alt="typescript version" />

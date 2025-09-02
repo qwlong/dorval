@@ -84,6 +84,6 @@ if [ ! -z "$VERSION" ]; then
   
   echo ""
   echo "📤 Next steps:"
-  echo "1. Push changes: git push origin master && git push origin v$VERSION"
+  echo "1. Push changes: git push origin main && git push origin v$VERSION"
   echo "2. Create GitHub release: https://github.com/qwlong/dorval/releases/new?tag=v$VERSION"
 fi

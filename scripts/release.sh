@@ -42,7 +42,7 @@ git tag -a "v$VERSION" -m "Release v$VERSION"
 
 # Push
 echo "📤 Pushing to GitHub..."
-git push origin master
+git push origin main
 git push origin "v$VERSION"
 
 echo ""
