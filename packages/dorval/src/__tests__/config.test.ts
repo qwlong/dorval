@@ -1,5 +1,14 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { loadConfig } from '../config';
+import { cosmiconfigSync } from 'cosmiconfig';
+
+// Mock cosmiconfig to control test outcomes
+vi.mock('cosmiconfig', () => ({
+  cosmiconfigSync: vi.fn(() => ({
+    search: vi.fn(() => null),
+    load: vi.fn(() => null)
+  }))
+}));
 
 describe('Config', () => {
   it('should export loadConfig function', () => {
