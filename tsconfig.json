@@ -1,10 +1,12 @@
 {
-  "extends": "../orval/tsconfig.base.json",
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@orval-dart/core": ["./packages/orval-dart-core/src"],
-      "@orval-dart/cli": ["./packages/orval-dart-cli/src"]
+      "@dorval/core": ["./packages/core/src"],
+      "@dorval/dorval": ["./packages/dorval/src"],
+      "@dorval/dio": ["./packages/dio/src"],
+      "@dorval/custom": ["./packages/custom/src"]
     }
   },
   "include": [
