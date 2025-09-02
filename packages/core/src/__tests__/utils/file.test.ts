@@ -51,21 +51,21 @@ describe('File Utilities', () => {
 
   describe('ensureDir', () => {
     it('should ensure directory exists', async () => {
-      vi.mocked(fs.ensureDir).mockResolvedValue();
+      vi.mocked(fs.mkdir).mockResolvedValue();
 
       await ensureDir('/test/dir');
-      expect(fs.ensureDir).toHaveBeenCalledWith('/test/dir');
+      expect(fs.mkdir).toHaveBeenCalledWith('/test/dir', { recursive: true });
     });
 
     it('should handle nested directories', async () => {
-      vi.mocked(fs.ensureDir).mockResolvedValue();
+      vi.mocked(fs.mkdir).mockResolvedValue();
 
       await ensureDir('/test/nested/deep/dir');
-      expect(fs.ensureDir).toHaveBeenCalledWith('/test/nested/deep/dir');
+      expect(fs.mkdir).toHaveBeenCalledWith('/test/nested/deep/dir', { recursive: true });
     });
 
     it('should handle errors', async () => {
-      vi.mocked(fs.ensureDir).mockRejectedValue(new Error('Permission denied'));
+      vi.mocked(fs.mkdir).mockRejectedValue(new Error('Permission denied'));
 
       await expect(ensureDir('/test/dir')).rejects.toThrow('Permission denied');
     });
@@ -120,15 +120,15 @@ describe('File Utilities', () => {
 
   describe('exists', () => {
     it('should check if file exists', async () => {
-      vi.mocked(fs.pathExists).mockResolvedValue(true as any);
+      vi.mocked(fs.access).mockResolvedValue();
 
       const result = await exists('/test/file.txt');
       expect(result).toBe(true);
-      expect(fs.pathExists).toHaveBeenCalledWith('/test/file.txt');
+      expect(fs.access).toHaveBeenCalledWith('/test/file.txt', 0);
     });
 
     it('should return false for non-existent file', async () => {
-      vi.mocked(fs.pathExists).mockResolvedValue(false as any);
+      vi.mocked(fs.access).mockRejectedValue(new Error('ENOENT'));
 
       const result = await exists('/test/nonexistent.txt');
       expect(result).toBe(false);
@@ -137,33 +137,34 @@ describe('File Utilities', () => {
 
   describe('copyFile', () => {
     it('should copy file from source to destination', async () => {
-      vi.mocked(fs.copy).mockResolvedValue();
+      vi.mocked(fs.copyFile).mockResolvedValue();
 
       await copyFile('/source/file.txt', '/dest/file.txt');
-      expect(fs.copy).toHaveBeenCalledWith('/source/file.txt', '/dest/file.txt');
+      expect(fs.copyFile).toHaveBeenCalledWith('/source/file.txt', '/dest/file.txt');
     });
 
     it('should overwrite existing file', async () => {
-      vi.mocked(fs.copy).mockResolvedValue();
+      vi.mocked(fs.copyFile).mockResolvedValue();
 
       await copyFile('/source/file.txt', '/dest/file.txt');
-      expect(fs.copy).toHaveBeenCalledWith('/source/file.txt', '/dest/file.txt');
+      expect(fs.copyFile).toHaveBeenCalledWith('/source/file.txt', '/dest/file.txt');
     });
   });
 
   describe('removeFile', () => {
     it('should remove file', async () => {
-      vi.mocked(fs.remove).mockResolvedValue();
+      vi.mocked(fs.unlink).mockResolvedValue();
 
       await removeFile('/test/file.txt');
-      expect(fs.remove).toHaveBeenCalledWith('/test/file.txt');
+      expect(fs.unlink).toHaveBeenCalledWith('/test/file.txt');
     });
 
     it('should remove directory', async () => {
-      vi.mocked(fs.remove).mockResolvedValue();
+      vi.mocked(fs.unlink).mockRejectedValue({ code: 'EISDIR' });
+      vi.mocked(fs.rm).mockResolvedValue();
 
       await removeFile('/test/dir');
-      expect(fs.remove).toHaveBeenCalledWith('/test/dir');
+      expect(fs.rm).toHaveBeenCalledWith('/test/dir', { recursive: true, force: true });
     });
   });
 
@@ -308,15 +309,15 @@ describe('File Utilities', () => {
   describe('Temp Directory', () => {
     describe('createTempDir', () => {
       it('should create temporary directory', async () => {
-        vi.mocked(fs.ensureDir).mockResolvedValue();
+        vi.mocked(fs.mkdir).mockResolvedValue();
 
         const tempDir = await createTempDir('test-');
         expect(tempDir).toContain('test-');
-        expect(fs.ensureDir).toHaveBeenCalled();
+        expect(fs.mkdir).toHaveBeenCalled();
       });
 
       it('should use custom prefix', async () => {
-        vi.mocked(fs.ensureDir).mockResolvedValue();
+        vi.mocked(fs.mkdir).mockResolvedValue();
 
         const tempDir = await createTempDir('custom-');
         expect(tempDir).toContain('custom-');
@@ -325,14 +326,14 @@ describe('File Utilities', () => {
 
     describe('cleanupTempDir', () => {
       it('should cleanup temporary directory', async () => {
-        vi.mocked(fs.remove).mockResolvedValue();
+        vi.mocked(fs.rm).mockResolvedValue();
 
         await cleanupTempDir('/tmp/temp-abc123');
-        expect(fs.remove).toHaveBeenCalledWith('/tmp/temp-abc123');
+        expect(fs.rm).toHaveBeenCalledWith('/tmp/temp-abc123', { recursive: true, force: true });
       });
 
       it('should handle cleanup errors gracefully', async () => {
-        vi.mocked(fs.remove).mockRejectedValue(new Error('Directory not found'));
+        vi.mocked(fs.rm).mockRejectedValue(new Error('Directory not found'));
 
         // Should not throw
         await expect(cleanupTempDir('/tmp/nonexistent')).resolves.toBeUndefined();
@@ -375,7 +376,7 @@ describe('File Utilities', () => {
     });
 
     it('should handle invalid path errors', async () => {
-      vi.mocked(fs.ensureDir).mockRejectedValue(new Error('EINVAL: invalid argument'));
+      vi.mocked(fs.mkdir).mockRejectedValue(new Error('EINVAL: invalid argument'));
 
       await expect(ensureDir('\0invalid\0path'))
         .rejects.toThrow('invalid argument');
