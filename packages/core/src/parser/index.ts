@@ -5,13 +5,14 @@
 
 import SwaggerParser from '@apidevtools/swagger-parser';
 import { OpenAPIObject } from '../types';
-import * as fs from 'fs-extra';
+import * as fs from 'fs/promises';
+import * as fsSync from 'fs';
 import * as path from 'path';
 
 export async function parseOpenAPISpec(input: string | OpenAPIObject): Promise<OpenAPIObject> {
   if (typeof input === 'string') {
     // Check if it's a file path
-    if (fs.existsSync(input)) {
+    if (fsSync.existsSync(input)) {
       // Read the file directly to preserve $refs
       const ext = path.extname(input).toLowerCase();
       if (ext === '.json') {

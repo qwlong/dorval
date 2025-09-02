@@ -3,7 +3,8 @@
  */
 
 import Handlebars from 'handlebars';
-import * as fs from 'fs-extra';
+import * as fs from 'fs/promises';
+import * as fsSync from 'fs';
 import * as path from 'path';
 
 export class TemplateManager {
@@ -126,7 +127,7 @@ export class TemplateManager {
 
     // Load template file - check both templates dir and direct path
     let templatePath = path.join(__dirname, 'templates', `${templateName}.hbs`);
-    if (!fs.existsSync(templatePath)) {
+    if (!fsSync.existsSync(templatePath)) {
       templatePath = path.join(__dirname, `${templateName}.hbs`);
     }
     const templateContent = await fs.readFile(templatePath, 'utf-8');
@@ -154,10 +155,10 @@ export class TemplateManager {
 
     // Load template file - check both templates dir and direct path
     let templatePath = path.join(__dirname, 'templates', `${templateName}.hbs`);
-    if (!fs.existsSync(templatePath)) {
+    if (!fsSync.existsSync(templatePath)) {
       templatePath = path.join(__dirname, `${templateName}.hbs`);
     }
-    const templateContent = fs.readFileSync(templatePath, 'utf-8');
+    const templateContent = fsSync.readFileSync(templatePath, 'utf-8');
 
     // Compile template
     const compiled = this.handlebars.compile(templateContent, {

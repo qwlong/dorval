@@ -2,7 +2,8 @@
  * File system utilities
  */
 
-import * as fs from 'fs-extra';
+import * as fs from 'fs/promises';
+import * as fsSync from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { GeneratedFile } from '../types';
@@ -12,7 +13,7 @@ export async function writeToDisk(
   targetDir: string
 ): Promise<void> {
   // Ensure target directory exists
-  await fs.ensureDir(targetDir);
+  await fs.mkdir(targetDir, { recursive: true });
   
   // Write each file
   for (const file of files) {
@@ -20,10 +21,10 @@ export async function writeToDisk(
     const dir = path.dirname(filePath);
     
     // Ensure directory exists
-    await fs.ensureDir(dir);
+    await fs.mkdir(dir, { recursive: true });
     
     // Write file
-    if (file.overwrite !== false || !(await fs.pathExists(filePath))) {
+    if (file.overwrite !== false || !(await fileExists(filePath))) {
       // Ensure file ends with a newline
       const content = file.content.endsWith('\n') ? file.content : file.content + '\n';
       await fs.writeFile(filePath, content, 'utf-8');
@@ -33,7 +34,7 @@ export async function writeToDisk(
 
 // Core file operations
 export async function ensureDir(dirPath: string): Promise<void> {
-  return fs.ensureDir(dirPath);
+  await fs.mkdir(dirPath, { recursive: true });
 }
 
 export async function writeFile(
@@ -52,15 +53,20 @@ export async function readFile(
 }
 
 export async function exists(filePath: string): Promise<boolean> {
-  return fs.pathExists(filePath);
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function copyFile(src: string, dest: string): Promise<void> {
-  return fs.copy(src, dest);
+  return fs.copyFile(src, dest);
 }
 
 export async function removeFile(filePath: string): Promise<void> {
-  return fs.remove(filePath);
+  return fs.rm(filePath, { recursive: true, force: true });
 }
 
 export async function getFiles(
@@ -111,14 +117,14 @@ let tempDirs: string[] = [];
 
 export async function createTempDir(prefix: string = 'dorval-'): Promise<string> {
   const tempDir = path.join(os.tmpdir(), `${prefix}${Date.now()}`);
-  await fs.ensureDir(tempDir);
+  await fs.mkdir(tempDir, { recursive: true });
   tempDirs.push(tempDir);
   return tempDir;
 }
 
 export async function cleanupTempDir(tempDir: string): Promise<void> {
   try {
-    await fs.remove(tempDir);
+    await fs.rm(tempDir, { recursive: true, force: true });
     tempDirs = tempDirs.filter(dir => dir !== tempDir);
   } catch (error) {
     // Ignore cleanup errors
@@ -127,5 +133,10 @@ export async function cleanupTempDir(tempDir: string): Promise<void> {
 
 // Legacy compatibility
 export async function fileExists(filePath: string): Promise<boolean> {
-  return fs.pathExists(filePath);
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
 }

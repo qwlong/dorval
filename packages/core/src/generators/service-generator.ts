@@ -10,7 +10,8 @@ import { TypeMapper } from '../utils/type-mapper';
 import { ParamsGenerator } from './params-generator';
 import { HeadersConfigurableGenerator } from './headers-configurable-generator';
 import { HeadersGenerator } from './headers-generator';
-import * as fs from 'fs-extra';
+import * as fs from 'fs/promises';
+import * as fsSync from 'fs';
 import * as path from 'path';
 
 export interface ServiceClass {
@@ -40,13 +41,13 @@ export class ServiceGenerator {
     // Register the service-method partial
     // Need to read the template content directly, not the compiled function
     let methodTemplatePath = path.join(__dirname, 'templates', 'service-method.hbs');
-    if (!fs.existsSync(methodTemplatePath)) {
+    if (!fsSync.existsSync(methodTemplatePath)) {
       methodTemplatePath = path.join(__dirname, '../templates/service-method.hbs');
     }
-    if (!fs.existsSync(methodTemplatePath)) {
+    if (!fsSync.existsSync(methodTemplatePath)) {
       methodTemplatePath = path.join(__dirname, 'service-method.hbs');
     }
-    const methodTemplateContent = fs.readFileSync(methodTemplatePath, 'utf-8');
+    const methodTemplateContent = fsSync.readFileSync(methodTemplatePath, 'utf-8');
     this.templateManager.registerPartial('service-method', methodTemplateContent);
   }
 

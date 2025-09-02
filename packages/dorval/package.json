@@ -28,8 +28,17 @@
     "url": "https://github.com/qwlong/dorval/issues"
   },
   "license": "MIT",
-  "main": "./dist/index.js",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "bin": {
     "dorval": "./dist/bin/dorval.js"
   },
@@ -37,18 +46,17 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup ./src/index.ts ./src/bin/dorval.ts --clean --sourcemap",
+    "build": "tsup",
     "dev": "tsup ./src/index.ts ./src/bin/dorval.ts --clean --sourcemap --watch src --dts",
     "lint": "eslint 'src/**/*.ts'",
     "test": "vitest run"
   },
   "dependencies": {
     "@dorval/core": "0.1.7",
-    "commander": "^11.0.0",
     "chalk": "^4.1.2",
-    "ora": "5.4.1",
+    "commander": "^11.0.0",
     "cosmiconfig": "^8.2.0",
-    "fs-extra": "^11.3.0",
+    "ora": "^8.1.1",
     "typescript": "^5.2.2"
   },
   "devDependencies": {
