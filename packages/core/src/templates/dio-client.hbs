@@ -61,7 +61,7 @@ class ApiClient {
     {{/if}}
     
     // Add logging interceptor in debug mode
-    if ({{enableLogging}}) {
+    if ({{{enableLogging}}}) {
       dio.interceptors.add(LogInterceptor(
         request: true,
         requestHeader: true,
