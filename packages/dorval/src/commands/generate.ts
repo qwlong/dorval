@@ -3,9 +3,38 @@
  */
 
 import chalk from 'chalk';
-import ora from 'ora';
 import { generateDartCode, DartGeneratorOptions } from '@dorval/core';
 import { loadConfig } from '../config';
+
+// Simple spinner implementation
+class SimpleSpinner {
+  private message: string;
+  
+  constructor(message: string) {
+    this.message = message;
+  }
+  
+  start() {
+    console.log(chalk.cyan(`⏳ ${this.message}`));
+    return this;
+  }
+  
+  succeed(message?: string) {
+    console.log(chalk.green(`✅ ${message || this.message}`));
+    return this;
+  }
+  
+  fail(message?: string) {
+    console.log(chalk.red(`❌ ${message || this.message}`));
+    return this;
+  }
+  
+  text(message: string) {
+    this.message = message;
+    console.log(chalk.cyan(`⏳ ${message}`));
+    return this;
+  }
+}
 
 interface GenerateOptions {
   config?: string;
@@ -16,7 +45,8 @@ interface GenerateOptions {
 }
 
 export async function generateCommand(options: GenerateOptions) {
-  const spinner = ora('Loading configuration...').start();
+  const spinner = new SimpleSpinner('Loading configuration...');
+  spinner.start();
   
   try {
     // Load configuration
