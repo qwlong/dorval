@@ -53,7 +53,7 @@ function generateDioClient(
     hasAuth: hasAuth || hasBearerAuth,
     hasInterceptors: (options.output.override?.dio?.interceptors?.length ?? 0) > 0,
     hasErrorInterceptor: true,
-    enableLogging: 'kDebugMode', // Flutter's debug mode constant
+    enableLogging: 'const bool.fromEnvironment(\'DEBUG\', defaultValue: false)', // Dart debug flag
     connectTimeout: 30,
     receiveTimeout: 30,
     defaultHeaders: {

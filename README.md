@@ -88,8 +88,55 @@ npm link
 
 ### Quick Start
 
-1. **Create a `dorval.config.ts` file:**
+1. **Create a configuration file:**
 
+You can use either CommonJS or ES Modules format:
+
+**ES Modules (`dorval.config.js` or `dorval.config.mjs`):**
+```javascript
+export default {
+  petstore: {
+    input: './petstore.yaml',
+    output: {
+      target: './lib/api',
+      mode: 'split',
+      client: 'dio',
+      override: {
+        generator: {
+          freezed: true,
+          jsonSerializable: true,
+          nullSafety: true
+        },
+        methodNaming: 'methodPath'  // 'operationId' | 'methodPath'
+      }
+    }
+  }
+}
+```
+
+**CommonJS (`dorval.config.cjs`):**
+```javascript
+module.exports = {
+  petstore: {
+    input: './petstore.yaml',
+    output: {
+      target: './lib/api',
+      mode: 'split',
+      client: 'dio',
+      override: {
+        generator: {
+          freezed: true,
+          jsonSerializable: true,
+          nullSafety: true
+        },
+        methodNaming: 'methodPath'  // 'operationId' | 'methodPath'
+      }
+    }
+  }
+}
+```
+
+**TypeScript (`dorval.config.ts`):**
 ```typescript
 export default {
   petstore: {
@@ -137,6 +184,78 @@ void main() async {
   // Type-safe API calls!
   final pets = await petService.listPets(limit: 10);
 }
+```
+
+## Programmatic Usage
+
+Dorval can be used programmatically in your Node.js scripts. Both CommonJS and ES Modules are supported:
+
+### ES Modules (`.mjs` or `package.json` with `"type": "module"`)
+
+```javascript
+import { generateDartCode } from '@dorval/core';
+
+// Using async/await
+const files = await generateDartCode({
+  input: './openapi.yaml',
+  output: {
+    target: './lib/api',
+    mode: 'split',
+    client: 'dio'
+  }
+});
+
+console.log(`Generated ${files.length} files`);
+```
+
+### CommonJS (`.cjs` or `.js` without `"type": "module"`)
+
+```javascript
+const { generateDartCode } = require('@dorval/core');
+
+// Using promises
+generateDartCode({
+  input: './openapi.yaml',
+  output: {
+    target: './lib/api',
+    mode: 'split',
+    client: 'dio'
+  }
+}).then(files => {
+  console.log(`Generated ${files.length} files`);
+});
+
+// Or with async/await in CommonJS
+(async () => {
+  const files = await generateDartCode({
+    input: './openapi.yaml',
+    output: {
+      target: './lib/api',
+      mode: 'split',
+      client: 'dio'
+    }
+  });
+  console.log(`Generated ${files.length} files`);
+})();
+```
+
+### TypeScript
+
+```typescript
+import { generateDartCode } from '@dorval/core';
+import type { DorvalConfig } from '@dorval/core';
+
+const config: DorvalConfig = {
+  input: './openapi.yaml',
+  output: {
+    target: './lib/api',
+    mode: 'split',
+    client: 'dio'
+  }
+};
+
+const files = await generateDartCode(config);
+console.log(`Generated ${files.length} files`);
 ```
 
 ## Development

@@ -29,7 +29,6 @@ dev_dependencies:
   
   # Testing
   test: ^1.24.0
-  mockito: ^5.4.2
   dio_smart_retry: ^5.0.0
   
   # Linting
