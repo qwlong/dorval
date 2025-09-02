@@ -3,7 +3,6 @@
  */
 
 import chalk from 'chalk';
-import ora from 'ora';
 import { generateDartCode, DartGeneratorOptions } from '@dorval/core';
 import { loadConfig } from '../config.js';
 
@@ -16,6 +15,8 @@ interface GenerateOptions {
 }
 
 export async function generateCommand(options: GenerateOptions) {
+  // Dynamic import for ora to support both CJS and ESM
+  const ora = await import('ora').then(m => m.default || m);
   const spinner = ora('Loading configuration...').start();
   
   try {

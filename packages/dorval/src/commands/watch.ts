@@ -5,7 +5,6 @@
 import chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
-import ora from 'ora';
 import { generateDartCode } from '@dorval/core';
 import { loadConfig } from '../config.js';
 
@@ -14,6 +13,8 @@ interface WatchOptions {
 }
 
 export async function watchCommand(options: WatchOptions) {
+  // Dynamic import for ora to support both CJS and ESM
+  const ora = await import('ora').then(m => m.default || m);
   const spinner = ora('Starting watch mode...').start();
   
   try {

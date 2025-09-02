@@ -83,8 +83,41 @@ function combineAllOf(
       const typeName = extractTypeFromRef(schema.$ref);
       imports.push(`${toSnakeCase(typeName)}.f.dart`);
       
-      // Resolve ref to get properties if we have context with schemas
-      if (context?.schemas && context.schemas[typeName]) {
+      // Use refResolver if available to properly resolve the reference
+      if (context?.refResolver) {
+        const resolved = context.refResolver.resolveReference(schema.$ref);
+        if (resolved) {
+          // Recursively handle allOf in the referenced schema
+          if (resolved.allOf) {
+            const nestedResult = combineAllOf(typeName, resolved.allOf, context);
+            // Merge nested properties
+            nestedResult.imports.forEach(imp => imports.push(imp));
+            // Get the properties from the resolved schema
+            if (context?.schemas && context.schemas[typeName]) {
+              const referencedSchema = context.schemas[typeName];
+              if (referencedSchema.properties) {
+                Object.entries(referencedSchema.properties).forEach(([key, value]) => {
+                  properties.set(key, value);
+                });
+              }
+              if (referencedSchema.required) {
+                referencedSchema.required.forEach((req: string) => required.add(req));
+              }
+            }
+          } else {
+            // Regular reference without allOf
+            if (resolved.properties) {
+              Object.entries(resolved.properties).forEach(([key, value]) => {
+                properties.set(key, value);
+              });
+            }
+            if (resolved.required) {
+              resolved.required.forEach((req: string) => required.add(req));
+            }
+          }
+        }
+      } else if (context?.schemas && context.schemas[typeName]) {
+        // Fallback to using context.schemas if refResolver not available
         const referencedSchema = context.schemas[typeName];
         if (referencedSchema.properties) {
           Object.entries(referencedSchema.properties).forEach(([key, value]) => {
@@ -378,9 +411,19 @@ function generateFreezedClass(
   // Convert properties map to array for template
   const templateProperties = Array.from(properties.entries()).map(([propName, propSchema]) => {
     const dartName = toCamelCase(propName);
-    const dartType = extractType(propSchema);
+    let dartType = extractType(propSchema);
     const isRequired = required.has(propName);
     const nullable = !isRequired || propSchema.nullable;
+    
+    // Add imports for referenced types
+    if (propSchema.$ref) {
+      const refType = extractTypeFromRef(propSchema.$ref);
+      const importFile = `${toSnakeCase(refType)}.f.dart`;
+      if (!imports.includes(importFile)) {
+        imports.push(importFile);
+      }
+      dartType = refType;
+    }
     
     return {
       name: dartName,

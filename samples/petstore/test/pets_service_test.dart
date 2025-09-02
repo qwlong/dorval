@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 
 import '../lib/api/api_client.dart';
 import '../lib/api/services/pets_service.dart';
+import '../lib/api/services/api_exception.dart';
 import '../lib/api/models/pet.f.dart';
 import '../lib/api/models/new_pet.f.dart';
 import '../lib/api/models/category.f.dart';
@@ -88,9 +89,10 @@ void main() {
         
         // Assert
         expect(result, isNotNull);
-        expect(result, isA<Map<String, dynamic>>());
-        // The service returns Map<String, dynamic>, not typed models yet
-        // This is a known issue that needs to be fixed in the generator
+        expect(result, isA<List<Pet>>());
+        expect(result.length, equals(2));
+        expect(result[0].name, equals('Fluffy'));
+        expect(result[1].name, equals('Buddy'));
       });
 
       test('should handle empty list', () async {
@@ -110,25 +112,34 @@ void main() {
         
         // Assert
         expect(result, isNotNull);
-        expect(result, isA<Map<String, dynamic>>());
+        expect(result, isA<List<Pet>>());
+        expect(result.length, equals(0));
       });
 
       test('should handle error response', () async {
-        // Arrange
-        mockInterceptor = MockInterceptor(
-          responses: {
-            'GET /pets': {
-              'data': {'message': 'Internal Server Error'},
-              'statusCode': 500,
+        // Arrange - Don't mock, let real error happen
+        dio.interceptors.add(
+          InterceptorsWrapper(
+            onRequest: (options, handler) {
+              handler.reject(
+                DioException(
+                  requestOptions: options,
+                  response: Response(
+                    requestOptions: options,
+                    statusCode: 500,
+                    data: {'message': 'Internal Server Error'},
+                  ),
+                  type: DioExceptionType.badResponse,
+                ),
+              );
             },
-          },
+          ),
         );
-        dio.interceptors.add(mockInterceptor);
         
         // Act & Assert
         expect(
           () => petsService.listPets(),
-          throwsA(isA<DioException>()),
+          throwsA(isA<ApiException>()),
         );
       });
     });
@@ -160,25 +171,39 @@ void main() {
         
         // Assert
         expect(result, isNotNull);
-        expect(result, isA<Map<String, dynamic>>());
+        expect(result, isA<Pet>());
+        expect(result.name, equals('Fluffy'));
+        expect(result.id, equals(1));
       });
 
       test('should handle 404 not found', () async {
-        // Arrange
-        mockInterceptor = MockInterceptor(
-          responses: {
-            'GET /pets/999': {
-              'data': {'message': 'Pet not found'},
-              'statusCode': 404,
+        // Arrange - Use interceptor to reject with error
+        dio.interceptors.add(
+          InterceptorsWrapper(
+            onRequest: (options, handler) {
+              if (options.path.contains('/pets/999')) {
+                handler.reject(
+                  DioException(
+                    requestOptions: options,
+                    response: Response(
+                      requestOptions: options,
+                      statusCode: 404,
+                      data: {'message': 'Pet not found'},
+                    ),
+                    type: DioExceptionType.badResponse,
+                  ),
+                );
+              } else {
+                handler.next(options);
+              }
             },
-          },
+          ),
         );
-        dio.interceptors.add(mockInterceptor);
         
         // Act & Assert
         expect(
           () => petsService.showPetById('999'),
-          throwsA(isA<DioException>()),
+          throwsA(isA<ApiException>()),
         );
       });
     });
@@ -213,7 +238,9 @@ void main() {
         
         // Assert
         expect(result, isNotNull);
-        expect(result, isA<Map<String, dynamic>>());
+        expect(result, isA<Pet>());
+        expect(result.name, equals('Fluffy'));
+        expect(result.id, equals(3));
       });
 
       test('should handle validation error', () async {
@@ -223,20 +250,32 @@ void main() {
           tag: 'cat',
         );
         
-        mockInterceptor = MockInterceptor(
-          responses: {
-            'POST /pets': {
-              'data': {'message': 'Validation failed'},
-              'statusCode': 400,
+        dio.interceptors.add(
+          InterceptorsWrapper(
+            onRequest: (options, handler) {
+              if (options.method == 'POST' && options.path.contains('/pets')) {
+                handler.reject(
+                  DioException(
+                    requestOptions: options,
+                    response: Response(
+                      requestOptions: options,
+                      statusCode: 400,
+                      data: {'message': 'Validation failed'},
+                    ),
+                    type: DioExceptionType.badResponse,
+                  ),
+                );
+              } else {
+                handler.next(options);
+              }
             },
-          },
+          ),
         );
-        dio.interceptors.add(mockInterceptor);
         
         // Act & Assert
         expect(
           () => petsService.createPets(invalidPet),
-          throwsA(isA<DioException>()),
+          throwsA(isA<ApiException>()),
         );
       });
     });
@@ -271,7 +310,9 @@ void main() {
         
         // Assert
         expect(result, isNotNull);
-        expect(result, isA<Map<String, dynamic>>());
+        expect(result, isA<Pet>());
+        expect(result.name, equals('Fluffy Updated'));
+        expect(result.id, equals(1));
       });
     });
 
@@ -288,29 +329,42 @@ void main() {
         );
         dio.interceptors.add(mockInterceptor);
         
-        // Act
-        final result = await petsService.deletePet('1');
-        
-        // Assert
-        expect(result, isNull);
+        // Act & Assert
+        // deletePet returns void, so we just verify it doesn't throw
+        await expectLater(
+          petsService.deletePet('1'),
+          completes,
+        );
       });
 
       test('should handle 404 when deleting non-existent pet', () async {
-        // Arrange
-        mockInterceptor = MockInterceptor(
-          responses: {
-            'DELETE /pets/999': {
-              'data': {'message': 'Pet not found'},
-              'statusCode': 404,
+        // Arrange - Use interceptor to reject with error
+        dio.interceptors.add(
+          InterceptorsWrapper(
+            onRequest: (options, handler) {
+              if (options.method == 'DELETE' && options.path.contains('/pets/999')) {
+                handler.reject(
+                  DioException(
+                    requestOptions: options,
+                    response: Response(
+                      requestOptions: options,
+                      statusCode: 404,
+                      data: {'message': 'Pet not found'},
+                    ),
+                    type: DioExceptionType.badResponse,
+                  ),
+                );
+              } else {
+                handler.next(options);
+              }
             },
-          },
+          ),
         );
-        dio.interceptors.add(mockInterceptor);
         
         // Act & Assert
         expect(
           () => petsService.deletePet('999'),
-          throwsA(isA<DioException>()),
+          throwsA(isA<ApiException>()),
         );
       });
     });
@@ -346,7 +400,10 @@ void main() {
         
         // Assert
         expect(result, isNotNull);
-        expect(result, isA<Map<String, dynamic>>());
+        expect(result, isA<List<Pet>>());
+        expect(result.length, equals(2));
+        expect(result[0].status, equals('available'));
+        expect(result[1].status, equals('available'));
       });
     });
   });
