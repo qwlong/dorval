@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { generateDartCode } from '../../index';
 import path from 'path';
-import fs from 'fs-extra';
+import * as fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 
 // Get __dirname that works in both CJS and ESM
@@ -20,8 +20,16 @@ describe('OneOf Specifications', () => {
   const outputDir = path.join(__dirname, '../../../tests/generated');
 
   beforeEach(async () => {
-    await fs.ensureDir(outputDir);
-    await fs.emptyDir(outputDir);
+    await fs.mkdir(outputDir, { recursive: true });
+    // Clear the directory
+    try {
+      const files = await fs.readdir(outputDir);
+      await Promise.all(
+        files.map(file => fs.rm(path.join(outputDir, file), { recursive: true, force: true }))
+      );
+    } catch (err) {
+      // Directory might not exist, that's okay
+    }
   });
 
   it('should handle simple oneOf', async () => {

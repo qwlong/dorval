@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { generateDartCode } from '../../generators';
 import * as path from 'path';
-import * as fs from 'fs-extra';
+import * as fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 
 // Get __dirname that works in both CJS and ESM
@@ -83,7 +83,7 @@ describe('Integration Test', () => {
     }
     
     // Clean up output directory
-    await fs.remove(outputDir);
+    await fs.rm(outputDir, { recursive: true, force: true });
   });
 
   it('should generate valid Dart method signatures', async () => {
@@ -135,7 +135,7 @@ describe('Integration Test', () => {
     }
     
     // Clean up
-    await fs.remove(outputDir);
+    await fs.rm(outputDir, { recursive: true, force: true });
   });
 
   it('should handle different HTTP methods correctly', async () => {
@@ -168,6 +168,6 @@ describe('Integration Test', () => {
     }
     
     // Clean up
-    await fs.remove(outputDir);
+    await fs.rm(outputDir, { recursive: true, force: true });
   });
 });

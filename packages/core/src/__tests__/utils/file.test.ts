@@ -23,18 +23,22 @@ import {
   cleanupTempDir
 } from '../../utils/file';
 
-// Mock fs-extra
-vi.mock('fs-extra', () => ({
-  ensureDir: vi.fn(),
+// Mock fs/promises
+vi.mock('fs/promises', () => ({
+  mkdir: vi.fn(),
   writeFile: vi.fn(),
   readFile: vi.fn(),
-  pathExists: vi.fn(),
-  copy: vi.fn(),
-  remove: vi.fn(),
-  readdir: vi.fn()
+  access: vi.fn(),
+  copyFile: vi.fn(),
+  rm: vi.fn(),
+  unlink: vi.fn(),
+  readdir: vi.fn(),
+  constants: {
+    F_OK: 0
+  }
 }));
 
-import * as fs from 'fs-extra';
+import * as fs from 'fs/promises';
 
 describe('File Utilities', () => {
   beforeEach(() => {
