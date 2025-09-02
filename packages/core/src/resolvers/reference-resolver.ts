@@ -3,7 +3,7 @@
  */
 
 import type { OpenAPIV3 } from 'openapi-types';
-import { TypeMapper } from './type-mapper';
+import { TypeMapper } from '../utils/type-mapper';
 
 export class ReferenceResolver {
   private readonly spec: OpenAPIV3.Document;
@@ -384,7 +384,7 @@ export class ReferenceResolver {
       
       // Check if needs nullable
       const isNullable = TypeMapper.isNullable(schema);
-      const hasDefault = schema.default !== undefined;
+      const hasDefault = schema && schema.default !== undefined;
       const needsNullable = (!isRequired && !hasDefault) || isNullable;
       
       if (needsNullable && !type.endsWith('?')) {

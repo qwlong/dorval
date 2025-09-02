@@ -5,7 +5,7 @@
 import type { OpenAPIV3 } from 'openapi-types';
 import { DartModel, DartProperty, GeneratedFile } from '../types';
 import { TypeMapper } from '../utils/type-mapper';
-import { ReferenceResolver } from '../utils/reference-resolver';
+import { ReferenceResolver } from '../resolvers/reference-resolver';
 import { TemplateManager } from '../templates/template-manager';
 import { isNullableScalar, getNonNullType } from '../getters/scalar';
 
@@ -21,7 +21,7 @@ export class ModelGenerator {
   /**
    * Set the reference resolver for this generator
    */
-  setRefResolver(refResolver: ReferenceResolver): void {
+  setReferenceResolver(refResolver: ReferenceResolver): void {
     this.refResolver = refResolver;
   }
 
@@ -82,14 +82,14 @@ export class ModelGenerator {
         const dartName = TypeMapper.toDartPropertyName(propName);
         const isRequired = requiredFields.has(propName);
         
-        // Use RefResolver to handle both direct references and regular schemas
+        // Use ReferenceResolver to handle both direct references and regular schemas
         let dartType: string;
         if (this.refResolver) {
           const resolved = this.refResolver.resolvePropertyType(propSchema, isRequired);
-          dartType = resolved.type;  // RefResolver already handles nullable
+          dartType = resolved.type;  // ReferenceResolver already handles nullable
           resolved.imports.forEach(imp => imports.add(imp));
         } else if ('$ref' in propSchema) {
-          // Handle reference without RefResolver
+          // Handle reference without ReferenceResolver
           const modelName = TypeMapper.extractTypeFromRef(propSchema.$ref);
           const baseType = TypeMapper.toDartClassName(modelName);
           const fileName = TypeMapper.toSnakeCase(modelName);

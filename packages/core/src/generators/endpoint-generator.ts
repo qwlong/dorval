@@ -4,7 +4,7 @@
 
 import type { OpenAPIV3 } from 'openapi-types';
 import { TypeMapper } from '../utils/type-mapper';
-import { ReferenceResolver } from '../utils/reference-resolver';
+import { ReferenceResolver } from '../resolvers/reference-resolver';
 
 export interface EndpointMethod {
   methodName: string;

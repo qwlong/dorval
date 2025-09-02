@@ -494,6 +494,9 @@ export class TypeMapper {
    * Check if a schema is nullable (either via nullable: true or oneOf pattern)
    */
   static isNullable(schema: SchemaObject): boolean {
+    if (!schema || typeof schema !== 'object') {
+      return true; // Treat null/undefined as nullable
+    }
     if ('$ref' in schema) {
       return false;
     }

@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ReferenceResolver } from '../../utils/reference-resolver';
+import { ReferenceResolver } from '../../resolvers';
 import type { OpenAPIV3 } from 'openapi-types';
 
 describe('ReferenceResolver', () => {

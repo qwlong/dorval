@@ -169,9 +169,6 @@ export class ServiceGenerator {
     // Store the original spec - it should already have $refs preserved from parseOpenAPISpec
     this.originalSpec = spec;
     
-    // Debug: Check if the original spec still has $refs
-    console.log('DEBUG: Original spec paths at service generator start:', JSON.stringify(this.originalSpec?.paths, null, 2));
-    
     // Store schemas for reference resolution
     this.schemas = spec.components?.schemas || {};
     this.endpointGenerator.setSchemas(this.schemas);

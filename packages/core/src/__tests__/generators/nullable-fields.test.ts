@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ModelGenerator } from '../../generators/model-generator';
-import { RefResolver } from '../../utils/ref-resolver';
+import { ReferenceResolver } from '../../resolvers/reference-resolver';
 import { TypeMapper } from '../../utils/type-mapper';
 
 describe('Nullable Field Handling', () => {
@@ -50,7 +50,7 @@ describe('Nullable Field Handling', () => {
     expect(result.content).not.toContain('String??');
   });
 
-  it('should handle references with RefResolver', () => {
+  it('should handle references with ReferenceResolver', () => {
     const schemas = {
       'User': {
         type: 'object',
@@ -62,8 +62,8 @@ describe('Nullable Field Handling', () => {
       }
     };
 
-    const refResolver = new RefResolver(schemas);
-    generator.setRefResolver(refResolver);
+    const refResolver = new ReferenceResolver(schemas);
+    generator.setReferenceResolver(refResolver);
 
     const schema = {
       type: 'object',

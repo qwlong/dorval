@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ModelGenerator } from '../../generators/model-generator';
-import { RefResolver } from '../../utils/ref-resolver';
+import { ReferenceResolver } from '../../resolvers/reference-resolver';
 import type { OpenAPIV3 } from 'openapi-types';
 
 describe('Nested Object Type Resolution', () => {
@@ -43,8 +43,8 @@ describe('Nested Object Type Resolution', () => {
       }
     };
 
-    const refResolver = new RefResolver(spec);
-    modelGenerator.setRefResolver(refResolver);
+    const refResolver = new ReferenceResolver(spec);
+    modelGenerator.setReferenceResolver(refResolver);
     
     const result = modelGenerator.generateModel('TestModel', schema);
 
@@ -92,8 +92,8 @@ describe('Nested Object Type Resolution', () => {
       }
     };
 
-    const refResolver = new RefResolver(spec);
-    modelGenerator.setRefResolver(refResolver);
+    const refResolver = new ReferenceResolver(spec);
+    modelGenerator.setReferenceResolver(refResolver);
     
     const result = modelGenerator.generateModel('TestModel', schema);
 
@@ -133,8 +133,8 @@ describe('Nested Object Type Resolution', () => {
       }
     };
 
-    const refResolver = new RefResolver(spec);
-    modelGenerator.setRefResolver(refResolver);
+    const refResolver = new ReferenceResolver(spec);
+    modelGenerator.setReferenceResolver(refResolver);
     
     const result = modelGenerator.generateModel('TestModel', schema);
 
@@ -221,8 +221,8 @@ describe('Nested Object Type Resolution', () => {
       }
     };
 
-    const refResolver = new RefResolver(spec);
-    modelGenerator.setRefResolver(refResolver);
+    const refResolver = new ReferenceResolver(spec);
+    modelGenerator.setReferenceResolver(refResolver);
     
     const result = modelGenerator.generateModel('ShiftResponseDto', schema);
 
@@ -274,8 +274,8 @@ describe('Nested Object Type Resolution', () => {
       }
     };
 
-    const refResolver = new RefResolver(spec);
-    modelGenerator.setRefResolver(refResolver);
+    const refResolver = new ReferenceResolver(spec);
+    modelGenerator.setReferenceResolver(refResolver);
     
     const result = modelGenerator.generateModel('TestModel', schema);
 

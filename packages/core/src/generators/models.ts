@@ -7,7 +7,7 @@ import { OpenAPIObject } from '../types';
 import { DartGeneratorOptions, GeneratedFile } from '../types';
 import { ModelGenerator } from './model-generator';
 import { OpenAPIParser } from '../parser/openapi-parser';
-import { ReferenceResolver } from '../utils/reference-resolver';
+import { ReferenceResolver } from '../resolvers/reference-resolver';
 import { combineSchemas } from '../getters/combine';
 import { getObject } from '../getters/object';
 import { getScalar } from '../getters/scalar';
@@ -110,7 +110,7 @@ export async function generateModels(
   
   // Create ReferenceResolver with the full spec
   const refResolver = new ReferenceResolver(spec);
-  generator.setRefResolver(refResolver);
+  generator.setReferenceResolver(refResolver);
   
   // First pass: extract inline objects and add them as schemas
   const inlineObjectMappings = new Map<string, Map<string, string>>();

@@ -1,13 +1,13 @@
 /**
- * Tests for RefResolver utility
+ * Tests for ReferenceResolver utility
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { RefResolver } from '../../utils/ref-resolver';
+import { ReferenceResolver } from '../../resolvers';
 import type { OpenAPIV3 } from 'openapi-types';
 
-describe('RefResolver', () => {
-  let resolver: RefResolver;
+describe('ReferenceResolver', () => {
+  let resolver: ReferenceResolver;
   let spec: OpenAPIV3.Document;
 
   beforeEach(() => {
@@ -78,7 +78,7 @@ describe('RefResolver', () => {
       }
     } as OpenAPIV3.Document;
 
-    resolver = new RefResolver(spec);
+    resolver = new ReferenceResolver(spec);
   });
 
   describe('resolvePropertyType', () => {
