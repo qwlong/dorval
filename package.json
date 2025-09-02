@@ -13,7 +13,11 @@
     "lint": "turbo run lint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky"
+    "prepare": "husky",
+    "version:update": "node scripts/version.js",
+    "release": "./scripts/release.sh",
+    "publish:npm": "./scripts/publish.sh",
+    "ci": "yarn build && yarn test && yarn lint"
   },
   "devDependencies": {
     "@types/node": "^20.13.0",

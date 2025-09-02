@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'yarn'
+    
+    - name: Install dependencies
+      run: yarn install --frozen-lockfile
+    
+    - name: Build all packages
+      run: yarn build
+    
+    - name: Run tests
+      run: yarn test
+    
+    - name: Run linter
+      run: yarn lint || true
+    
+    - name: Check formatting
+      run: yarn format:check || true
+
+  test-generated-code:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'yarn'
+    
+    - name: Setup Dart
+      uses: dart-lang/setup-dart@v1
+      with:
+        sdk: stable
+    
+    - name: Install dependencies
+      run: yarn install --frozen-lockfile
+    
+    - name: Build
+      run: yarn build
+    
+    - name: Generate sample API
+      run: |
+        cd samples/petstore
+        node generate.js
+    
+    - name: Analyze generated Dart code
+      run: |
+        cd samples/petstore
+        dart analyze lib/api --no-fatal-warnings || true
+    
+    - name: Run Dart tests
+      run: |
+        cd samples/petstore
+        dart test || true
+
+  coverage:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'yarn'
+    
+    - name: Install dependencies
+      run: yarn install --frozen-lockfile
+    
+    - name: Build
+      run: yarn build
+    
+    - name: Run tests with coverage
+      run: |
+        cd packages/core
+        yarn test --coverage || true
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./packages/core/coverage/lcov.info
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false

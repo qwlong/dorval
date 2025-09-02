@@ -1,0 +1,115 @@
+name: Publish to NPM
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 1.0.0)'
+        required: true
+        type: string
+      tag:
+        description: 'NPM tag (latest, beta, next)'
+        required: false
+        default: 'latest'
+        type: choice
+        options:
+          - latest
+          - beta
+          - next
+          - alpha
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        registry-url: 'https://registry.npmjs.org'
+        cache: 'yarn'
+    
+    - name: Install dependencies
+      run: yarn install --frozen-lockfile
+    
+    - name: Build all packages
+      run: yarn build
+    
+    - name: Run tests
+      run: yarn test
+    
+    - name: Configure npm
+      run: |
+        echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+    
+    - name: Update version (if manual trigger)
+      if: github.event_name == 'workflow_dispatch'
+      run: |
+        yarn version --new-version ${{ github.event.inputs.version }} --no-git-tag-version
+        cd packages/core && yarn version --new-version ${{ github.event.inputs.version }} --no-git-tag-version
+        cd ../dorval && yarn version --new-version ${{ github.event.inputs.version }} --no-git-tag-version
+        cd ../dio && yarn version --new-version ${{ github.event.inputs.version }} --no-git-tag-version || true
+        cd ../custom && yarn version --new-version ${{ github.event.inputs.version }} --no-git-tag-version || true
+    
+    - name: Publish @dorval/core
+      run: |
+        cd packages/core
+        npm publish --access public --tag ${{ github.event.inputs.tag || 'latest' }}
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    
+    - name: Publish @dorval/dio
+      run: |
+        cd packages/dio
+        npm publish --access public --tag ${{ github.event.inputs.tag || 'latest' }} || true
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    
+    - name: Publish @dorval/custom
+      run: |
+        cd packages/custom
+        npm publish --access public --tag ${{ github.event.inputs.tag || 'latest' }} || true
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    
+    - name: Publish dorval CLI
+      run: |
+        cd packages/dorval
+        npm publish --access public --tag ${{ github.event.inputs.tag || 'latest' }}
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    
+    - name: Create GitHub Release (if manual)
+      if: github.event_name == 'workflow_dispatch'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ github.event.inputs.version }}
+        name: Release v${{ github.event.inputs.version }}
+        body: |
+          ## 🚀 Dorval v${{ github.event.inputs.version }}
+          
+          ### 📦 Published Packages
+          - `dorval@${{ github.event.inputs.version }}`
+          - `@dorval/core@${{ github.event.inputs.version }}`
+          - `@dorval/dio@${{ github.event.inputs.version }}`
+          - `@dorval/custom@${{ github.event.inputs.version }}`
+          
+          ### 📝 Installation
+          ```bash
+          npm install -g dorval@${{ github.event.inputs.version }}
+          # or
+          npm install --save-dev dorval@${{ github.event.inputs.version }}
+          ```
+          
+          ### 🔗 Links
+          - [npm package](https://www.npmjs.com/package/dorval)
+          - [Documentation](https://github.com/qwlong/dorval#readme)
+        draft: false
+        prerelease: ${{ github.event.inputs.tag != 'latest' }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
