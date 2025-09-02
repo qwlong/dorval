@@ -50,15 +50,16 @@ jobs:
         node-version: '20.x'
         cache: 'yarn'
     
-    - name: Setup Dart
-      uses: dart-lang/setup-dart@v1
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
       with:
-        sdk: stable
+        flutter-version: 'stable'
+        channel: 'stable'
     
-    - name: Install dependencies
+    - name: Install Node dependencies
       run: yarn install --frozen-lockfile
     
-    - name: Build
+    - name: Build Node packages
       run: yarn build
     
     - name: Generate sample API
@@ -66,15 +67,25 @@ jobs:
         cd samples/petstore
         node generate.js
     
+    - name: Install Dart dependencies
+      run: |
+        cd samples/petstore
+        flutter pub get
+    
+    - name: Generate Freezed files
+      run: |
+        cd samples/petstore
+        dart run build_runner build --delete-conflicting-outputs || true
+    
     - name: Analyze generated Dart code
       run: |
         cd samples/petstore
-        dart analyze lib/api --no-fatal-warnings || true
+        flutter analyze lib/api --no-fatal-warnings || true
     
     - name: Run Dart tests
       run: |
         cd samples/petstore
-        dart test || true
+        flutter test || true
 
   coverage:
     runs-on: ubuntu-latest

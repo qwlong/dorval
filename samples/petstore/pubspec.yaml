@@ -5,8 +5,12 @@ publish_to: none
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
+  flutter: '>=3.0.0'
 
 dependencies:
+  flutter:
+    sdk: flutter
+    
   # HTTP Client
   dio: ^5.3.2
   
@@ -22,6 +26,9 @@ dependencies:
   http_parser: ^4.0.2
 
 dev_dependencies:
+  flutter_test:
+    sdk: flutter
+    
   # Code generation
   build_runner: ^2.4.6
   freezed: ^2.4.5
