@@ -1,0 +1,25 @@
+# Ignore build outputs
+dist/
+*.d.ts
+*.js.map
+
+# Ignore node modules
+node_modules/
+
+# Ignore Handlebars templates - they're not JavaScript
+*.hbs
+
+# Ignore generated files
+*.f.dart
+*.freezed.dart
+*.g.dart
+
+# Ignore test fixtures
+__fixtures__/
+fixtures/
+
+# Ignore samples
+samples/
+
+# Ignore generated API
+generated-*/

@@ -39,7 +39,7 @@
   "scripts": {
     "build": "tsup ./src/index.ts --clean --sourcemap --dts && cp -r src/templates dist/",
     "dev": "tsup ./src/index.ts --clean --sourcemap --watch src --dts",
-    "lint": "eslint src/**/*.ts",
+    "lint": "eslint 'src/**/*.ts' --ignore-pattern '*.hbs'",
     "test": "vitest run"
   },
   "dependencies": {

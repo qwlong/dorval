@@ -39,7 +39,7 @@
   "scripts": {
     "build": "tsup ./src/index.ts ./src/bin/dorval.ts --clean --sourcemap",
     "dev": "tsup ./src/index.ts ./src/bin/dorval.ts --clean --sourcemap --watch src --dts",
-    "lint": "eslint src/**/*.ts",
+    "lint": "eslint 'src/**/*.ts'",
     "test": "vitest run"
   },
   "dependencies": {
