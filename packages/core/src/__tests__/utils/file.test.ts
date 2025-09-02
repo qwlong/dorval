@@ -124,7 +124,7 @@ describe('File Utilities', () => {
 
       const result = await exists('/test/file.txt');
       expect(result).toBe(true);
-      expect(fs.access).toHaveBeenCalledWith('/test/file.txt', 0);
+      expect(fs.access).toHaveBeenCalledWith('/test/file.txt');
     });
 
     it('should return false for non-existent file', async () => {
@@ -153,14 +153,13 @@ describe('File Utilities', () => {
 
   describe('removeFile', () => {
     it('should remove file', async () => {
-      vi.mocked(fs.unlink).mockResolvedValue();
+      vi.mocked(fs.rm).mockResolvedValue();
 
       await removeFile('/test/file.txt');
-      expect(fs.unlink).toHaveBeenCalledWith('/test/file.txt');
+      expect(fs.rm).toHaveBeenCalledWith('/test/file.txt', { recursive: true, force: true });
     });
 
     it('should remove directory', async () => {
-      vi.mocked(fs.unlink).mockRejectedValue({ code: 'EISDIR' });
       vi.mocked(fs.rm).mockResolvedValue();
 
       await removeFile('/test/dir');
