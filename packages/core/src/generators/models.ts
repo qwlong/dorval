@@ -7,7 +7,7 @@ import { OpenAPIObject } from '../types';
 import { DartGeneratorOptions, GeneratedFile } from '../types';
 import { ModelGenerator } from './model-generator';
 import { OpenAPIParser } from '../parser/openapi-parser';
-import { RefResolver } from '../utils/ref-resolver';
+import { ReferenceResolver } from '../utils/reference-resolver';
 import { combineSchemas } from '../getters/combine';
 import { getObject } from '../getters/object';
 import { getScalar } from '../getters/scalar';
@@ -68,7 +68,7 @@ function extractInlineObjects(
   schema: any,
   schemas: Record<string, any>,
   files: GeneratedFile[],
-  refResolver: RefResolver,
+  refResolver: ReferenceResolver,
   processedTypes: Set<string> = new Set()
 ): Map<string, string> {
   const inlineTypes = new Map<string, string>();
@@ -108,8 +108,8 @@ export async function generateModels(
   await parser.parseWithoutDereference(spec);
   const schemas = parser.getSchemas();
   
-  // Create RefResolver with all schemas
-  const refResolver = new RefResolver(schemas);
+  // Create ReferenceResolver with the full spec
+  const refResolver = new ReferenceResolver(spec);
   generator.setRefResolver(refResolver);
   
   // First pass: extract inline objects and add them as schemas

@@ -360,7 +360,6 @@ void main() {
         name: 'Fluffy',
         category: category,
         photoUrls: ['https://example.com/fluffy.jpg'],
-        tags: [],
         status: 'available',
       );
       
