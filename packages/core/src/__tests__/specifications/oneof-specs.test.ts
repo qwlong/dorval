@@ -2,6 +2,18 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { generateDartCode } from '../../index';
 import path from 'path';
 import fs from 'fs-extra';
+import { fileURLToPath } from 'url';
+
+// Get __dirname that works in both CJS and ESM
+let __dirname: string;
+if (typeof import.meta !== 'undefined' && import.meta.url) {
+  // ESM
+  const __filename = fileURLToPath(import.meta.url);
+  __dirname = path.dirname(__filename);
+} else {
+  // CJS - use the global __dirname
+  __dirname = (global as any).__dirname || path.dirname((global as any).__filename || '') || process.cwd();
+}
 
 describe('OneOf Specifications', () => {
   const specsDir = path.join(__dirname, '../../../tests/specifications');

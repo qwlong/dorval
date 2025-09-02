@@ -19,7 +19,7 @@ class NewPet with _$NewPet {
     List<String>? photoUrls,
 
     /// pet status in the store
-    String? status,
+    @Default('available') String? status,
   }) = _NewPet;
 
   factory NewPet.fromJson(Map<String, dynamic> json) =>

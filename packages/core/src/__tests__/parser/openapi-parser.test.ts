@@ -1,6 +1,18 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { OpenAPIParser } from '../../parser/openapi-parser';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get __dirname that works in both CJS and ESM
+let __dirname: string;
+if (typeof import.meta !== 'undefined' && import.meta.url) {
+  // ESM
+  const __filename = fileURLToPath(import.meta.url);
+  __dirname = path.dirname(__filename);
+} else {
+  // CJS - use the global __dirname
+  __dirname = (global as any).__dirname || path.dirname((global as any).__filename || '') || process.cwd();
+}
 
 describe('OpenAPIParser', () => {
   let parser: OpenAPIParser;

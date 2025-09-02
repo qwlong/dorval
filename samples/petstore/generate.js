@@ -6,7 +6,7 @@
  * 2. Using dorval.config.js file (uncomment the config loading below)
  */
 
-const { generateDartCode } = require('../../packages/core/dist');
+const { generateDartCode } = require('../../packages/core/dist/index.cjs');
 const path = require('path');
 
 async function generate() {

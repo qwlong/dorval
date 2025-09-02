@@ -2,14 +2,13 @@ import 'package:dio/dio.dart';
 import '../api_client.dart';
 import 'api_exception.dart';
 import '../models/index.dart';
-import '../models/params/index.dart';
 
 class PetsService {
   final ApiClient client;
   
   PetsService(this.client);
   
-      /// List all pets
+  /// List all pets
   Future<List<Pet>> listPets( {
     ListPetsParams? params,
     
@@ -42,7 +41,7 @@ class PetsService {
       );
     }
   }
-      /// Create a pet
+  /// Create a pet
   Future<Pet> createPets(
     NewPet body,) async {
     const path = '/pets';
@@ -64,7 +63,7 @@ class PetsService {
       );
     }
   }
-      /// Info for a specific pet
+  /// Info for a specific pet
   Future<Pet> showPetById(
     String petId,) async {
     // Build path with parameters
@@ -86,7 +85,7 @@ class PetsService {
       );
     }
   }
-      /// Update a pet
+  /// Update a pet
   Future<Pet> updatePet(
     String petId,
     NewPet body,) async {
@@ -110,7 +109,7 @@ class PetsService {
       );
     }
   }
-      /// Delete a pet
+  /// Delete a pet
   Future<void> deletePet(
     String petId,) async {
     // Build path with parameters
@@ -132,7 +131,7 @@ class PetsService {
       );
     }
   }
-      /// Find pets by status
+  /// Find pets by status
   Future<List<Pet>> findPetsByStatus( {
     FindPetsByStatusParams? params,
     

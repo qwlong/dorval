@@ -6,6 +6,22 @@ import Handlebars from 'handlebars';
 import * as fs from 'fs/promises';
 import * as fsSync from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get __dirname that works in both CJS and ESM
+declare const __dirname: string | undefined;
+let dirName: string;
+if (typeof import.meta !== 'undefined' && import.meta.url) {
+  // ESM
+  const __filename = fileURLToPath(import.meta.url);
+  dirName = path.dirname(__filename);
+} else if (typeof __dirname !== 'undefined') {
+  // CJS - __dirname is available
+  dirName = __dirname;
+} else {
+  // Fallback - calculate from cwd
+  dirName = path.join(process.cwd(), 'dorval/packages/core/dist');
+}
 
 export class TemplateManager {
   private templates: Map<string, HandlebarsTemplateDelegate> = new Map();
@@ -126,9 +142,9 @@ export class TemplateManager {
     }
 
     // Load template file - check both templates dir and direct path
-    let templatePath = path.join(__dirname, 'templates', `${templateName}.hbs`);
+    let templatePath = path.join(dirName, 'templates', `${templateName}.hbs`);
     if (!fsSync.existsSync(templatePath)) {
-      templatePath = path.join(__dirname, `${templateName}.hbs`);
+      templatePath = path.join(dirName, `${templateName}.hbs`);
     }
     const templateContent = await fs.readFile(templatePath, 'utf-8');
 
@@ -154,9 +170,9 @@ export class TemplateManager {
     }
 
     // Load template file - check both templates dir and direct path
-    let templatePath = path.join(__dirname, 'templates', `${templateName}.hbs`);
+    let templatePath = path.join(dirName, 'templates', `${templateName}.hbs`);
     if (!fsSync.existsSync(templatePath)) {
-      templatePath = path.join(__dirname, `${templateName}.hbs`);
+      templatePath = path.join(dirName, `${templateName}.hbs`);
     }
     const templateContent = fsSync.readFileSync(templatePath, 'utf-8');
 

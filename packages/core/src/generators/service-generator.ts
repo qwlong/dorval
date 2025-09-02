@@ -13,6 +13,22 @@ import { HeadersGenerator } from './headers-generator';
 import * as fs from 'fs/promises';
 import * as fsSync from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get __dirname that works in both CJS and ESM
+declare const __dirname: string | undefined;
+let dirName: string;
+if (typeof import.meta !== 'undefined' && import.meta.url) {
+  // ESM
+  const __filename = fileURLToPath(import.meta.url);
+  dirName = path.dirname(__filename);
+} else if (typeof __dirname !== 'undefined') {
+  // CJS - __dirname is available
+  dirName = __dirname;
+} else {
+  // Fallback - calculate from cwd
+  dirName = path.join(process.cwd(), 'dorval/packages/core/dist');
+}
 
 export interface ServiceClass {
   serviceName: string;
@@ -40,15 +56,37 @@ export class ServiceGenerator {
     
     // Register the service-method partial
     // Need to read the template content directly, not the compiled function
-    let methodTemplatePath = path.join(__dirname, 'templates', 'service-method.hbs');
+    let methodTemplatePath = path.join(dirName, 'templates', 'service-method.hbs');
     if (!fsSync.existsSync(methodTemplatePath)) {
-      methodTemplatePath = path.join(__dirname, '../templates/service-method.hbs');
+      methodTemplatePath = path.join(dirName, '../templates/service-method.hbs');
     }
     if (!fsSync.existsSync(methodTemplatePath)) {
-      methodTemplatePath = path.join(__dirname, 'service-method.hbs');
+      methodTemplatePath = path.join(dirName, 'service-method.hbs');
     }
-    const methodTemplateContent = fsSync.readFileSync(methodTemplatePath, 'utf-8');
-    this.templateManager.registerPartial('service-method', methodTemplateContent);
+    
+    // Final fallback - look in various possible locations
+    if (!fsSync.existsSync(methodTemplatePath)) {
+      const possiblePaths = [
+        path.join(process.cwd(), 'packages/core/dist/templates/service-method.hbs'),
+        path.join(process.cwd(), 'dorval/packages/core/dist/templates/service-method.hbs'),
+        path.join(process.cwd(), 'dist/templates/service-method.hbs')
+      ];
+      
+      for (const p of possiblePaths) {
+        if (fsSync.existsSync(p)) {
+          methodTemplatePath = p;
+          break;
+        }
+      }
+    }
+    
+    try {
+      const methodTemplateContent = fsSync.readFileSync(methodTemplatePath, 'utf-8');
+      this.templateManager.registerPartial('service-method', methodTemplateContent);
+    } catch (error) {
+      console.error(`Failed to load service-method template from ${methodTemplatePath}`);
+      throw error;
+    }
   }
 
   /**
