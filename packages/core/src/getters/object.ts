@@ -102,7 +102,8 @@ function processProperty(
     if (propSchema.allOf.length === 1 && propSchema.allOf[0].$ref) {
       const typeName = TypeMapper.extractTypeFromRef(propSchema.allOf[0].$ref);
       dartType = TypeMapper.toDartClassName(typeName);
-      imports.push(`${TypeMapper.toSnakeCase(typeName)}.f.dart`);
+      const importPath = `${TypeMapper.toSnakeCase(typeName)}.f.dart`;
+      imports.push(importPath);
     } else {
       // Complex allOf - for now use dynamic
       // TODO: Implement proper allOf merging

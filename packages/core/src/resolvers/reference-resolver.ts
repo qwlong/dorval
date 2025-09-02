@@ -361,8 +361,85 @@ export class ReferenceResolver {
     const imports: string[] = [];
     let type: string;
     
-    if (ReferenceResolver.isReference(propSchema)) {
-      // Handle $ref
+    // Handle allOf composition in property
+    if (propSchema && propSchema.allOf) {
+      // If allOf has a single $ref, treat it as a direct reference
+      if (propSchema.allOf.length === 1 && propSchema.allOf[0].$ref) {
+        const modelName = this.getSchemaName(propSchema.allOf[0].$ref);
+        if (modelName) {
+          const className = TypeMapper.toDartClassName(modelName);
+          const fileName = TypeMapper.toSnakeCase(modelName);
+          imports.push(`${fileName}.f.dart`);
+          type = className;
+          
+          // Add nullable if not required
+          if (!isRequired) {
+            type = `${type}?`;
+          }
+        } else {
+          type = 'dynamic';
+        }
+      } else {
+        // Complex allOf - for now use dynamic
+        // TODO: Implement proper allOf merging
+        type = 'dynamic';
+      }
+    }
+    // Handle oneOf/anyOf composition in property
+    else if (propSchema && (propSchema.oneOf || propSchema.anyOf)) {
+      const schemas = propSchema.oneOf || propSchema.anyOf;
+      
+      // Check if this is a nullable pattern (oneOf with type and null)
+      if (schemas.length === 2) {
+        const hasNull = schemas.some((s: any) => s.type === 'null');
+        const nonNullSchema = schemas.find((s: any) => s.type !== 'null');
+        
+        if (hasNull && nonNullSchema) {
+          // This is a nullable type pattern
+          if (nonNullSchema.$ref) {
+            const modelName = this.getSchemaName(nonNullSchema.$ref);
+            if (modelName) {
+              const className = TypeMapper.toDartClassName(modelName);
+              const fileName = TypeMapper.toSnakeCase(modelName);
+              imports.push(`${fileName}.f.dart`);
+              type = `${className}?`; // Already nullable due to oneOf with null
+            } else {
+              type = 'dynamic';
+            }
+          } else {
+            // Regular schema that's nullable
+            type = TypeMapper.mapType(nonNullSchema);
+            if (!type.endsWith('?')) {
+              type = `${type}?`;
+            }
+          }
+        } else {
+          // Complex oneOf/anyOf - use dynamic for now
+          type = 'dynamic';
+        }
+      } else if (schemas.length === 1 && schemas[0].$ref) {
+        // Single ref in oneOf/anyOf
+        const modelName = this.getSchemaName(schemas[0].$ref);
+        if (modelName) {
+          const className = TypeMapper.toDartClassName(modelName);
+          const fileName = TypeMapper.toSnakeCase(modelName);
+          imports.push(`${fileName}.f.dart`);
+          type = className;
+          
+          // Add nullable if not required
+          if (!isRequired) {
+            type = `${type}?`;
+          }
+        } else {
+          type = 'dynamic';
+        }
+      } else {
+        // Complex oneOf/anyOf - use dynamic for now
+        type = 'dynamic';
+      }
+    }
+    else if (ReferenceResolver.isReference(propSchema)) {
+      // Handle direct $ref
       const modelName = this.getSchemaName(propSchema.$ref);
       if (modelName) {
         const className = TypeMapper.toDartClassName(modelName);
@@ -389,6 +466,11 @@ export class ReferenceResolver {
       
       if (needsNullable && !type.endsWith('?')) {
         type = `${type}?`;
+      }
+      
+      // Check for special imports
+      if (type.includes('Uint8List')) {
+        imports.push('dart:typed_data');
       }
     }
     

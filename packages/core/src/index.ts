@@ -6,6 +6,7 @@
 export * from './parser';
 export * from './generators';
 export * from './utils';
+export * from './resolvers';
 
 // Main generation function
 export { generateDartCode } from './generators';
