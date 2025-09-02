@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
 import { loadConfig } from '../config';
-import { cosmiconfigSync } from 'cosmiconfig';
 
 // Mock cosmiconfig to control test outcomes
 vi.mock('cosmiconfig', () => ({

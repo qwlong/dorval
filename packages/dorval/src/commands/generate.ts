@@ -45,7 +45,7 @@ export async function generateCommand(options: GenerateOptions) {
       // Try to load from default locations
       try {
         config = await loadConfig();
-      } catch (error) {
+      } catch {
         throw new Error('Either provide a config file or use -i and -o options');
       }
     }

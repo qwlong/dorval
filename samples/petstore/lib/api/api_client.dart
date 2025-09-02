@@ -35,7 +35,7 @@ class ApiClient {
     
     
     // Add logging interceptor in debug mode
-    if (const bool.fromEnvironment('DEBUG', defaultValue: false)) {
+    if (const bool.fromEnvironment(&#x27;DEBUG&#x27;, defaultValue: false)) {
       dio.interceptors.add(LogInterceptor(
         request: true,
         requestHeader: true,

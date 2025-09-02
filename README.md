@@ -175,14 +175,53 @@ dorval watch
 
 ```dart
 import 'package:dio/dio.dart';
-import 'api/services/pet_service.dart';
+import 'api/api_client.dart';
+import 'api/services/pets_service.dart';
+import 'api/models/index.dart';
 
 void main() async {
-  final dio = Dio(BaseOptions(baseUrl: 'https://petstore.swagger.io/v2'));
-  final petService = PetService(dio);
-
-  // Type-safe API calls!
-  final pets = await petService.listPets(limit: 10);
+  // Initialize the API client
+  final apiClient = ApiClient(
+    baseUrl: 'https://petstore.swagger.io/v2',
+  );
+  
+  // Create service instance
+  final petsService = PetsService(apiClient);
+  
+  // Type-safe API calls with generated models!
+  try {
+    // List all pets with optional query parameters
+    final pets = await petsService.listPets(
+      params: ListPetsParams(limit: 10),
+    );
+    
+    // Create a new pet
+    final newPet = NewPet(
+      name: 'Fluffy',
+      tag: 'cat',
+    );
+    final createdPet = await petsService.createPets(newPet);
+    
+    // Get pet by ID
+    final pet = await petsService.showPetById('123');
+    
+    // Update a pet
+    final updatedPet = await petsService.updatePet(
+      '123',
+      NewPet(name: 'Fluffy Updated'),
+    );
+    
+    // Delete a pet
+    await petsService.deletePet('123');
+    
+  } catch (e) {
+    if (e is ApiException) {
+      print('API Error: ${e.statusCode} - ${e.message}');
+    }
+  }
+  
+  // Don't forget to dispose when done
+  apiClient.dispose();
 }
 ```
 
@@ -312,6 +351,44 @@ This project reuses the OpenAPI parsing infrastructure from Orval while implemen
 - Custom interceptors and transformers
 - Watch mode for development
 
+## Generated Code Features
+
+### ApiClient
+The generated `ApiClient` class provides:
+- **Automatic base URL configuration** from OpenAPI spec
+- **Built-in error handling** with status code interceptors
+- **Debug logging** enabled via environment variable
+- **Request/response timeout** configuration
+- **Default headers** management
+- **Custom interceptors** support
+- **Automatic retry logic** for failed requests (configurable)
+
+### Service Classes
+Each service class includes:
+- **Type-safe methods** for all endpoints
+- **Automatic parameter handling** (path, query, header, body)
+- **Proper null safety** with nullable parameters
+- **Exception handling** with custom `ApiException`
+- **Response type mapping** to generated models
+- **Request cancellation** support via `CancelToken`
+
+### Model Classes
+Generated with Freezed for:
+- **Immutability** by default
+- **JSON serialization/deserialization**
+- **CopyWith** methods for easy updates
+- **Equality operators** and hashCode
+- **toString** implementations
+- **Union types** for oneOf/discriminated unions
+- **Nested object** support
+
+### Parameter Classes
+Separate parameter classes for:
+- **Query parameters** with automatic null filtering
+- **Header parameters** with consolidation support
+- **Type-safe parameter** passing
+- **Optional vs required** distinction
+
 ## Generated File Structure
 
 ```
@@ -322,9 +399,16 @@ lib/api/
 │   ├── pet.f.dart           # Freezed model definition
 │   ├── pet.f.freezed.dart   # Generated Freezed code
 │   ├── pet.f.g.dart         # Generated JSON serialization
+│   ├── params/              # Parameter classes
+│   │   ├── list_pets_params.f.dart
+│   │   └── index.dart
+│   ├── headers/             # Header classes (if custom headers)
+│   │   ├── api_key_header.f.dart
+│   │   └── index.dart
 │   └── index.dart           # Barrel export file
 └── services/                 # API services
-    ├── pet_service.dart     # Service with typed methods
+    ├── pets_service.dart    # Service with typed methods
+    ├── api_exception.dart   # Custom exception handling
     └── index.dart           # Barrel export file
 ```
 

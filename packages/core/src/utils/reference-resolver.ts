@@ -353,4 +353,45 @@ export class ReferenceResolver {
     const parts = ref.split('/');
     return parts[parts.length - 1] || null;
   }
+
+  /**
+   * Resolve property type and its imports
+   */
+  resolvePropertyType(propSchema: any, isRequired: boolean): { type: string; imports: string[] } {
+    const imports: string[] = [];
+    let type: string;
+    
+    if (ReferenceResolver.isReference(propSchema)) {
+      // Handle $ref
+      const modelName = this.getSchemaName(propSchema.$ref);
+      if (modelName) {
+        const className = TypeMapper.toDartClassName(modelName);
+        const fileName = TypeMapper.toSnakeCase(modelName);
+        imports.push(`${fileName}.f.dart`);
+        type = className;
+        
+        // Add nullable if not required
+        if (!isRequired) {
+          type = `${type}?`;
+        }
+      } else {
+        type = 'dynamic';
+      }
+    } else {
+      // Handle regular schema
+      const schema = propSchema as OpenAPIV3.SchemaObject;
+      type = TypeMapper.mapType(schema);
+      
+      // Check if needs nullable
+      const isNullable = TypeMapper.isNullable(schema);
+      const hasDefault = schema.default !== undefined;
+      const needsNullable = (!isRequired && !hasDefault) || isNullable;
+      
+      if (needsNullable && !type.endsWith('?')) {
+        type = `${type}?`;
+      }
+    }
+    
+    return { type, imports };
+  }
 }

@@ -5,13 +5,13 @@
 import type { OpenAPIV3 } from 'openapi-types';
 import { DartModel, DartProperty, GeneratedFile } from '../types';
 import { TypeMapper } from '../utils/type-mapper';
-import { RefResolver } from '../utils/ref-resolver';
+import { ReferenceResolver } from '../utils/reference-resolver';
 import { TemplateManager } from '../templates/template-manager';
 import { isNullableScalar, getNonNullType } from '../getters/scalar';
 
 export class ModelGenerator {
   private templateManager: TemplateManager;
-  private refResolver?: RefResolver;
+  private refResolver?: ReferenceResolver;
   private debugCount: number = 0;
 
   constructor() {
@@ -21,7 +21,7 @@ export class ModelGenerator {
   /**
    * Set the reference resolver for this generator
    */
-  setRefResolver(refResolver: RefResolver): void {
+  setRefResolver(refResolver: ReferenceResolver): void {
     this.refResolver = refResolver;
   }
 
