@@ -1,7 +1,9 @@
 import 'package:dio/dio.dart' as dio;
-import 'package:flutter/foundation.dart';
 import 'api_client_interface.dart';
 export 'api_client_interface.dart';
+
+// Debug mode flag (set this based on your environment)
+const bool kDebugMode = bool.fromEnvironment('dart.vm.product') == false;
 
 /// Dio implementation of ApiClient
 class DioApiClient implements ApiClient {
@@ -56,7 +58,7 @@ class DioApiClient implements ApiClient {
         responseHeader: true,
         responseBody: true,
         error: true,
-        logPrint: (obj) => debugPrint(obj.toString()),
+        logPrint: (obj) => print('[DIO] ${obj.toString()}'),
       ));
     }
   }
