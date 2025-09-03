@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ModelGenerator } from '../../generators/model-generator';
-import { ReferenceResolver } from '../../resolvers/reference-resolver';
+import { ModelGenerator } from '../../generators';
+import { ReferenceResolver } from '../../resolvers';
 import type { OpenAPIV3 } from 'openapi-types';
 
 describe('Nested Object Type Resolution', () => {

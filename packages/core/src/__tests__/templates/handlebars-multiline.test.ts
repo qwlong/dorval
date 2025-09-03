@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import Handlebars from 'handlebars';
+import * as Handlebars from 'handlebars';
 
 describe('Multiline Comment Formatting', () => {
   // Create helper function similar to what's in TemplateManager

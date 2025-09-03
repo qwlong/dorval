@@ -3,7 +3,7 @@
  */
 
 import type { OpenAPIV3 } from 'openapi-types';
-import { TypeMapper } from '../utils/type-mapper';
+import { TypeMapper } from '../utils';
 
 export class ReferenceResolver {
   private readonly spec: OpenAPIV3.Document;

@@ -6,11 +6,11 @@ import { OpenAPIObject } from '../types';
 import { DartGeneratorOptions, GeneratedFile } from '../types';
 import { ModelGenerator } from './model-generator';
 import { OpenAPIParser } from '../parser/openapi-parser';
-import { ReferenceResolver } from '../resolvers/reference-resolver';
+import { ReferenceResolver } from '../resolvers';
 import { combineSchemas } from '../getters/combine';
 import { getObject } from '../getters/object';
 import { hasComposition, hasDiscriminatedUnion, isEnum, isEmpty } from '../utils/assertion';
-import { TypeMapper } from '../utils/type-mapper';
+import { TypeMapper } from '../utils';
 
 // Helper functions
 // Use TypeMapper.toSnakeCase for consistent V2Meta/V2Dto handling
