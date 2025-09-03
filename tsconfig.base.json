@@ -3,7 +3,7 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ES2022",
+    "module": "ESNext",
     "composite": false,
     "declaration": true,
     "declarationMap": true,
