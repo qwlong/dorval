@@ -105,8 +105,24 @@ function processProperty(
       const importPath = `${TypeMapper.toSnakeCase(typeName)}.f.dart`;
       imports.push(importPath);
     } else {
-      // Complex allOf - for now use dynamic
-      // TODO: Implement proper allOf merging
+      // Complex allOf at property level - for now use dynamic
+      // TODO: Implement property-level allOf merging (root-level allOf is already working in model-generator.ts)
+      // 
+      // Example that currently returns 'dynamic' but should merge schemas:
+      // UserProfile:
+      //   properties:
+      //     address:
+      //       allOf:
+      //         - $ref: '#/components/schemas/BaseAddress'  # has: street, city, country
+      //         - type: object
+      //           properties:
+      //             postalCode:
+      //               type: string
+      //             apartmentNumber:
+      //               type: integer
+      // 
+      // Expected: address should be a type with all properties from BaseAddress + postalCode + apartmentNumber
+      // Current: address becomes 'dynamic'
       dartType = 'dynamic';
     }
   }
