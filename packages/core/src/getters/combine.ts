@@ -3,7 +3,6 @@
  * This file mirrors orval/packages/core/src/getters/combine.ts
  */
 
-import { OpenAPIV3 } from 'openapi-types';
 import { TemplateManager } from '../templates/template-manager';
 
 // Separator type matching Orval
@@ -155,7 +154,7 @@ function combineOneOf(
   name: string,
   schemas: any[],
   discriminator?: any,
-  context?: any
+  _context?: any
 ): CombineResult {
   const imports: string[] = [];
   
@@ -571,7 +570,7 @@ function generateTryParsing(types: string[]): string {
 
 function generateTypeGetters(types: string[]): string {
   return types.map(type => {
-    const getterName = toCamelCase(type);
+    const _getterName = toCamelCase(type);
     return `  ${type}? get as${type} => value is ${type} ? value as ${type} : null;`;
   }).join('\n');
 }

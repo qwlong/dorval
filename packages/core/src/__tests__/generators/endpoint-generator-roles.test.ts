@@ -681,7 +681,7 @@ describe('EndpointGenerator - Roles API Example', () => {
         { ref: 'XMLParser', expected: 'xml_parser.f.dart' }
       ];
 
-      testCases.forEach(({ ref, expected }) => {
+      testCases.forEach(({ ref }) => {
         const operation = {
           responses: {
             '200': {

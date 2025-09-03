@@ -27,7 +27,7 @@ describe('OneOf Specifications', () => {
       await Promise.all(
         files.map(file => fs.rm(path.join(outputDir, file), { recursive: true, force: true }))
       );
-    } catch (err) {
+    } catch {
       // Directory might not exist, that's okay
     }
   });

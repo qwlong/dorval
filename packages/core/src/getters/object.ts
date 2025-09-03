@@ -370,7 +370,7 @@ function getScalarType(schema: any): string {
 /**
  * Format default value for Dart
  */
-function formatDefaultValue(value: any, type: string): string {
+function _formatDefaultValue(value: any, _type: string): string {
   if (value === null) return 'null';
   if (typeof value === 'string') return `'${value}'`;
   if (typeof value === 'boolean') return value.toString();
@@ -382,13 +382,13 @@ function formatDefaultValue(value: any, type: string): string {
 
 // Helper functions
 
-function extractTypeFromRef(ref: string): string {
+function _extractTypeFromRef(ref: string): string {
   const parts = ref.split('/');
   return parts[parts.length - 1];
 }
 
 // TypeMapper helper not available, implementing locally
-function extractInnerType(type: string): string {
+function _extractInnerType(type: string): string {
   const match = type.match(/^(?:List|Map)<(.+)>$/);
   return match ? match[1] : type;
 }
@@ -398,21 +398,21 @@ function isPrimitiveType(type: string): boolean {
          type === 'Map<String, dynamic>' || type.startsWith('Map<String, ');
 }
 
-function toSnakeCase(str: string): string {
+function _toSnakeCase(str: string): string {
   return str
     .replace(/([a-z])([A-Z])/g, '$1_$2')
     .replace(/([A-Z]+)([A-Z][a-z])/g, '$1_$2')
     .toLowerCase();
 }
 
-function toCamelCase(str: string): string {
+function _toCamelCase(str: string): string {
   // Handle kebab-case and snake_case
   return str
     .replace(/[-_](.)/g, (_, char) => char.toUpperCase())
     .replace(/^(.)/, (_, char) => char.toLowerCase());
 }
 
-function toPascalCase(str: string): string {
+function _toPascalCase(str: string): string {
   // Handle kebab-case and snake_case
   return str
     .replace(/[-_](.)/g, (_, char) => char.toUpperCase())

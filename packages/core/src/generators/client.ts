@@ -64,7 +64,7 @@ function generateDioClient(
   return templateManager.render('dio-client', templateData);
 }
 
-function generateApiConfig(
+function _generateApiConfig(
   parser: OpenAPIParser,
   options: DartGeneratorOptions
 ): string {

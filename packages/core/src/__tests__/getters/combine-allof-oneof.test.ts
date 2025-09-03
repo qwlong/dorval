@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { getObject } from '../../getters/object';
-import { TypeMapper } from '../../utils/type-mapper';
 
 describe('AllOf and OneOf Property Resolution', () => {
   describe('AllOf with single $ref', () => {

@@ -7,7 +7,6 @@ import { DartModel, DartProperty, GeneratedFile } from '../types';
 import { TypeMapper } from '../utils/type-mapper';
 import { ReferenceResolver } from '../resolvers/reference-resolver';
 import { TemplateManager } from '../templates/template-manager';
-import { isNullableScalar, getNonNullType } from '../getters/scalar';
 
 export class ModelGenerator {
   private templateManager: TemplateManager;

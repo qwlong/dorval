@@ -6,11 +6,10 @@ import type { OpenAPIV3 } from 'openapi-types';
 import { OpenAPIObject, DartGeneratorOptions, GeneratedFile, ClientGeneratorBuilder } from '../types';
 import { EndpointGenerator, EndpointMethod } from './endpoint-generator';
 import { TemplateManager } from '../templates/template-manager';
-import { TypeMapper } from '../utils/type-mapper';
+import { TypeMapper } from '../utils';
 import { ParamsGenerator } from './params-generator';
 import { HeadersConfigurableGenerator } from './headers-configurable-generator';
 import { HeadersGenerator } from './headers-generator';
-import * as fs from 'fs/promises';
 import * as fsSync from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -99,11 +98,13 @@ export class ServiceGenerator {
       if (clientType === 'custom' || options.output.override?.mutator) {
         // Try to load custom client builder
         try {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
           const customBuilder = require('@dorval/custom');
           this.clientBuilder = customBuilder.builder()();
           console.log('Loaded @dorval/custom client builder');
-        } catch (e) {
+        } catch {
           // Try relative path
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
           const customBuilder = require('../../custom/dist');
           this.clientBuilder = customBuilder.builder()();
           console.log('Loaded custom client builder from relative path');
@@ -111,11 +112,13 @@ export class ServiceGenerator {
       } else if (clientType === 'dio') {
         // Try to load Dio client builder
         try {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
           const dioBuilder = require('@dorval/dio');
           this.clientBuilder = dioBuilder.builder()();
           console.log('Loaded @dorval/dio client builder');
-        } catch (e) {
+        } catch {
           // Try relative path
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
           const dioBuilder = require('../../dio/dist');
           this.clientBuilder = dioBuilder.builder()();
           console.log('Loaded dio client builder from relative path');
@@ -123,9 +126,11 @@ export class ServiceGenerator {
       } else {
         // Default to Dio
         try {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
           const dioBuilder = require('@dorval/dio');
           this.clientBuilder = dioBuilder.builder()();
-        } catch (e) {
+        } catch {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
           const dioBuilder = require('../../dio/dist');
           this.clientBuilder = dioBuilder.builder()();
         }

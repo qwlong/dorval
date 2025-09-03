@@ -22,7 +22,7 @@ export interface BodyResult {
 export function getBody(
   requestBody: OpenAPIV3.ReferenceObject | OpenAPIV3.RequestBodyObject,
   operationName: string,
-  context?: any
+  _context?: any
 ): BodyResult {
   const imports: string[] = [];
   let type = 'dynamic';

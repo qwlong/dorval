@@ -3,9 +3,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ModelGenerator } from '../../generators/model-generator';
-import { ReferenceResolver } from '../../resolvers/reference-resolver';
-import { TypeMapper } from '../../utils/type-mapper';
+import { ModelGenerator } from '../../generators';
+import { ReferenceResolver } from '../../resolvers';
 
 describe('Nullable Field Handling', () => {
   let generator: ModelGenerator;
@@ -26,7 +25,7 @@ describe('Nullable Field Handling', () => {
     };
 
     const result = generator.generateModel('TestModel', schema);
-    
+
     expect(result.content).toContain('required String requiredField');
     expect(result.content).toContain('String? optionalField');
     expect(result.content).toContain("@Default('test') String fieldWithDefault");
@@ -44,7 +43,7 @@ describe('Nullable Field Handling', () => {
     };
 
     const result = generator.generateModel('TestModel', schema);
-    
+
     expect(result.content).toContain('String? nullableField');
     expect(result.content).toContain('required String nonNullableField');
     expect(result.content).not.toContain('String??');
@@ -75,7 +74,7 @@ describe('Nullable Field Handling', () => {
     };
 
     const result = generator.generateModel('TestModel', schema);
-    
+
     expect(result.content).toContain('required User requiredUser');
     expect(result.content).toContain('User? optionalUser');
     expect(result.content).not.toContain('User??');
@@ -92,7 +91,7 @@ describe('Nullable Field Handling', () => {
     };
 
     const result = generator.generateModel('TestModel', schema);
-    
+
     expect(result.content).toContain('required DateTime createdAt');
     expect(result.content).toContain('DateTime? updatedAt');
     expect(result.content).not.toContain('DateTime??');
@@ -102,15 +101,15 @@ describe('Nullable Field Handling', () => {
     const schema = {
       type: 'object',
       properties: {
-        requiredList: { 
+        requiredList: {
           type: 'array',
           items: { type: 'string' }
         },
-        optionalList: { 
+        optionalList: {
           type: 'array',
           items: { type: 'string' }
         },
-        listWithDefault: { 
+        listWithDefault: {
           type: 'array',
           items: { type: 'string' },
           default: []
@@ -120,7 +119,7 @@ describe('Nullable Field Handling', () => {
     };
 
     const result = generator.generateModel('TestModel', schema);
-    
+
     expect(result.content).toContain('required List<String> requiredList');
     expect(result.content).toContain('List<String>? optionalList');
     expect(result.content).toContain('@Default(const []) List<String> listWithDefault');
