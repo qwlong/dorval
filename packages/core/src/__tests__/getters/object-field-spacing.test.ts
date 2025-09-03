@@ -1,7 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import * as handlebars from 'handlebars';
 import { TemplateManager } from '../../templates/template-manager';
-import * as path from 'path';
 
 describe('Freezed Model Field Spacing', () => {
   test('should add blank line after each field with comment', () => {

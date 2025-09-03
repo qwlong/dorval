@@ -257,7 +257,7 @@ export class OpenAPIParser {
     this.ensureParsed();
     
     const paths = this.getPaths();
-    for (const [path, pathItem] of Object.entries(paths)) {
+    for (const [_path, pathItem] of Object.entries(paths)) {
       if (!pathItem) continue;
       
       const methods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head'] as const;

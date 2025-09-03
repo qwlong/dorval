@@ -18,7 +18,7 @@ export interface ArrayResult {
 export function getArray(
   schema: OpenAPIV3.ArraySchemaObject,
   name?: string,
-  context?: any
+  _context?: any
 ): ArrayResult {
   const imports: string[] = [];
   let itemType = 'dynamic';
@@ -198,7 +198,7 @@ export function generateArrayGetter(
  */
 export function getTupleArray(
   prefixItems: OpenAPIV3.SchemaObject[],
-  additionalItems?: OpenAPIV3.SchemaObject
+  _additionalItems?: OpenAPIV3.SchemaObject
 ): ArrayResult {
   // For Dart, we can't represent true tuples, so we use List<dynamic>
   // or create a custom class to represent the tuple
@@ -206,7 +206,7 @@ export function getTupleArray(
   const imports: string[] = [];
   
   // Collect types from prefix items
-  const types = prefixItems.map(item => {
+  const _types = prefixItems.map(item => {
     if ('$ref' in item) {
       const refName = extractTypeFromRef(item.$ref);
       imports.push(`${toSnakeCase(refName)}.f.dart`);

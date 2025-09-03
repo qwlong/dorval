@@ -139,7 +139,7 @@ function generateHeader(): string {
 /**
  * Generate imports section
  */
-function generateImports(sections: ReturnType<typeof organizeSections>): string {
+function generateImports(_sections: ReturnType<typeof organizeSections>): string {
   const imports = new Set<string>();
   
   // Standard Dart imports
@@ -218,7 +218,7 @@ function generateFooter(): string {
 function stripImportsAndParts(content: string): string {
   const lines = content.split('\n');
   const filteredLines: string[] = [];
-  let skipNext = false;
+  let _skipNext = false;
   
   for (const line of lines) {
     const trimmed = line.trim();

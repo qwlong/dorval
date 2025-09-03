@@ -3,7 +3,6 @@
  * Processes and organizes method properties/parameters
  */
 
-import { OpenAPIV3 } from 'openapi-types';
 
 export enum PropType {
   BODY = 'body',
@@ -46,7 +45,7 @@ export function getProps(
   pathParams: any[],
   headerParams: any[],
   cookieParams: any[],
-  operationName: string
+  _operationName: string
 ): MethodProps {
   const all: PropertyInfo[] = [];
   

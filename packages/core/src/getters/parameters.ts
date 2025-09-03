@@ -56,14 +56,14 @@ export function getParameters(
  */
 export function processParameter(
   parameter: OpenAPIV3.ReferenceObject | OpenAPIV3.ParameterObject,
-  context?: any
+  _context?: any
 ): ParameterInfo | null {
   const imports: string[] = [];
   
   // Handle reference
   if ('$ref' in parameter) {
     // TODO: Resolve reference from context
-    const refName = extractRefName(parameter.$ref);
+    const _refName = extractRefName(parameter.$ref);
     // For now, return null for references
     // In a complete implementation, we'd resolve the reference
     return null;

@@ -2,7 +2,6 @@
  * Generate Dart model files using Freezed
  */
 
-import type { OpenAPIV3 } from 'openapi-types';
 import { OpenAPIObject } from '../types';
 import { DartGeneratorOptions, GeneratedFile } from '../types';
 import { ModelGenerator } from './model-generator';
@@ -10,7 +9,6 @@ import { OpenAPIParser } from '../parser/openapi-parser';
 import { ReferenceResolver } from '../resolvers/reference-resolver';
 import { combineSchemas } from '../getters/combine';
 import { getObject } from '../getters/object';
-import { getScalar } from '../getters/scalar';
 import { hasComposition, hasDiscriminatedUnion, isEnum, isEmpty } from '../utils/assertion';
 import { TypeMapper } from '../utils/type-mapper';
 
@@ -98,7 +96,7 @@ function extractInlineObjects(
 
 export async function generateModels(
   spec: OpenAPIObject,
-  options: DartGeneratorOptions
+  _options: DartGeneratorOptions
 ): Promise<GeneratedFile[]> {
   const files: GeneratedFile[] = [];
   const generator = new ModelGenerator();

@@ -38,7 +38,7 @@ export interface ResponseResult {
 export function getResponse(
   responses: OpenAPIV3.ResponsesObject,
   operationName: string,
-  context?: any
+  _context?: any
 ): ResponseResult {
   const allResponses: ResponseInfo[] = [];
   const imports: string[] = [];

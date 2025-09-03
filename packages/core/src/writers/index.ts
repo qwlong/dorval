@@ -4,7 +4,6 @@
  */
 
 import * as fs from 'fs/promises';
-import * as fsSync from 'fs';
 import * as path from 'path';
 import { GeneratedFile } from '../types';
 
@@ -58,7 +57,7 @@ export async function cleanOutputDir(outputPath: string): Promise<void> {
   try {
     // Try to remove the directory and recreate it
     await fs.rm(outputPath, { recursive: true, force: true });
-  } catch (error) {
+  } catch {
     // Directory might not exist, ignore error
   }
   await fs.mkdir(outputPath, { recursive: true });

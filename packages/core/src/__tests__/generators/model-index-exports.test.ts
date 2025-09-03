@@ -4,7 +4,6 @@
 
 import { describe, it, expect } from 'vitest';
 import { generateModels } from '../../generators/models';
-import { ServiceGenerator } from '../../generators/service-generator';
 
 describe('Model Index Exports', () => {
   it('should include params and headers exports in models/index.dart', async () => {

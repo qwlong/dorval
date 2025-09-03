@@ -81,7 +81,7 @@ export class HeadersConfigurableGenerator {
 
     // Check if this should use a shared model
     const headerNames = headers.map(h => h.originalName).sort();
-    for (const [className, configHeaders] of Object.entries(this.sharedHeaderConfig)) {
+    for (const [_className, configHeaders] of Object.entries(this.sharedHeaderConfig)) {
       const sortedConfigHeaders = [...configHeaders].sort();
       if (this.arraysEqual(headerNames, sortedConfigHeaders)) {
         // This uses a shared model, don't generate individual file

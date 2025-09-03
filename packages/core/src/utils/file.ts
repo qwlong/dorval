@@ -3,7 +3,6 @@
  */
 
 import * as fs from 'fs/promises';
-import * as fsSync from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { GeneratedFile } from '../types';
@@ -126,7 +125,7 @@ export async function cleanupTempDir(tempDir: string): Promise<void> {
   try {
     await fs.rm(tempDir, { recursive: true, force: true });
     tempDirs = tempDirs.filter(dir => dir !== tempDir);
-  } catch (error) {
+  } catch {
     // Ignore cleanup errors
   }
 }

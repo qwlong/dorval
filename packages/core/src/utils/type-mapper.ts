@@ -166,7 +166,7 @@ export class TypeMapper {
     }
     
     // Validate that it's a proper reference path
-    const validPaths = ['components', 'definitions'];
+    const _validPaths = ['components', 'definitions'];
     const validSubPaths = ['schemas', 'parameters', 'responses', 'examples', 'requestBodies', 'headers', 'securitySchemes', 'links', 'callbacks'];
     
     // Check if it's a valid component reference

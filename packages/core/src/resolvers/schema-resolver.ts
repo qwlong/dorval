@@ -2,7 +2,6 @@
  * Schema resolver for handling complex OpenAPI schema structures
  */
 
-import { OpenAPIV3 } from 'openapi-types';
 
 export interface ResolvedSchema {
   type: 'object' | 'array' | 'primitive' | 'enum' | 'composition' | 'reference';

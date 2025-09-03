@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { EndpointGenerator } from '../../generators/endpoint-generator';
-import { ServiceGenerator } from '../../generators/service-generator';
-import { parseOpenAPISpec } from '../../parser';
 import type { OpenAPIV3 } from 'openapi-types';
 
 describe('$ref Preservation in API Return Types', () => {
