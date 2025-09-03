@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { generateModels } from '../../generators/models';
-import { TypeMapper } from '../../utils/type-mapper';
+import { TypeMapper } from '../../utils';
 import { getObject } from '../../getters/object';
 
 describe('OneOf Nullable Pattern', () => {

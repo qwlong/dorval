@@ -5,7 +5,7 @@
 
 import { OpenAPIV3 } from 'openapi-types';
 import { combineSchemas } from './combine';
-import { TypeMapper } from '../utils/type-mapper';
+import { TypeMapper } from '../utils';
 import { TemplateManager } from '../templates/template-manager';
 import { DartProperty } from '../types';
 

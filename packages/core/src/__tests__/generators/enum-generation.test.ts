@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ModelGenerator } from '../../generators/model-generator';
+import { ModelGenerator } from '../../generators';
 
 describe('Enum Generation', () => {
   const generator = new ModelGenerator();

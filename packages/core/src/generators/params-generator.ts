@@ -3,7 +3,7 @@
  */
 
 import { GeneratedFile } from '../types';
-import { TypeMapper } from '../utils/type-mapper';
+import { TypeMapper } from '../utils';
 import { TemplateManager } from '../templates/template-manager';
 import { QueryParameter, HeaderParameter } from './endpoint-generator';
 

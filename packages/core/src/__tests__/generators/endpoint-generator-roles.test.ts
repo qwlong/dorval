@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { EndpointGenerator } from '../../generators/endpoint-generator';
-import { TypeMapper } from '../../utils/type-mapper';
+import { TypeMapper } from '../../utils';
 
 describe('EndpointGenerator - Roles API Example', () => {
   let generator: EndpointGenerator;
