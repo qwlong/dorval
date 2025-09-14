@@ -10,11 +10,11 @@ CLI tool for generating type-safe Dart/Flutter API clients from OpenAPI specific
 - 🎯 **Type-safe API clients** - Generate strongly-typed Dart code from OpenAPI specs
 - ❄️ **Freezed models** - Immutable data classes with copyWith, equality, and more
 - 🔄 **JSON serialization** - Built-in fromJson/toJson with json_serializable
-- 🌐 **Multiple HTTP clients** - Support for Dio, HTTP, Chopper, and Retrofit
+- 🌐 **Multiple HTTP clients** - Support for Dio (more clients coming soon)
 - 📝 **Full OpenAPI 3.0 support** - Handle complex schemas, references, and more
-- 👀 **Watch mode** - Auto-regenerate on spec changes during development
 - 🎨 **Highly configurable** - Control every aspect of code generation
 - ⚡ **Fast generation** - Optimized for large APIs
+- 🔀 **Smart header consolidation** - Automatically reduces duplicate header classes
 
 ## Installation
 
@@ -31,8 +31,6 @@ npm install --save-dev dorval
 
 ## Quick Start
 
-### 1. Basic Command Line Usage
-
 ```bash
 # Generate from a local file
 dorval generate -i ./openapi.yaml -o ./lib/api
@@ -40,97 +38,96 @@ dorval generate -i ./openapi.yaml -o ./lib/api
 # Generate from a URL
 dorval generate -i https://petstore.swagger.io/v2/swagger.json -o ./lib/api
 
-# Specify client type
-dorval generate -i ./spec.yaml -o ./lib/api --client dio
+# Using configuration file (recommended)
+dorval generate -c ./dorval.config.ts
 ```
 
-### 2. Using Configuration File (Recommended)
+## Configuration Guide
 
-Create a `dorval.config.ts` (or `.js`, `.json`):
+### Configuration File (Recommended)
+
+Create a `dorval.config.ts` (or `.js`, `.json`) file:
 
 ```typescript
 export default {
   petstore: {
-    input: './petstore.yaml',
+    input: './petstore.yaml',           // Local file, URL, or OpenAPI object
     output: {
-      target: './lib/api',
-      mode: 'split',
-      client: 'dio',
+      target: './lib/api',              // Output directory
+      mode: 'split',                    // File organization: 'single' | 'split' | 'tags'
+      client: 'dio',                    // HTTP client (currently only 'dio' is supported)
       override: {
         generator: {
-          freezed: true,
-          jsonSerializable: true,
-          nullSafety: true
+          freezed: true,                // Generate Freezed models (default: true)
+          jsonSerializable: true,       // Add JSON serialization (default: true)
+          nullSafety: true,             // Enable null safety (default: true)
+          partFiles: true,              // Generate part files (default: true)
+          equatable: false              // Add Equatable support (default: false)
         },
-        methodNaming: 'methodPath'
+        methodNaming: 'operationId'     // 'operationId' | 'methodPath'
       }
+    },
+    hooks: {
+      afterAllFilesWrite: 'dart format .'  // Commands to run after generation
     }
   }
 };
 ```
 
-Then run:
-
-```bash
-dorval generate
-
-# Or specify config path
-dorval generate -c ./custom.config.ts
-```
-
-## Complete Configuration Guide
-
-### Configuration File Options
+### Complete Configuration Reference
 
 ```typescript
 export default {
   apiName: {  // You can have multiple APIs in one config
-    
+
     // INPUT OPTIONS
-    input: './path/to/openapi.yaml',  // Local file, URL, or OpenAPI object
-    
+    input: {
+      target: './path/to/openapi.yaml',  // File path or URL
+      // OR provide OpenAPI spec directly:
+      // target: { openapi: '3.0.0', info: {...}, paths: {...} }
+    },
+
     // OUTPUT OPTIONS
     output: {
       target: './lib/generated/api',   // Output directory
-      
+
       mode: 'split',                   // File organization
       // 'single' - All code in one file
       // 'split' - Separate models and services (default)
       // 'tags' - Group by OpenAPI tags
-      
-      client: 'dio',                   // HTTP client library
-      // 'dio' - Feature-rich, supports interceptors (default)
-      // 'http' - Lightweight, built-in Dart package
-      // 'chopper' - Code generation based
-      // 'retrofit' - Annotation-based (experimental)
-      
+
+      client: 'dio',                   // HTTP client library (currently only 'dio')
+
       override: {
         // Generator options
         generator: {
-          freezed: true,               // Generate Freezed models (default: true)
-          jsonSerializable: true,      // Add JSON serialization (default: true)
-          nullSafety: true,            // Enable null safety (default: true)
-          partFiles: true,             // Generate part files (default: true)
-          equatable: false             // Add Equatable support (default: false)
+          freezed: true,               // Generate Freezed models
+          jsonSerializable: true,      // Add JSON serialization
+          nullSafety: true,            // Enable null safety
+          partFiles: true,             // Generate part files
+          equatable: false,            // Add Equatable support
+          copyWith: true,              // Generate copyWith methods
+          toString: true,              // Generate toString methods
+          equality: true               // Generate equality operators
         },
-        
+
         // Method naming strategy
         methodNaming: 'operationId',  // How to name service methods
         // 'operationId' - Use OpenAPI operationId (default)
         // 'methodPath' - Generate from HTTP method + path
-        
-        // Dio-specific options
+
+        // Dio-specific options (future enhancement)
         dio: {
           baseUrl: 'https://api.example.com',  // Override base URL
           interceptors: ['AuthInterceptor']     // Custom interceptors
         }
       }
     },
-    
+
     // POST-GENERATION HOOKS
     hooks: {
       afterAllFilesWrite: 'dart format .'  // Commands to run after generation
-      // Can also be an array: ['dart format .', 'flutter pub get']
+      // Can also be an array: ['dart format .', 'dart analyze']
     }
   }
 };
@@ -148,7 +145,7 @@ export default {
       client: 'dio'
     }
   },
-  
+
   // Admin API with different settings
   adminApi: {
     input: './specs/admin-api.yaml',
@@ -156,7 +153,7 @@ export default {
       target: './lib/api/admin',
       client: 'dio',
       override: {
-        methodNaming: 'operationId',
+        methodNaming: 'methodPath',
         generator: {
           freezed: true,
           equatable: true  // Admin API uses Equatable
@@ -164,7 +161,7 @@ export default {
       }
     }
   },
-  
+
   // Public API from URL
   publicApi: {
     input: 'https://api.example.com/public/openapi.json',
@@ -176,11 +173,7 @@ export default {
 };
 ```
 
-## CLI Commands & Options
-
-### generate
-
-Generate Dart API client from OpenAPI specification.
+### Command Line Options
 
 ```bash
 dorval generate [options]
@@ -190,43 +183,9 @@ dorval generate [options]
 - `-i, --input <path>` - Path or URL to OpenAPI specification
 - `-o, --output <path>` - Output directory for generated code
 - `-c, --config <path>` - Path to configuration file
-- `--client <type>` - HTTP client type (dio|http|chopper|retrofit)
+- `--client <type>` - HTTP client type (currently only 'dio')
 - `-h, --help` - Display help
 - `-V, --version` - Display version
-
-**Examples:**
-
-```bash
-# Simple generation
-dorval generate -i api.yaml -o ./lib
-
-# With specific client
-dorval generate -i api.yaml -o ./lib --client dio
-
-# Using config file
-dorval generate -c ./my-config.js
-
-# From URL
-dorval generate -i https://api.example.com/openapi.json -o ./lib
-```
-
-### watch
-
-Watch OpenAPI spec for changes and regenerate automatically.
-
-```bash
-dorval watch [options]
-```
-
-**Options:**
-- `-c, --config <path>` - Path to configuration file (required)
-
-**Example:**
-
-```bash
-# Watch for changes
-dorval watch -c ./dorval.config.ts
-```
 
 ## Method Naming Strategies
 
@@ -242,7 +201,7 @@ paths:
   /pets/{id}:
     get:
       operationId: showPetById
-      
+
 # Generated Dart method
 Future<Pet> showPetById(String id);
 ```
@@ -272,70 +231,21 @@ Future<void> putV1LocationsLocationIdSettings(String locationId, SettingsDto bod
 ```
 lib/api/
 ├── api_client.dart          # HTTP client wrapper
-├── api_config.dart          # API configuration
 ├── models/                  # Data models
 │   ├── user.f.dart         # Freezed model
 │   ├── user.f.freezed.dart # Generated Freezed code
 │   ├── user.f.g.dart       # Generated JSON serialization
-│   ├── params/             # Request parameter models
+│   ├── params/             # Request parameter models (if needed)
 │   │   ├── get_users_params.f.dart
 │   │   └── index.dart
-│   ├── headers/            # Header parameter models
-│   │   ├── get_users_headers.f.dart
+│   ├── headers/            # Header parameter models (if needed)
+│   │   ├── auth_headers.f.dart
 │   │   └── index.dart
 │   └── index.dart          # Barrel exports
 └── services/               # API services
     ├── users_service.dart  # Service implementation
     ├── api_exception.dart  # Error handling
     └── index.dart          # Barrel exports
-```
-
-## Integration Examples
-
-### package.json Scripts
-
-```json
-{
-  "scripts": {
-    "generate": "dorval generate",
-    "generate:watch": "dorval watch -c dorval.config.ts",
-    "prebuild": "npm run generate"
-  }
-}
-```
-
-### CI/CD Integration
-
-```yaml
-# GitHub Actions
-- name: Generate API Client
-  run: |
-    npm install -g dorval
-    dorval generate -c ./dorval.config.ts
-    
-# GitLab CI
-generate-api:
-  script:
-    - npx dorval generate -i $API_SPEC_URL -o ./lib/api
-```
-
-### With Environment Variables
-
-```typescript
-// dorval.config.ts
-export default {
-  api: {
-    input: process.env.API_SPEC_URL || './openapi.yaml',
-    output: {
-      target: './lib/api',
-      override: {
-        dio: {
-          baseUrl: process.env.API_BASE_URL || 'https://api.example.com'
-        }
-      }
-    }
-  }
-};
 ```
 
 ## Flutter/Dart Setup
@@ -378,16 +288,16 @@ void main() async {
     dio: Dio(),
     baseUrl: 'https://api.example.com',
   );
-  
+
   // Create service
   final usersService = UsersService(apiClient);
-  
+
   // Make type-safe API calls
   final List<User> users = await usersService.getUsers(
     limit: 10,
     offset: 0,
   );
-  
+
   // Handle errors
   try {
     final user = await usersService.getUserById('123');
@@ -397,6 +307,54 @@ void main() async {
     print('Status Code: ${e.statusCode}');
   }
 }
+```
+
+## Integration Examples
+
+### package.json Scripts
+
+```json
+{
+  "scripts": {
+    "generate": "dorval generate",
+    "generate:watch": "dorval watch -c dorval.config.ts",
+    "prebuild": "npm run generate"
+  }
+}
+```
+
+### CI/CD Integration
+
+```yaml
+# GitHub Actions
+- name: Generate API Client
+  run: |
+    npm install -g dorval
+    dorval generate -c ./dorval.config.ts
+
+# GitLab CI
+generate-api:
+  script:
+    - npx dorval generate -i $API_SPEC_URL -o ./lib/api
+```
+
+### With Environment Variables
+
+```typescript
+// dorval.config.ts
+export default {
+  api: {
+    input: process.env.API_SPEC_URL || './openapi.yaml',
+    output: {
+      target: './lib/api',
+      override: {
+        dio: {
+          baseUrl: process.env.API_BASE_URL || 'https://api.example.com'
+        }
+      }
+    }
+  }
+};
 ```
 
 ## Advanced Usage
@@ -455,10 +413,6 @@ class MockUsersService implements UsersService {
 
 ### Common Issues
 
-**"Missing loader for extension 'orval.config.mjs'" error**
-- Use `.ts`, `.js`, or `.json` config files instead
-- Or use command line options: `dorval generate -i spec.yaml -o ./lib`
-
 **Generated methods return `Map<String, dynamic>` instead of models**
 - Ensure your OpenAPI spec uses `$ref` for response schemas
 - Check that models are defined in `components/schemas`
@@ -491,10 +445,10 @@ DEBUG=dorval* dorval generate -c dorval.config.ts
 | Dart/Flutter Focus | ✅ Native | ⚠️ Generic | ⚠️ Generic |
 | Freezed Support | ✅ Built-in | ❌ Manual | ❌ Manual |
 | TypeScript Config | ✅ Yes | ❌ Java/CLI | ❌ Java/CLI |
-| Watch Mode | ✅ Yes | ❌ No | ❌ No |
-| Method Naming Control | ✅ Yes | ❌ No | ❌ No |
+| Method Naming Control | ✅ Yes | ⚠️ Limited | ⚠️ Limited |
 | NPM Package | ✅ Yes | ❌ Docker/JAR | ❌ Docker/JAR |
-| Bundle Size | ✅ Small | ❌ Large | ❌ Large |
+| Bundle Size | ✅ ~5MB | ❌ ~100MB+ | ❌ ~100MB+ |
+| Header Consolidation | ✅ Smart | ❌ No | ❌ No |
 
 ## Migration Guide
 
@@ -520,7 +474,6 @@ We welcome contributions! See [CONTRIBUTING.md](https://github.com/qwlong/dorval
 - 📖 [Documentation](https://github.com/qwlong/dorval#readme)
 - 🐛 [Report Issues](https://github.com/qwlong/dorval/issues)
 - 💬 [Discussions](https://github.com/qwlong/dorval/discussions)
-- 📧 [Email Support](mailto:support@dorval.dev)
 
 ## License
 
@@ -531,5 +484,4 @@ MIT © 2025
 - [GitHub Repository](https://github.com/qwlong/dorval)
 - [NPM Package](https://www.npmjs.com/package/dorval)
 - [Core Library](https://www.npmjs.com/package/@dorval/core)
-- [Petstore Example](https://github.com/qwlong/dorval/tree/master/samples/petstore)
 - [Changelog](https://github.com/qwlong/dorval/blob/master/CHANGELOG.md)
