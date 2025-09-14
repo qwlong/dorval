@@ -32,7 +32,7 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "npm version ${nextRelease.version} --no-git-tag-version --workspaces --include-workspace-root",
+        "prepareCmd": "for pkg in packages/*; do if [ -f \"$pkg/package.json\" ]; then (cd \"$pkg\" && npm version ${nextRelease.version} --no-git-tag-version); fi; done",
         "publishCmd": "npm publish --workspaces --access public"
       }
     ],
