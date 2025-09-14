@@ -40,6 +40,7 @@ jobs:
       run: yarn test
     
     - name: Release with Semantic Release
+      id: semantic
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -56,4 +57,18 @@ jobs:
         # 5. Publish to npm
         # 6. Create GitHub release
         # 7. Create git tag
-        npx semantic-release || echo "No release needed (no releasable commits)"
+
+        # Exit code 1 = error, Exit code 0 = success (released or no release needed)
+        npx semantic-release
+
+    - name: Release Summary
+      if: always()
+      run: |
+        echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ steps.semantic.outcome }}" == "success" ]; then
+          echo "✅ Semantic release completed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "Check the [releases page](https://github.com/${{ github.repository }}/releases) for details" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ Semantic release failed" >> $GITHUB_STEP_SUMMARY
+          echo "Check the logs above for error details" >> $GITHUB_STEP_SUMMARY
+        fi

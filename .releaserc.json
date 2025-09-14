@@ -32,8 +32,8 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "yarn workspaces foreach --no-private version ${nextRelease.version}",
-        "publishCmd": "yarn workspaces foreach --no-private npm publish --access public"
+        "prepareCmd": "npm version ${nextRelease.version} --no-git-tag-version --workspaces --include-workspace-root",
+        "publishCmd": "npm publish --workspaces --access public"
       }
     ],
     [
