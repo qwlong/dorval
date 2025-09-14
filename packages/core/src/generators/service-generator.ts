@@ -8,7 +8,6 @@ import { EndpointGenerator, EndpointMethod } from './endpoint-generator';
 import { TemplateManager } from '../templates/template-manager';
 import { TypeMapper } from '../utils';
 import { ParamsGenerator } from './params-generator';
-import { HeadersConfigurableGenerator } from './headers-configurable-generator';
 import { HeadersGenerator } from './headers-generator';
 import * as fsSync from 'fs';
 import * as path from 'path';
@@ -41,7 +40,6 @@ export class ServiceGenerator {
   private endpointGenerator: EndpointGenerator;
   private templateManager: TemplateManager;
   private paramsGenerator: ParamsGenerator;
-  private headersConfigurableGenerator: HeadersConfigurableGenerator | null = null;
   private headersGenerator: HeadersGenerator | null = null;
   private schemas: Record<string, any> = {};
   private originalSpec: OpenAPIObject | null = null;
@@ -165,10 +163,21 @@ export class ServiceGenerator {
       this.headersGenerator = new HeadersGenerator(options.output.override.headers as any);
       console.log('Initialized HeadersGenerator with config:', options.output.override.headers);
     } else if (options.output.override?.sharedHeaders) {
-      // Legacy shared headers configuration
-      this.headersConfigurableGenerator = new HeadersConfigurableGenerator(
-        options.output.override.sharedHeaders
-      );
+      // Legacy shared headers configuration - convert to new format
+      const convertedDefinitions: { [className: string]: any } = {};
+      for (const [className, fields] of Object.entries(options.output.override.sharedHeaders)) {
+        convertedDefinitions[className] = {
+          fields: fields,
+          required: fields // All fields are required in legacy format
+        };
+      }
+      const convertedConfig = {
+        definitions: convertedDefinitions,
+        customMatch: true,
+        matchStrategy: 'exact' as const
+      };
+      this.headersGenerator = new HeadersGenerator(convertedConfig);
+      console.log('Converted legacy sharedHeaders to new HeadersGenerator config');
     }
     
     // Store the original spec - it should already have $refs preserved from parseOpenAPISpec
@@ -224,21 +233,6 @@ export class ServiceGenerator {
       const report = this.headersGenerator.generateReport();
       console.log('\n' + report);
       console.log(`Total header files generated: ${allHeaderFiles.length} (${consolidatedHeaderFiles.length} consolidated, ${headerFiles.length} endpoint-specific)`);
-    } else if (this.headersConfigurableGenerator) {
-      // Generate shared header files
-      const sharedHeaderFiles = this.headersConfigurableGenerator.generateSharedHeaderFiles();
-      files.push(...sharedHeaderFiles);
-      files.push(...headerFiles); // Add any non-shared header files
-      
-      // Generate index for all header files
-      const allHeaderFiles = [...sharedHeaderFiles, ...headerFiles];
-      if (allHeaderFiles.length > 0) {
-        const headersIndexContent = this.generateHeadersIndex(allHeaderFiles);
-        files.push({
-          path: 'models/headers/index.dart',
-          content: headersIndexContent
-        });
-      }
     } else {
       // Original behavior
       files.push(...headerFiles);
@@ -404,29 +398,6 @@ export class ServiceGenerator {
               if (headersModel) {
                 headerFiles.push(headersModel);
                 generatedParamModels.add(endpointMethod.headersModelName);
-              }
-            }
-          }
-        } else if (this.headersConfigurableGenerator) {
-          // Legacy configurable header generator
-          const headerModelName = this.headersConfigurableGenerator.getHeaderModelName(
-            endpointMethod.methodName,
-            endpointMethod.headers
-          );
-          
-          if (headerModelName) {
-            endpointMethod.headersModelName = headerModelName;
-            
-            // Only generate individual file if it's not a shared model
-            if (!this.headersConfigurableGenerator.isSharedModel(headerModelName) &&
-                !generatedParamModels.has(headerModelName)) {
-              const headersModel = this.headersConfigurableGenerator.generateHeaderModel(
-                endpointMethod.methodName,
-                endpointMethod.headers
-              );
-              if (headersModel) {
-                headerFiles.push(headersModel);
-                generatedParamModels.add(headerModelName);
               }
             }
           }

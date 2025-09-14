@@ -7,7 +7,7 @@ import { parseOpenAPISpec } from '../parser';
 import { generateModels } from './models';
 import { generateClient } from './client';
 import { generateServices } from './services';
-import { writeToDisk } from '../utils/file';
+import { writeToDisk } from '../utils';
 
 export async function generateDartCode(options: DartGeneratorOptions): Promise<GeneratedFile[]> {
   // Parse OpenAPI specification

@@ -1,15 +1,14 @@
 /**
- * Tests for header generation and consolidation
+ * Tests for unified header generator
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { HeadersGenerator } from '../../generators/headers-generator';
-import { ParamsGenerator } from '../../generators/params-generator';
 import { HeaderParameter } from '../../generators/endpoint-generator';
 
-describe('Header Generation', () => {
-  describe('HeadersGenerator', () => {
-    it('should match headers to defined configurations', () => {
+describe('Unified Headers Generator', () => {
+  describe('Basic Configuration Matching', () => {
+    it('should match exact header configurations', () => {
       const config = {
         definitions: {
           ApiKeyHeaders: {
@@ -17,59 +16,138 @@ describe('Header Generation', () => {
             required: ['x-api-key'],
             description: 'API key authentication'
           },
-          CompanyStaffHeaders: {
-            fields: ['x-api-key', 'x-core-company-id', 'x-company-staff-id'],
-            required: ['x-api-key', 'x-core-company-id', 'x-company-staff-id'],
-            description: 'Company staff authentication'
+          CompanyHeaders: {
+            fields: ['x-api-key', 'x-company-id', 'x-user-id'],
+            required: ['x-api-key', 'x-company-id'],
+            description: 'Company context headers'
           }
-        }
+        },
+        matchStrategy: 'exact' as const,
+        customMatch: true
       };
 
       const generator = new HeadersGenerator(config);
 
-      const apiKeyOnly: HeaderParameter[] = [
+      const apiKeyHeaders: HeaderParameter[] = [
         { originalName: 'x-api-key', dartName: 'xApiKey', type: 'String', required: true, description: '' }
       ];
 
-      const companyStaff: HeaderParameter[] = [
+      const companyHeaders: HeaderParameter[] = [
         { originalName: 'x-api-key', dartName: 'xApiKey', type: 'String', required: true, description: '' },
-        { originalName: 'x-core-company-id', dartName: 'xCoreCompanyId', type: 'String', required: true, description: '' },
-        { originalName: 'x-company-staff-id', dartName: 'xCompanyStaffId', type: 'String', required: true, description: '' }
+        { originalName: 'x-company-id', dartName: 'xCompanyId', type: 'String', required: true, description: '' },
+        { originalName: 'x-user-id', dartName: 'xUserId', type: 'String', required: false, description: '' }
       ];
 
-      expect(generator.findMatchingHeaderClass('/test1', apiKeyOnly)).toBe('ApiKeyHeaders');
-      expect(generator.findMatchingHeaderClass('/test2', companyStaff)).toBe('CompanyStaffHeaders');
+      expect(generator.getHeaderModelName('GetUsers', apiKeyHeaders)).toBe('ApiKeyHeaders');
+      expect(generator.getHeaderModelName('GetCompany', companyHeaders)).toBe('CompanyHeaders');
     });
 
-    it('should handle optional fields correctly', () => {
+    it('should handle subset matching strategy', () => {
       const config = {
         definitions: {
-          FlexibleHeaders: {
-            fields: ['x-api-key', 'x-core-company-id', 'x-company-staff-id'],
-            required: ['x-api-key', 'x-core-company-id'],
-            description: 'Flexible authentication'
+          FullHeaders: {
+            fields: ['x-api-key', 'x-company-id', 'x-user-id', 'x-session-id'],
+            required: ['x-api-key', 'x-company-id']
           }
-        }
+        },
+        matchStrategy: 'subset' as const,
+        customMatch: true
       };
 
       const generator = new HeadersGenerator(config);
 
-      const headers: HeaderParameter[] = [
+      const subsetHeaders: HeaderParameter[] = [
         { originalName: 'x-api-key', dartName: 'xApiKey', type: 'String', required: true, description: '' },
-        { originalName: 'x-core-company-id', dartName: 'xCoreCompanyId', type: 'String', required: true, description: '' },
-        { originalName: 'x-company-staff-id', dartName: 'xCompanyStaffId', type: 'String', required: false, description: '' }
+        { originalName: 'x-company-id', dartName: 'xCompanyId', type: 'String', required: true, description: '' }
       ];
 
-      expect(generator.findMatchingHeaderClass('/test', headers)).toBe('FlexibleHeaders');
+      expect(generator.getHeaderModelName('GetSubset', subsetHeaders)).toBe('FullHeaders');
     });
 
-    it('should generate header files correctly', () => {
+    it('should handle fuzzy matching strategy', () => {
       const config = {
         definitions: {
-          TestHeaders: {
-            fields: ['x-test', 'x-auth'],
-            required: ['x-test'],
-            description: 'Test headers'
+          AuthHeaders: {
+            fields: ['x-api-key', 'x-auth-token', 'x-user-id'],
+            required: ['x-api-key']
+          }
+        },
+        matchStrategy: 'fuzzy' as const,
+        customMatch: true
+      };
+
+      const generator = new HeadersGenerator(config);
+
+      const similarHeaders: HeaderParameter[] = [
+        { originalName: 'x-api-key', dartName: 'xApiKey', type: 'String', required: true, description: '' },
+        { originalName: 'x-auth-token', dartName: 'xAuthToken', type: 'String', required: false, description: '' }
+      ];
+
+      expect(generator.getHeaderModelName('GetSimilar', similarHeaders)).toBe('AuthHeaders');
+    });
+  });
+
+  describe('Header Consolidation', () => {
+    it('should consolidate headers that meet threshold', () => {
+      const config = {
+        customConsolidate: true,
+        consolidationThreshold: 2
+      };
+
+      const generator = new HeadersGenerator(config);
+
+      const commonHeaders: HeaderParameter[] = [
+        { originalName: 'x-api-key', dartName: 'xApiKey', type: 'String', required: true, description: '' },
+        { originalName: 'x-company-id', dartName: 'xCompanyId', type: 'String', required: true, description: '' }
+      ];
+
+      // Register multiple endpoints with same headers
+      generator.getHeaderModelName('GetUsers', commonHeaders);
+      generator.getHeaderModelName('GetProjects', commonHeaders);
+      generator.getHeaderModelName('GetTasks', commonHeaders);
+
+      // Generate all files (triggers consolidation)
+      const files = generator.generateAllHeaderFiles();
+
+      // Should have consolidated into one file
+      expect(files).toHaveLength(1);
+      expect(files[0].content).toContain('Shared headers used by 3 endpoints');
+    });
+
+    it('should not consolidate below threshold', () => {
+      const config = {
+        customConsolidate: true,
+        consolidationThreshold: 5
+      };
+
+      const generator = new HeadersGenerator(config);
+
+      const headers1: HeaderParameter[] = [
+        { originalName: 'x-api-key', dartName: 'xApiKey', type: 'String', required: true, description: '' }
+      ];
+
+      const headers2: HeaderParameter[] = [
+        { originalName: 'x-auth-token', dartName: 'xAuthToken', type: 'String', required: true, description: '' }
+      ];
+
+      generator.getHeaderModelName('Endpoint1', headers1);
+      generator.getHeaderModelName('Endpoint2', headers2);
+
+      const files = generator.generateAllHeaderFiles();
+
+      // Should have 2 separate files (not consolidated)
+      expect(files).toHaveLength(2);
+    });
+  });
+
+  describe('File Generation', () => {
+    it('should generate correct file structure for configured headers', () => {
+      const config = {
+        definitions: {
+          ApiAuth: {
+            fields: ['x-api-key', 'x-secret'],
+            required: ['x-api-key'],
+            description: 'API authentication headers'
           }
         }
       };
@@ -78,76 +156,198 @@ describe('Header Generation', () => {
       const files = generator.generateConfiguredHeaderFiles();
 
       expect(files).toHaveLength(1);
-      expect(files[0].path).toBe('models/headers/test_headers.f.dart');
-      expect(files[0].content).toContain('class TestHeaders');
-      expect(files[0].content).toContain('required String xTest');
-      expect(files[0].content).toContain('String? xAuth');
+      expect(files[0].path).toBe('models/headers/api_auth.f.dart');
+      expect(files[0].content).toContain('class ApiAuthHeaders');
       expect(files[0].content).toContain('@freezed');
+      expect(files[0].content).toContain('required String xApiKey');
+      expect(files[0].content).toContain('String? xSecret');
+      expect(files[0].content).toContain("@JsonKey(name: 'x-api-key')");
+      expect(files[0].content).toContain("@JsonKey(name: 'x-secret')");
     });
 
-    it('should generate report with statistics', () => {
+    it('should generate unique header models when no match found', () => {
       const config = {
         definitions: {
           ApiKey: {
             fields: ['x-api-key'],
             required: ['x-api-key']
           }
-        }
+        },
+        customMatch: true
       };
 
       const generator = new HeadersGenerator(config);
-      
+
+      const uniqueHeaders: HeaderParameter[] = [
+        { originalName: 'x-custom-header', dartName: 'xCustomHeader', type: 'String', required: true, description: '' },
+        { originalName: 'x-special-token', dartName: 'xSpecialToken', type: 'String', required: false, description: '' }
+      ];
+
+      const modelName = generator.getHeaderModelName('UniqueEndpoint', uniqueHeaders);
+      expect(modelName).toBe('UniqueEndpointHeaders');
+
+      const file = generator.generateHeaderModel('UniqueEndpoint', uniqueHeaders);
+      expect(file).toBeDefined();
+      expect(file?.path).toBe('models/headers/unique_endpoint_headers.f.dart');
+      expect(file?.content).toContain('class UniqueEndpointHeaders');
+      expect(file?.content).toContain('required String xCustomHeader');
+      expect(file?.content).toContain('String? xSpecialToken');
+    });
+  });
+
+  describe('Statistics and Reporting', () => {
+    it('should generate accurate statistics', () => {
+      const config = {
+        definitions: {
+          SharedAuth: {
+            fields: ['x-api-key'],
+            required: ['x-api-key']
+          }
+        },
+        customMatch: true,
+        customConsolidate: true,
+        consolidationThreshold: 2
+      };
+
+      const generator = new HeadersGenerator(config);
+
+      const sharedHeaders: HeaderParameter[] = [
+        { originalName: 'x-api-key', dartName: 'xApiKey', type: 'String', required: true, description: '' }
+      ];
+
+      const uniqueHeaders: HeaderParameter[] = [
+        { originalName: 'x-unique', dartName: 'xUnique', type: 'String', required: true, description: '' }
+      ];
+
+      // Register endpoints
+      generator.getHeaderModelName('Endpoint1', sharedHeaders);
+      generator.getHeaderModelName('Endpoint2', sharedHeaders);
+      generator.getHeaderModelName('Endpoint3', uniqueHeaders);
+
+      // Generate files to trigger consolidation
+      generator.generateAllHeaderFiles();
+
+      const stats = generator.getStatistics();
+
+      expect(stats.totalModels).toBe(2); // SharedAuth + UniqueHeaders
+      expect(stats.sharedModels).toBe(1); // SharedAuth
+      expect(stats.uniqueModels).toBe(1); // UniqueHeaders
+      expect(stats.totalEndpoints).toBe(3);
+    });
+
+    it('should generate comprehensive report', () => {
+      const config = {
+        definitions: {
+          ApiKey: {
+            fields: ['x-api-key'],
+            required: ['x-api-key']
+          }
+        },
+        customMatch: true,
+        customConsolidate: true
+      };
+
+      const generator = new HeadersGenerator(config);
+
       const headers: HeaderParameter[] = [
         { originalName: 'x-api-key', dartName: 'xApiKey', type: 'String', required: true, description: '' }
       ];
 
-      generator.findMatchingHeaderClass('/endpoint1', headers);
-      generator.findMatchingHeaderClass('/endpoint2', headers);
+      generator.getHeaderModelName('GetUsers', headers);
+      generator.getHeaderModelName('GetProjects', headers);
+
+      generator.generateAllHeaderFiles();
 
       const report = generator.generateReport();
 
-      expect(report).toContain('# Header Matching Report');
-      expect(report).toMatch(/Total endpoints analyzed: \d+/);
-      expect(report).toContain('## Header Class Usage');
+      expect(report).toContain('# Header Generation Report');
+      expect(report).toContain('## Statistics');
+      expect(report).toContain('Total header models:');
+      expect(report).toContain('Shared models:');
+      expect(report).toContain('Total endpoints:');
+      expect(report).toContain('## Shared Model Usage');
       expect(report).toContain('ApiKey');
     });
   });
 
-  describe('ParamsGenerator', () => {
-    it('should generate header model with correct file extension', () => {
-      const generator = new ParamsGenerator();
-      
-      const headers: HeaderParameter[] = [
-        { originalName: 'x-api-key', dartName: 'xApiKey', type: 'String', required: true, description: 'API key' },
-        { originalName: 'x-user-id', dartName: 'xUserId', type: 'String', required: false, description: 'User ID' }
-      ];
+  describe('Edge Cases', () => {
+    it('should handle empty headers array', () => {
+      const generator = new HeadersGenerator();
 
-      const result = generator.generateHeadersModel('TestEndpoint', headers);
-
-      expect(result).toBeDefined();
-      expect(result?.path).toBe('models/headers/test_endpoint_headers.f.dart');
-      expect(result?.content).toContain('@freezed');
-      expect(result?.content).toContain('class TestEndpointHeaders');
-      expect(result?.content).toContain('required String xApiKey');
-      expect(result?.content).toContain('String? xUserId');
-      expect(result?.content).toContain("@JsonKey(name: 'x-api-key')");
-      expect(result?.content).toContain("@JsonKey(name: 'x-user-id')");
+      expect(generator.getHeaderModelName('Empty', [])).toBeNull();
+      expect(generator.generateHeaderModel('Empty', [])).toBeNull();
     });
 
-    it('should handle camelCase conversion for header names', () => {
-      const generator = new ParamsGenerator();
-      
-      const headers: HeaderParameter[] = [
-        { originalName: 'x-company-staff-id', dartName: 'xCompanyStaffId', type: 'String', required: true, description: '' },
-        { originalName: 'X-Custom-Header', dartName: 'xCustomHeader', type: 'String', required: false, description: '' }
+    it('should handle headers with different order but same content', () => {
+      const config = {
+        definitions: {
+          OrderedHeaders: {
+            fields: ['a', 'b', 'c'],
+            required: ['a', 'b', 'c']
+          }
+        },
+        customMatch: true
+      };
+
+      const generator = new HeadersGenerator(config);
+
+      const headers1: HeaderParameter[] = [
+        { originalName: 'a', dartName: 'a', type: 'String', required: true, description: '' },
+        { originalName: 'b', dartName: 'b', type: 'String', required: true, description: '' },
+        { originalName: 'c', dartName: 'c', type: 'String', required: true, description: '' }
       ];
 
-      const result = generator.generateHeadersModel('Test', headers);
+      const headers2: HeaderParameter[] = [
+        { originalName: 'c', dartName: 'c', type: 'String', required: true, description: '' },
+        { originalName: 'a', dartName: 'a', type: 'String', required: true, description: '' },
+        { originalName: 'b', dartName: 'b', type: 'String', required: true, description: '' }
+      ];
 
-      expect(result?.content).toContain('xCompanyStaffId');
-      expect(result?.content).toContain('xCustomHeader');
-      expect(result?.content).toContain("@JsonKey(name: 'x-company-staff-id')");
-      expect(result?.content).toContain("@JsonKey(name: 'X-Custom-Header')");
+      expect(generator.getHeaderModelName('Test1', headers1)).toBe('OrderedHeaders');
+      expect(generator.getHeaderModelName('Test2', headers2)).toBe('OrderedHeaders');
+    });
+
+    it('should clear state correctly', () => {
+      const generator = new HeadersGenerator();
+
+      const headers: HeaderParameter[] = [
+        { originalName: 'x-test', dartName: 'xTest', type: 'String', required: true, description: '' }
+      ];
+
+      generator.getHeaderModelName('Test', headers);
+
+      const statsBefore = generator.getStatistics();
+      expect(statsBefore.totalEndpoints).toBe(1);
+
+      generator.clear();
+
+      const statsAfter = generator.getStatistics();
+      expect(statsAfter.totalEndpoints).toBe(0);
+      expect(statsAfter.totalModels).toBe(0);
+    });
+  });
+
+  describe('Complex Field Types', () => {
+    it('should handle fields with custom types', () => {
+      const config = {
+        definitions: {
+          TypedHeaders: {
+            fields: {
+              'x-count': { type: 'int', required: true },
+              'x-enabled': { type: 'bool', required: false },
+              'x-ratio': { type: 'double', required: false }
+            }
+          }
+        }
+      };
+
+      const generator = new HeadersGenerator(config);
+      const files = generator.generateConfiguredHeaderFiles();
+
+      expect(files).toHaveLength(1);
+      expect(files[0].content).toContain('required int xCount');
+      expect(files[0].content).toContain('bool? xEnabled');
+      expect(files[0].content).toContain('double? xRatio');
     });
   });
 });
