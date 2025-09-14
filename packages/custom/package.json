@@ -19,5 +19,8 @@
   },
   "peerDependencies": {
     "@dorval/core": "*"
+  },
+  "engines": {
+    "node": ">=20.8.1"
   }
 }
