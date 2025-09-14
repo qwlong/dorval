@@ -315,6 +315,67 @@ yarn dev
 yarn test
 ```
 
+### Commit Convention
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/) for automatic versioning and changelog generation.
+
+#### Commit Format
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+#### Commit Types & Version Bumps
+
+| Type | Version | Description | Example |
+|------|---------|-------------|---------|
+| `fix` | Patch (0.2.0 → 0.2.1) | Bug fixes | `fix: resolve null reference in parser` |
+| `feat` | Minor (0.2.0 → 0.3.0) | New features | `feat: add support for oneOf schemas` |
+| `feat!` or `BREAKING CHANGE` | Major (0.2.0 → 1.0.0) | Breaking changes | `feat!: change API structure` |
+| `perf` | Patch | Performance improvements | `perf: optimize model generation` |
+| `docs` | No release | Documentation only | `docs: update configuration guide` |
+| `style` | No release | Code style changes | `style: format code` |
+| `refactor` | No release | Code refactoring | `refactor: simplify parser logic` |
+| `test` | No release | Test changes | `test: add parser tests` |
+| `chore` | No release | Maintenance tasks | `chore: update dependencies` |
+| `chore(deps)` | Patch | Dependency updates | `chore(deps): update dio to v5.4` |
+
+#### Examples
+
+```bash
+# Bug fix (patch release)
+git commit -m "fix: handle nullable array items correctly"
+
+# New feature (minor release)
+git commit -m "feat: add Retrofit client support"
+
+# Breaking change (major release)
+git commit -m "feat!: rename generateDartCode to generate
+
+BREAKING CHANGE: The main API function has been renamed for consistency"
+
+# Multiple changes in one commit
+git commit -m "feat(models): add union type support
+
+- Add oneOf schema handling
+- Generate Freezed union types
+- Support discriminator property
+
+Closes #123"
+```
+
+#### Scope Examples
+- `core`: Core generation logic
+- `cli`: CLI tool changes
+- `models`: Model generation
+- `services`: Service generation
+- `parser`: OpenAPI parser
+- `templates`: Template changes
+- `deps`: Dependencies
+
 ### Architecture
 
 This project reuses the OpenAPI parsing infrastructure from Orval while implementing Dart-specific code generation:
