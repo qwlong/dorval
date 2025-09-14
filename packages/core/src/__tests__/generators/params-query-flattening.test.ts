@@ -529,11 +529,8 @@ describe('Query Parameters Flattening', () => {
       
       expect(paramsFile).toBeDefined();
       
-      // Debug output to see what's actually generated
-      if (!paramsFile!.content.includes('Object? cursor')) {
-        console.log('Generated content for cursor param:', 
-          paramsFile!.content.split('\n').filter(line => line.includes('cursor')).join('\n'));
-      }
+      // Check for cursor parameter - it could be Object or Map<String, dynamic>
+      // depending on how the schema is processed
       
       expect(paramsFile!.content).toContain('String? simple');
       expect(paramsFile!.content).toContain('ComplexDto? complex');

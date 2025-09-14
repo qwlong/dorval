@@ -1,4 +1,4 @@
-name: Release
+name: Auto Release (Semantic)
 
 on:
   push:
@@ -39,10 +39,21 @@ jobs:
     - name: Run tests
       run: yarn test
     
-    - name: Release
+    - name: Release with Semantic Release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       run: |
+        # Configure npm authentication
         npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
-        npx semantic-release || echo "No release needed"
+
+        # Run semantic-release
+        # This will:
+        # 1. Analyze commits since last release
+        # 2. Determine version bump (major/minor/patch)
+        # 3. Update package.json versions
+        # 4. Generate CHANGELOG.md
+        # 5. Publish to npm
+        # 6. Create GitHub release
+        # 7. Create git tag
+        npx semantic-release || echo "No release needed (no releasable commits)"

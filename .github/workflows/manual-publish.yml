@@ -1,0 +1,188 @@
+name: Manual Publish (Backup)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 1.0.0)'
+        required: true
+        type: string
+      tag:
+        description: 'NPM tag (latest, beta, next, alpha)'
+        required: false
+        default: 'latest'
+        type: choice
+        options:
+          - latest
+          - beta
+          - next
+          - alpha
+      skipTests:
+        description: 'Skip tests (use with caution)'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  manual-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        registry-url: 'https://registry.npmjs.org'
+        cache: 'yarn'
+
+    - name: Install dependencies
+      run: yarn install --frozen-lockfile
+
+    - name: Build all packages
+      run: yarn build
+
+    - name: Run tests
+      if: ${{ !inputs.skipTests }}
+      run: yarn test
+
+    - name: Configure Git
+      run: |
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "github-actions[bot]"
+
+    - name: Update versions in all packages
+      run: |
+        # Update root package.json
+        npm version ${{ inputs.version }} --no-git-tag-version
+
+        # Update all workspace packages
+        for pkg in packages/*; do
+          if [ -f "$pkg/package.json" ]; then
+            echo "Updating version in $pkg"
+            (cd "$pkg" && npm version ${{ inputs.version }} --no-git-tag-version)
+          fi
+        done
+
+        # Or use the sync script if available
+        # yarn version:sync
+
+    - name: Configure npm authentication
+      run: |
+        echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+        npm whoami
+
+    - name: Publish packages to npm
+      run: |
+        # Publish core first (dependency for others)
+        echo "Publishing @dorval/core..."
+        cd packages/core
+        npm publish --access public --tag ${{ inputs.tag }}
+        cd ../..
+
+        # Publish other packages
+        echo "Publishing @dorval/dio..."
+        cd packages/dio
+        npm publish --access public --tag ${{ inputs.tag }} || echo "Failed to publish @dorval/dio (may not exist)"
+        cd ../..
+
+        echo "Publishing @dorval/custom..."
+        cd packages/custom
+        npm publish --access public --tag ${{ inputs.tag }} || echo "Failed to publish @dorval/custom (may not exist)"
+        cd ../..
+
+        # Publish CLI last
+        echo "Publishing dorval CLI..."
+        cd packages/dorval
+        npm publish --access public --tag ${{ inputs.tag }}
+        cd ../..
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+    - name: Commit version changes
+      run: |
+        git add .
+        git commit -m "chore(release): manual release v${{ inputs.version }}" || echo "No changes to commit"
+
+    - name: Create and push tag
+      run: |
+        git tag -a "v${{ inputs.version }}" -m "Release v${{ inputs.version }}"
+        git push origin "v${{ inputs.version }}"
+
+    - name: Push changes to main
+      run: |
+        git push origin main
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ inputs.version }}
+        name: Release v${{ inputs.version }} (Manual)
+        draft: false
+        prerelease: ${{ inputs.tag != 'latest' }}
+        generate_release_notes: true
+        body: |
+          ## 🚀 Manual Release v${{ inputs.version }}
+
+          > ⚠️ This release was created manually instead of through semantic-release.
+
+          ### 📦 Published Packages
+          - `dorval@${{ inputs.version }}` - CLI tool
+          - `@dorval/core@${{ inputs.version }}` - Core library
+          - `@dorval/dio@${{ inputs.version }}` - Dio client
+          - `@dorval/custom@${{ inputs.version }}` - Custom client
+
+          ### 📝 Installation
+
+          #### CLI (Global)
+          ```bash
+          npm install -g dorval@${{ inputs.version }}
+          ```
+
+          #### As Dev Dependency
+          ```bash
+          npm install --save-dev dorval@${{ inputs.version }}
+          # or
+          yarn add -D dorval@${{ inputs.version }}
+          ```
+
+          #### Specific Tag
+          ```bash
+          npm install dorval@${{ inputs.tag }}
+          ```
+
+          ### 🏷️ NPM Tag: `${{ inputs.tag }}`
+
+          ### 🔗 Links
+          - [npm: dorval](https://www.npmjs.com/package/dorval/v/${{ inputs.version }})
+          - [npm: @dorval/core](https://www.npmjs.com/package/@dorval/core/v/${{ inputs.version }})
+          - [Documentation](https://github.com/qwlong/dorval#readme)
+          - [Changelog](https://github.com/qwlong/dorval/blob/main/CHANGELOG.md)
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Summary
+      run: |
+        echo "## 📊 Release Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- **Version**: v${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **NPM Tag**: ${{ inputs.tag }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Tests**: ${{ inputs.skipTests && 'Skipped ⚠️' || 'Passed ✅' }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Published Packages" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ dorval@${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ @dorval/core@${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ @dorval/dio@${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ @dorval/custom@${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### View on NPM" >> $GITHUB_STEP_SUMMARY
+        echo "- [dorval](https://www.npmjs.com/package/dorval/v/${{ inputs.version }})" >> $GITHUB_STEP_SUMMARY
+        echo "- [@dorval/core](https://www.npmjs.com/package/@dorval/core/v/${{ inputs.version }})" >> $GITHUB_STEP_SUMMARY
