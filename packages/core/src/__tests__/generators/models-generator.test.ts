@@ -283,8 +283,9 @@ describe('Models Generator', () => {
       expect(indexFile?.content).toContain("export 'user.f.dart';");
       expect(indexFile?.content).toContain("export 'product.f.dart';");
       expect(indexFile?.content).toContain("export 'status.f.dart';");
-      expect(indexFile?.content).toContain("export 'params/index.dart';");
-      expect(indexFile?.content).toContain("export 'headers/index.dart';");
+      // Params and headers are now only added by generateDartCode after services are generated
+      expect(indexFile?.content).not.toContain("export 'params/index.dart';");
+      expect(indexFile?.content).not.toContain("export 'headers/index.dart';");
     });
   });
 

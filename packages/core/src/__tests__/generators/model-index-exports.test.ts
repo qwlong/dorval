@@ -34,10 +34,10 @@ describe('Model Index Exports', () => {
     
     expect(indexFile).toBeDefined();
     expect(indexFile?.content).toContain("export 'user.f.dart';");
-    expect(indexFile?.content).toContain("export 'params/index.dart';");
-    expect(indexFile?.content).toContain("export 'headers/index.dart';");
     expect(indexFile?.content).toContain('// Generated index file for models');
-    expect(indexFile?.content).toContain('// Export params and headers if they exist');
+    // Params and headers are now only added by generateDartCode after services are generated
+    expect(indexFile?.content).not.toContain("export 'params/index.dart';");
+    expect(indexFile?.content).not.toContain("export 'headers/index.dart';");
   });
 
   it('should generate proper barrel exports for multiple models', async () => {
@@ -100,8 +100,9 @@ describe('Model Index Exports', () => {
     const indexFile = files.find(f => f.path === 'models/index.dart');
     
     expect(indexFile).toBeDefined();
-    expect(indexFile?.content).toContain("export 'params/index.dart';");
-    expect(indexFile?.content).toContain("export 'headers/index.dart';");
+    // Params and headers are now only added by generateDartCode after services are generated
+    expect(indexFile?.content).not.toContain("export 'params/index.dart';");
+    expect(indexFile?.content).not.toContain("export 'headers/index.dart';");
     expect(indexFile?.content).not.toContain(".f.dart';"); // No model exports
   });
 });
