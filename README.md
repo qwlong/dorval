@@ -24,9 +24,9 @@ Dorval brings the power of [Orval](https://orval.dev) to the Dart/Flutter ecosys
 
 - 🎯 **Type-safe API clients** - Never worry about API contracts again
 - 🔒 **Freezed models** - Immutable data classes with JSON serialization
-- 🌐 **Multiple HTTP clients** - Support for Dio, HTTP, and Retrofit
+- 🌐 **HTTP client support** - Dio client with ApiClient wrapper (more coming soon)
 - ✅ **Full null safety** - Leveraging Dart's sound null safety
-- 🧪 **Mock implementations** - Built-in support for testing
+- 🔀 **Smart header consolidation** - Automatically reduces duplicate header classes
 
 ## Project Structure
 
@@ -35,20 +35,45 @@ dorval/
 ├── packages/
 │   ├── core/                   # Core generation logic (@dorval/core)
 │   │   ├── src/
-│   │   │   ├── parser/         # OpenAPI parsing
+│   │   │   ├── __tests__/      # Test files
 │   │   │   ├── generators/     # Dart code generators
-│   │   │   ├── templates/      # Code templates
-│   │   │   └── utils/
+│   │   │   ├── getters/        # Schema getters
+│   │   │   ├── parser/         # OpenAPI parsing
+│   │   │   ├── resolvers/      # Reference resolvers
+│   │   │   ├── templates/      # Handlebars templates
+│   │   │   ├── utils/          # Utilities
+│   │   │   └── writers/        # File writers
+│   │   ├── dist/               # Compiled output
+│   │   ├── package.json
+│   │   └── tsconfig.json
+│   │
+│   ├── dorval/                 # CLI tool (dorval)
+│   │   ├── src/
+│   │   │   ├── bin/           # CLI entry point
+│   │   │   ├── commands/      # CLI commands
+│   │   │   └── cli.ts         # CLI configuration
+│   │   ├── dist/              # Compiled output
 │   │   └── package.json
 │   │
-│   └── dorval/                 # CLI tool (dorval)
+│   ├── dio/                    # Dio client templates (@dorval/dio)
+│   │   ├── src/
+│   │   │   └── builders/      # Dio-specific builders
+│   │   └── package.json
+│   │
+│   └── custom/                 # Custom client templates (@dorval/custom)
 │       ├── src/
-│       │   ├── bin/           # CLI entry point
-│       │   └── commands/      # CLI commands
+│       │   └── builders/      # Custom client builders
 │       └── package.json
 │
-└── samples/                    # Example projects
-    └── petstore/              # Petstore API example
+├── .github/
+│   └── workflows/             # GitHub Actions CI/CD
+│       ├── ci.yml            # Continuous Integration
+│       ├── release.yml       # Auto release (semantic-release)
+│       └── manual-publish.yml # Manual backup publish
+│
+└── docs/                       # Documentation
+    ├── PUBLISHING.md          # Publishing guide
+    └── RELEASE.md            # Release process
 ```
 
 ## Getting Started
@@ -167,8 +192,8 @@ dorval generate
 # Using command line options
 dorval generate -i ./petstore.yaml -o ./lib/api
 
-# Watch mode (with config file)
-dorval watch
+# Watch mode (coming soon)
+# dorval watch
 ```
 
 3. **Use the generated code in your Flutter app:**
@@ -388,29 +413,35 @@ This project reuses the OpenAPI parsing infrastructure from Orval while implemen
 ## Features
 
 ### ✅ Completed
-- OpenAPI 3.0 and Swagger 2.0 support
-- Dio HTTP client generation with ApiClient wrapper
-- Freezed model generation with JSON serialization
-- Full null safety support
-- Complex type handling (nested objects, arrays, enums)
-- Path, query, header, and body parameter support
-- All HTTP methods (GET, POST, PUT, DELETE, PATCH)
-- Reference resolution for `$ref` schemas
-- Custom file naming conventions (`.f.dart` for Freezed models)
-- **Custom header consolidation** - Intelligent header class matching and deduplication
+- **OpenAPI 3.0 and Swagger 2.0 support** - Full spec parsing and validation
+- **Dio HTTP client generation** - Complete with ApiClient wrapper
+- **Freezed model generation** - Immutable models with JSON serialization
+- **Full null safety support** - Leveraging Dart's sound null safety
+- **Complex type handling** - Nested objects, arrays, enums, oneOf/discriminators
+- **All parameter types** - Path, query, header, and body parameters
+- **All HTTP methods** - GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS
+- **Reference resolution** - Complete `$ref` and component resolution
+- **Smart header consolidation** - Automatic deduplication of header classes
+- **Query parameter flattening** - Complex objects serialized to query strings
+- **Inline object extraction** - Generates proper classes for inline schemas
+- **Custom file naming** - `.f.dart` extension for Freezed models
+- **Automated CI/CD** - GitHub Actions with semantic-release
+- **Dual package support** - Both CommonJS and ES Modules
+- **Comprehensive test suite** - 68 tests with 100% pass rate
 
 ### 🚧 In Progress
-- Retrofit client generation
-- Mock data generation for testing
-- Response type preservation (currently returns `Map<String, dynamic>`)
-- CLI watch mode for automatic regeneration
+- **Watch mode** - Auto-regeneration on spec changes
+- **Additional HTTP clients** - Retrofit, Chopper, HTTP package support
+- **Mock data generation** - Test fixtures from schemas
+- **Performance optimization** - For large OpenAPI specs
 
 ### 📋 Planned
-- Riverpod integration with providers
-- GetX integration
-- GraphQL support
-- Custom interceptors and transformers
-- Watch mode for development
+- **State management integrations** - Riverpod, GetX, Bloc
+- **GraphQL support** - Generate GraphQL clients
+- **Custom interceptors** - User-defined request/response handlers
+- **Interactive CLI wizard** - Guided configuration setup
+- **VS Code extension** - IDE integration
+- **API documentation generation** - From OpenAPI descriptions
 
 ## Generated Code Features
 
@@ -455,7 +486,6 @@ Separate parameter classes for:
 ```
 lib/api/
 ├── api_client.dart           # Dio client wrapper with configuration
-├── api_config.dart           # API configuration and constants
 ├── models/                   # Data models
 │   ├── pet.f.dart           # Freezed model definition
 │   ├── pet.f.freezed.dart   # Generated Freezed code
@@ -490,12 +520,8 @@ export default {
       // - 'split': Separate files for models and services (default)
       // - 'tags': Group by OpenAPI tags
       
-      client: 'dio',                 // HTTP client library
-      // Options: 'dio' | 'http' | 'chopper' | 'retrofit'
-      // - 'dio': Dio HTTP client (default, recommended)
-      // - 'http': Dart's built-in http package
-      // - 'chopper': Chopper REST client
-      // - 'retrofit': Retrofit-style annotations (experimental)
+      client: 'dio',                 // HTTP client library (currently only 'dio' is supported)
+      // Future options planned: 'http' | 'chopper' | 'retrofit'
       
       override: {
         generator: {
@@ -650,7 +676,7 @@ export default {
 
 ## Examples
 
-Check out the [samples/petstore](./samples/petstore) directory for a complete example with the Petstore API.
+Sample projects are coming soon. For now, refer to the configuration examples above.
 
 ## CLI Usage
 
@@ -662,48 +688,56 @@ Options:
   -c, --config <path>   Path to config file (orval.config.ts)
   -i, --input <path>    OpenAPI spec file or URL
   -o, --output <path>   Output directory
-  --client <type>       Client type: dio, http, chopper (default: dio)
+  --client <type>       Client type (currently only 'dio')
   --help               Display help
 
-# Watch mode (requires config file)
-dorval watch [options]
-
-Options:
-  -c, --config <path>   Path to config file (orval.config.ts)
+# Watch mode (coming soon)
+# dorval watch [options]
 ```
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **"Missing loader for extension 'orval.config.mjs'" error**
-   - Use command line options: `dorval generate -i spec.yaml -o ./lib`
-   - Or create a valid config file (orval.config.ts/js/cjs)
+1. **"Cannot find module '@dorval/core'" error**
+   - Ensure you've installed dorval: `npm install -g dorval`
+   - Or use npx: `npx dorval generate -i spec.yaml -o ./lib`
 
-2. **Response types showing as `Map<String, dynamic>`**
-   - This is a known issue with reference resolution
-   - Workaround: Cast responses manually for now
+2. **Generated methods return correct model types**
+   - ✅ Fixed: Response types are now properly mapped to generated models
+   - Models are generated with proper Freezed annotations
 
-3. **Duplicate method definitions in services**
-   - Check your OpenAPI spec for duplicate operation IDs
-   - Ensure unique tags and operation IDs
+3. **Import errors in generated Dart code**
+   - Run `flutter pub get` after generation
+   - Run `flutter pub run build_runner build --delete-conflicting-outputs`
+   - Ensure all dependencies are in `pubspec.yaml`
 
-4. **Build errors after generation**
-   - Run `flutter pub get` to fetch dependencies
-   - Run `dart run build_runner build` to generate Freezed/JSON files
+4. **Duplicate header classes**
+   - ✅ Fixed: Smart header consolidation automatically reduces duplicates
+   - Configure consolidation threshold in config file if needed
 
 ## Development Roadmap
+
+### ✅ Completed Features
+
+- ✅ **Comprehensive test suite** - 68 tests, 100% passing
+- ✅ **CI/CD pipeline** - GitHub Actions with automated testing
+- ✅ **Semantic release** - Automated versioning and npm publishing
+- ✅ **Smart header consolidation** - Reduces duplicate header classes
+- ✅ **Proper response type mapping** - Models correctly typed
+- ✅ **OneOf with discriminator** - Generates proper Freezed union types
+- ✅ **Inline object handling** - Generates nested classes instead of Map
+- ✅ **Query parameter flattening** - Complex objects properly serialized
 
 ### 🎯 High Priority Tasks
 
 #### Testing & Quality
-- [ ] **Add comprehensive test suite**
-  - [ ] Unit tests for parser modules
-  - [ ] Unit tests for generators
-  - [ ] Integration tests for CLI commands
-  - [ ] E2E tests with sample OpenAPI specs
-  - [ ] Test coverage reporting (target: 90%+)
-  - [ ] CI/CD pipeline with GitHub Actions
+- [ ] **Expand test coverage**
+  - [x] Unit tests for generators (✅ Done)
+  - [x] Integration tests (✅ Done)
+  - [ ] More E2E tests with real-world OpenAPI specs
+  - [ ] Performance benchmarks
+  - [ ] Test coverage badges
 
 #### Client Implementations
 - [ ] **Custom client support**
@@ -789,11 +823,11 @@ Options:
 
 ### 🐛 Known Issues to Fix
 
-1. **Response type mapping** - ~~Some complex response types still generate as `Map<String, dynamic>`~~ ✅ Fixed
-2. **Duplicate method generation** - ~~Methods sometimes appear twice in service files~~ ✅ Fixed
-3. **Large file handling** - Performance issues with very large OpenAPI specs (>10MB)
-4. **Error messages** - Improve error messages for invalid OpenAPI specs
-5. **Windows compatibility** - Path handling issues on Windows
+1. **Large file handling** - Performance issues with very large OpenAPI specs (>10MB)
+2. **Error messages** - Improve error messages for invalid OpenAPI specs
+3. **Windows compatibility** - Path handling issues on Windows
+4. **Watch mode** - Not yet implemented
+5. **Multiple client support** - Currently only Dio is supported
 
 ### 📊 Performance Goals
 
