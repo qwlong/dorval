@@ -7,4 +7,3 @@ export 'new_pet_status_enum.f.dart';
 
 // Export params and headers if they exist
 export 'params/index.dart';
-export 'headers/index.dart';

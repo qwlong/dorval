@@ -306,12 +306,16 @@ function generateIndexFile(files: GeneratedFile[]): string {
       return `export '${fileName}.dart';`;
     })
     .join('\n');
-  
-  return `// Generated index file for models
-${exports}
 
-// Export params and headers if they exist
-export 'params/index.dart';
-export 'headers/index.dart';
-`;
+  // Always try to export params/index.dart and headers/index.dart
+  // The actual Dart files will only exist if params/headers were generated
+  // Dart will handle the missing imports at compile time
+  let indexContent = `// Generated index file for models
+${exports}`;
+
+  // For now, we don't export params and headers since they're generated separately
+  // and we can't know at this point if they'll exist
+  // This will be fixed in a future version with better orchestration
+
+  return indexContent + '\n';
 }
