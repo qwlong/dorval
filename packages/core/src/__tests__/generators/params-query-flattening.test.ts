@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { generateDartCode } from '../../index';
-import * as fs from 'fs-extra';
+import * as fs from 'fs/promises';
 import * as path from 'path';
 
 describe('Query Parameters Flattening', () => {
@@ -67,12 +67,12 @@ describe('Query Parameters Flattening', () => {
 
   it('should generate toQueryParameters method that flattens nested objects', async () => {
     const outputDir = path.join(__dirname, 'test-output-flattening');
-    await fs.ensureDir(outputDir);
+    await fs.mkdir(outputDir, { recursive: true });
     
     try {
       // Write spec to a temp file
       const specPath = path.join(outputDir, 'test-spec.json');
-      await fs.writeJson(specPath, testSpec);
+      await fs.writeFile(specPath, JSON.stringify(testSpec, null, 2));
       
       // Generate files
       const files = await generateDartCode({
@@ -104,7 +104,7 @@ describe('Query Parameters Flattening', () => {
       expect(paramsFile!.content).toContain('$prefix[$i]');
       
     } finally {
-      await fs.remove(outputDir);
+      await fs.rm(outputDir, { recursive: true, force: true });
     }
   });
 
@@ -151,12 +151,12 @@ describe('Query Parameters Flattening', () => {
     };
 
     const outputDir = path.join(__dirname, 'test-output-nested');
-    await fs.ensureDir(outputDir);
+    await fs.mkdir(outputDir, { recursive: true });
     
     try {
       // Write spec to a temp file
       const specPath = path.join(outputDir, 'nested-spec.json');
-      await fs.writeJson(specPath, nestedSpec);
+      await fs.writeFile(specPath, JSON.stringify(nestedSpec, null, 2));
       
       const files = await generateDartCode({
         input: specPath,
@@ -178,18 +178,18 @@ describe('Query Parameters Flattening', () => {
       expect(paramsFile!.content).toContain('flatten');
       
     } finally {
-      await fs.remove(outputDir);
+      await fs.rm(outputDir, { recursive: true, force: true });
     }
   });
 
   it('should generate correct Dart code example', async () => {
     const outputDir = path.join(__dirname, 'test-output-example');
-    await fs.ensureDir(outputDir);
+    await fs.mkdir(outputDir, { recursive: true });
     
     try {
       // Write spec to a temp file
       const specPath = path.join(outputDir, 'example-spec.json');
-      await fs.writeJson(specPath, testSpec);
+      await fs.writeFile(specPath, JSON.stringify(testSpec, null, 2));
       
       const files = await generateDartCode({
         input: specPath,
@@ -212,7 +212,7 @@ describe('Query Parameters Flattening', () => {
       
       // Verify the toQueryParameters method
       const toQueryParamsMatch = paramsFile!.content.match(
-        /Map<String, dynamic> toQueryParameters\(\) \{[\s\S]*?\n  \}/
+        /Map<String, dynamic> toQueryParameters\(\) \{[\s\S]*?\n {2}\}/
       );
       expect(toQueryParamsMatch).toBeDefined();
       
@@ -222,7 +222,7 @@ describe('Query Parameters Flattening', () => {
       expect(methodBody).toContain('result');
       
     } finally {
-      await fs.remove(outputDir);
+      await fs.rm(outputDir, { recursive: true, force: true });
     }
   });
 
@@ -262,12 +262,12 @@ describe('Query Parameters Flattening', () => {
     };
 
     const outputDir = path.join(__dirname, 'test-output-object');
-    await fs.ensureDir(outputDir);
+    await fs.mkdir(outputDir, { recursive: true });
     
     try {
       // Write spec to a temp file
       const specPath = path.join(outputDir, 'object-spec.json');
-      await fs.writeJson(specPath, objectSpec);
+      await fs.writeFile(specPath, JSON.stringify(objectSpec, null, 2));
       
       const files = await generateDartCode({
         input: specPath,
@@ -290,7 +290,7 @@ describe('Query Parameters Flattening', () => {
       expect(paramsFile!.content).not.toContain("import '../object.f.dart'");
       
     } finally {
-      await fs.remove(outputDir);
+      await fs.rm(outputDir, { recursive: true, force: true });
     }
   });
 
@@ -352,11 +352,11 @@ describe('Query Parameters Flattening', () => {
     };
 
     const outputDir = path.join(__dirname, 'test-output-arrays');
-    await fs.ensureDir(outputDir);
+    await fs.mkdir(outputDir, { recursive: true });
     
     try {
       const specPath = path.join(outputDir, 'array-spec.json');
-      await fs.writeJson(specPath, arraySpec);
+      await fs.writeFile(specPath, JSON.stringify(arraySpec, null, 2));
       
       const files = await generateDartCode({
         input: specPath,
@@ -381,7 +381,7 @@ describe('Query Parameters Flattening', () => {
       expect(paramsFile!.content).toContain('for (var i = 0; i < value.length; i++)');
       
     } finally {
-      await fs.remove(outputDir);
+      await fs.rm(outputDir, { recursive: true, force: true });
     }
   });
 
@@ -422,11 +422,11 @@ describe('Query Parameters Flattening', () => {
     };
 
     const outputDir = path.join(__dirname, 'test-output-simple');
-    await fs.ensureDir(outputDir);
+    await fs.mkdir(outputDir, { recursive: true });
     
     try {
       const specPath = path.join(outputDir, 'simple-spec.json');
-      await fs.writeJson(specPath, simpleSpec);
+      await fs.writeFile(specPath, JSON.stringify(simpleSpec, null, 2));
       
       const files = await generateDartCode({
         input: specPath,
@@ -448,7 +448,7 @@ describe('Query Parameters Flattening', () => {
       expect(paramsFile!.content).not.toContain('flatten');
       
     } finally {
-      await fs.remove(outputDir);
+      await fs.rm(outputDir, { recursive: true, force: true });
     }
   });
 
@@ -508,11 +508,11 @@ describe('Query Parameters Flattening', () => {
     };
 
     const outputDir = path.join(__dirname, 'test-output-mixed');
-    await fs.ensureDir(outputDir);
+    await fs.mkdir(outputDir, { recursive: true });
     
     try {
       const specPath = path.join(outputDir, 'mixed-spec.json');
-      await fs.writeJson(specPath, mixedSpec);
+      await fs.writeFile(specPath, JSON.stringify(mixedSpec, null, 2));
       
       const files = await generateDartCode({
         input: specPath,
@@ -550,18 +550,18 @@ describe('Query Parameters Flattening', () => {
       expect(paramsFile!.content).not.toContain("import 'dart:convert'");
       
     } finally {
-      await fs.remove(outputDir);
+      await fs.rm(outputDir, { recursive: true, force: true });
     }
   });
 
   it('should verify flattening output format', async () => {
     // This test verifies the actual output format of flattening
     const outputDir = path.join(__dirname, 'test-output-format');
-    await fs.ensureDir(outputDir);
+    await fs.mkdir(outputDir, { recursive: true });
     
     try {
       const specPath = path.join(outputDir, 'format-spec.json');
-      await fs.writeJson(specPath, testSpec);
+      await fs.writeFile(specPath, JSON.stringify(testSpec, null, 2));
       
       const files = await generateDartCode({
         input: specPath,
@@ -592,7 +592,7 @@ describe('Query Parameters Flattening', () => {
       expect(content).not.toContain('jsonEncode');
       
     } finally {
-      await fs.remove(outputDir);
+      await fs.rm(outputDir, { recursive: true, force: true });
     }
   });
 });
