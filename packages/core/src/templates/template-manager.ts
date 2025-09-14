@@ -65,9 +65,32 @@ export class TemplateManager {
       return a !== b;
     });
 
+    // Helper to decode HTML entities
+    this.handlebars.registerHelper('decodeHtml', (text: string) => {
+      if (!text) return '';
+      
+      // Decode common HTML entities
+      return text
+        .replace(/&#x27;/g, "'")
+        .replace(/&#39;/g, "'")
+        .replace(/&quot;/g, '"')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&');
+    });
+
     // Helper to format Dart documentation comments
     this.handlebars.registerHelper('dartDoc', (text: string, options?: any) => {
       if (!text) return '';
+      
+      // Decode HTML entities first
+      text = text
+        .replace(/&#x27;/g, "'")
+        .replace(/&#39;/g, "'")
+        .replace(/&quot;/g, '"')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&');
       
       // Check if indentLevel is passed as a hash parameter
       const indentLevel = options?.hash?.indent ?? 2;

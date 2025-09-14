@@ -4,12 +4,12 @@ import 'services/index.dart';
 /// Base API client using Dio
 /// 
 /// This client handles all HTTP requests to the Swagger Petstore API.
-/// Base URL: http://petstore.swagger.io/v1
+/// Base URL: https://petstore.swagger.io/v1
 class ApiClient {
   // API Configuration Constants
   static const String apiVersion = '1.0.0';
   static const String apiTitle = 'Swagger Petstore';
-  static const String defaultBaseUrl = 'http://petstore.swagger.io/v1';
+  static const String defaultBaseUrl = 'https://petstore.swagger.io/v1';
   
   late final Dio dio;
   final String baseUrl;
@@ -17,7 +17,7 @@ class ApiClient {
   ApiClient({
     String? baseUrl,
     Dio? dioClient,
-  }) : baseUrl = baseUrl ?? 'http://petstore.swagger.io/v1' {
+  }) : baseUrl = baseUrl ?? 'https://petstore.swagger.io/v1' {
     dio = dioClient ?? Dio();
     dio.options.baseUrl = this.baseUrl;
     

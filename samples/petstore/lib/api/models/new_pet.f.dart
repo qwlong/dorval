@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'category.f.dart';
+import 'new_pet_status_enum.f.dart';
 
 part 'new_pet.f.freezed.dart';
 part 'new_pet.f.g.dart';
@@ -19,7 +20,7 @@ class NewPet with _$NewPet {
     List<String>? photoUrls,
 
     /// pet status in the store
-    @Default('available') String? status,
+    NewPetStatusEnum? status,
   }) = _NewPet;
 
   factory NewPet.fromJson(Map<String, dynamic> json) =>

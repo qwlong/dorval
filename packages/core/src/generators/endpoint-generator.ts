@@ -44,6 +44,7 @@ export interface EndpointMethod {
   headersModelName?: string;       // Name of the headers model class
   needsParamsModel: boolean;       // Whether to generate params model
   needsHeadersModel: boolean;      // Whether to generate headers model
+  hasComplexNestedQueryParams?: boolean; // Whether query params contain complex nested types
 }
 
 export interface MethodParameter {
@@ -138,6 +139,30 @@ export class EndpointGenerator {
     const headersModelName = needsHeadersModel ? 
       TypeMapper.toDartClassName(methodName + 'Headers') : undefined;
     
+    // Check if query params contain complex types
+    const hasComplexNestedQueryParams = needsParamsModel && parameters.query.some(param => {
+      const type = param.type || 'String';
+      // Check for non-primitive types
+      if (!this.isBuiltInType(type)) {
+        return true;
+      }
+      // Check for nullable non-primitive types
+      if (type.endsWith('?')) {
+        const baseType = type.slice(0, -1);
+        if (!this.isBuiltInType(baseType)) {
+          return true;
+        }
+      }
+      // Check for List of non-primitive types
+      if (type.startsWith('List<')) {
+        const innerType = type.match(/^List<(.+?)>/)![1];
+        if (!this.isBuiltInType(innerType)) {
+          return true;
+        }
+      }
+      return false;
+    });
+    
     return {
       methodName,
       httpMethod: 'get',
@@ -172,6 +197,7 @@ export class EndpointGenerator {
       headersModelName,
       needsParamsModel,
       needsHeadersModel,
+      hasComplexNestedQueryParams,
     };
   }
 
@@ -212,6 +238,30 @@ export class EndpointGenerator {
     const headersModelName = needsHeadersModel ? 
       TypeMapper.toDartClassName(methodName + 'Headers') : undefined;
     
+    // Check if query params contain complex types
+    const hasComplexNestedQueryParams = needsParamsModel && parameters.query.some(param => {
+      const type = param.type || 'String';
+      // Check for non-primitive types
+      if (!this.isBuiltInType(type)) {
+        return true;
+      }
+      // Check for nullable non-primitive types
+      if (type.endsWith('?')) {
+        const baseType = type.slice(0, -1);
+        if (!this.isBuiltInType(baseType)) {
+          return true;
+        }
+      }
+      // Check for List of non-primitive types
+      if (type.startsWith('List<')) {
+        const innerType = type.match(/^List<(.+?)>/)![1];
+        if (!this.isBuiltInType(innerType)) {
+          return true;
+        }
+      }
+      return false;
+    });
+    
     return {
       methodName,
       httpMethod: method.toLowerCase(),
@@ -249,7 +299,23 @@ export class EndpointGenerator {
       headersModelName,
       needsParamsModel,
       needsHeadersModel,
+      hasComplexNestedQueryParams,
     };
+  }
+
+  /**
+   * Check if a type is a built-in Dart type
+   */
+  private isBuiltInType(type: string): boolean {
+    const builtInTypes = [
+      'String', 'int', 'double', 'bool', 'num', 'dynamic', 
+      'DateTime', 'Map', 'List', 'void', 'Uint8List'
+    ];
+    // Check base type (without generics)
+    const baseType = type.replace(/<.*>/, '').replace(/\?$/, '');
+    // Note: 'Object' is intentionally not included here
+    // Object type query params need special handling since they can contain anything
+    return builtInTypes.includes(baseType);
   }
 
   /**

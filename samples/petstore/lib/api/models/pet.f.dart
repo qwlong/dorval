@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'new_pet.f.dart';
 import 'category.f.dart';
+
 part 'pet.f.freezed.dart';
 part 'pet.f.g.dart';
 

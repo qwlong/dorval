@@ -23,12 +23,17 @@
     {{#if hasQueryParams}}
     // Build query parameters
     {{#if queryParamsModelName}}
+    {{#if hasComplexNestedQueryParams}}
+    // Use toQueryParameters for complex nested objects
+    final queryParameters = params?.toQueryParameters() ?? <String, dynamic>{};
+    {{else}}
+    // Use standard toJson for simple parameters
     final paramsJson = params?.toJson() ?? <String, dynamic>{};
-    // Remove null values from query parameters
     final queryParameters = <String, dynamic>{
       for (final entry in paramsJson.entries)
         if (entry.value != null) entry.key: entry.value,
     };
+    {{/if}}
     {{else}}
     final queryParameters = params ?? <String, dynamic>{};
     {{/if}}

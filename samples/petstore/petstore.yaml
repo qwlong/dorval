@@ -32,6 +32,19 @@ paths:
             type: integer
             format: int32
             minimum: 0
+        - name: status
+          in: query
+          description: Status values that need to be considered for filter
+          required: true
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - available
+                - pending
+                - sold
       responses:
         '200':
           description: A paged array of pets

@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ParamsGenerator } from '../../generators/params-generator';
-import { HeaderParameter } from '../../generators/endpoint-generator';
+import { QueryParameter, HeaderParameter } from '../../generators/endpoint-generator';
 
 describe('ParamsGenerator', () => {
   let generator: ParamsGenerator;
@@ -201,6 +201,113 @@ describe('ParamsGenerator', () => {
 
       expect(result?.content).toContain('factory TestParams.fromJson');
       expect(result?.content).toContain('_$TestParamsFromJson(json)');
+    });
+  });
+
+  describe('Complex Query Parameters', () => {
+    it('should generate toQueryParameters method for complex types', () => {
+      const params: QueryParameter[] = [
+        {
+          originalName: 'type',
+          dartName: 'type',
+          type: 'String',
+          required: true,
+          description: 'Type of query'
+        },
+        {
+          originalName: 'payload',
+          dartName: 'payload',
+          type: 'WorkerRecommendationQueryPayloadDto',
+          required: true,
+          description: 'Complex payload object'
+        }
+      ];
+
+      const result = generator.generateQueryParamsModel('GetWorkerRecommendations', params);
+
+      expect(result).toBeTruthy();
+      // Should not include dart:convert anymore since we use flattening
+      expect(result?.content).not.toContain('import \'dart:convert\'');
+      expect(result?.content).toContain('toQueryParameters()');
+      // Should use flattening instead of JSON encoding
+      expect(result?.content).toContain('flatten');
+      expect(result?.content).toContain('$prefix[$nestedKey]');
+      expect(result?.content).not.toContain('jsonEncode');
+      expect(result?.content).toContain('const GetWorkerRecommendationsParams._()');
+    });
+
+    it('should not generate toQueryParameters for simple types', () => {
+      const params: QueryParameter[] = [
+        {
+          originalName: 'page',
+          dartName: 'page',
+          type: 'int',
+          required: false,
+          description: 'Page number'
+        },
+        {
+          originalName: 'limit',
+          dartName: 'limit',
+          type: 'int',
+          required: false,
+          description: 'Page size'
+        }
+      ];
+
+      const result = generator.generateQueryParamsModel('GetList', params);
+
+      expect(result).toBeTruthy();
+      expect(result?.content).not.toContain('import \'dart:convert\'');
+      expect(result?.content).not.toContain('toQueryParameters()');
+      expect(result?.content).not.toContain('const GetListParams._()');
+    });
+
+    it('should handle List of complex types', () => {
+      const params: QueryParameter[] = [
+        {
+          originalName: 'filters',
+          dartName: 'filters',
+          type: 'List<FilterDto>',
+          required: false,
+          description: 'List of filters'
+        }
+      ];
+
+      const result = generator.generateQueryParamsModel('GetFiltered', params);
+
+      expect(result).toBeTruthy();
+      // Should not include dart:convert anymore since we use flattening
+      expect(result?.content).not.toContain('import \'dart:convert\'');
+      expect(result?.content).toContain('toQueryParameters()');
+      // The import for FilterDto should be added
+      // Check that the filename includes the import section where FilterDto would be
+      expect(result?.path).toBe('models/params/get_filtered_params.f.dart');
+      // The actual import should be in the imports array of the model
+      // Since FilterDto is in List<FilterDto>, it should be recognized as a complex type
+      expect(result?.content).toContain('List<FilterDto>? filters');
+      // Should use flattening for lists
+      expect(result?.content).toContain('if (value is List)');
+    });
+
+    it('should handle nullable complex types', () => {
+      const params: QueryParameter[] = [
+        {
+          originalName: 'config',
+          dartName: 'config',
+          type: 'ConfigDto?',
+          required: false,
+          description: 'Optional config'
+        }
+      ];
+
+      const result = generator.generateQueryParamsModel('Configure', params);
+
+      expect(result).toBeTruthy();
+      // Should not include dart:convert anymore since we use flattening
+      expect(result?.content).not.toContain('import \'dart:convert\'');
+      expect(result?.content).toContain('toQueryParameters()');
+      // Should use flattening for complex types
+      expect(result?.content).toContain('flatten');
     });
   });
 });

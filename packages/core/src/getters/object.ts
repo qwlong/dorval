@@ -54,7 +54,7 @@ export function getObject(
   
   if (item.properties) {
     Object.entries(item.properties).forEach(([propName, propSchema]) => {
-      const propInfo = processProperty(propName, propSchema, required.includes(propName), imports, context?.inlineTypes);
+      const propInfo = processProperty(propName, propSchema, required.includes(propName), imports, context?.inlineTypes, context?.inlineEnums);
       properties.set(propName, propInfo);
     });
   }
@@ -79,13 +79,20 @@ function processProperty(
   propSchema: any,
   isRequired: boolean,
   imports: string[],
-  inlineTypes?: Map<string, string>
+  inlineTypes?: Map<string, string>,
+  inlineEnums?: Map<string, string>
 ): PropertyInfo {
   const dartName = TypeMapper.toDartPropertyName(propName);
   let dartType = 'dynamic';
   
+  // Check if this property has an inline enum mapping
+  if (inlineEnums?.has(propName)) {
+    const enumTypeName = inlineEnums.get(propName)!;
+    dartType = TypeMapper.toDartClassName(enumTypeName);
+    imports.push(`${TypeMapper.toSnakeCase(enumTypeName)}.f.dart`);
+  }
   // Check if this property has an inline type mapping
-  if (inlineTypes?.has(propName)) {
+  else if (inlineTypes?.has(propName)) {
     const nestedTypeName = inlineTypes.get(propName)!;
     dartType = TypeMapper.toDartClassName(nestedTypeName);
     imports.push(`${TypeMapper.toSnakeCase(nestedTypeName)}.f.dart`);
@@ -192,6 +199,22 @@ function processProperty(
       const innerType = TypeMapper.extractInnerType(dartType);
       if (!isPrimitiveType(innerType) && innerType !== 'Map<String, dynamic>') {
         imports.push(`${TypeMapper.toSnakeCase(innerType)}.f.dart`);
+      }
+    }
+    
+    // Check if this is a Map with reference types that need imports
+    if (propSchema.type === 'object' && propSchema.additionalProperties) {
+      extractReferencesFromSchema(propSchema.additionalProperties, imports);
+    }
+    
+    // Check if this is an array with reference types (not already handled above)
+    if (propSchema.type === 'array' && propSchema.items?.$ref && 
+        !dartType.includes('Map<String, dynamic>')) {
+      const typeName = TypeMapper.extractTypeFromRef(propSchema.items.$ref);
+      // Only add if not already added
+      const importPath = `${TypeMapper.toSnakeCase(typeName)}.f.dart`;
+      if (!imports.includes(importPath)) {
+        imports.push(importPath);
       }
     }
   }
@@ -325,12 +348,23 @@ function getScalarType(schema: any): string {
           const typeName = TypeMapper.extractTypeFromRef(schema.items.$ref);
           return `List<${TypeMapper.toDartClassName(typeName)}>`;
         }
+        // Recursively handle nested arrays
         const itemType = getScalarType(schema.items);
         return `List<${itemType}>`;
       }
       return 'List<dynamic>';
     case 'object':
       if (schema.additionalProperties) {
+        // Check if additionalProperties has a $ref
+        if (schema.additionalProperties.$ref) {
+          const typeName = TypeMapper.extractTypeFromRef(schema.additionalProperties.$ref);
+          return `Map<String, ${TypeMapper.toDartClassName(typeName)}>`;
+        }
+        // Check if additionalProperties is an array with $ref items
+        if (schema.additionalProperties.type === 'array' && schema.additionalProperties.items?.$ref) {
+          const typeName = TypeMapper.extractTypeFromRef(schema.additionalProperties.items.$ref);
+          return `Map<String, List<${TypeMapper.toDartClassName(typeName)}>>`;
+        }
         const valueType = getScalarType(schema.additionalProperties);
         return `Map<String, ${valueType}>`;
       }
@@ -433,4 +467,39 @@ function _toPascalCase(str: string): string {
   return str
     .replace(/[-_](.)/g, (_, char) => char.toUpperCase())
     .replace(/^(.)/, (_, char) => char.toUpperCase());
+}
+
+/**
+ * Recursively extract references from schema for imports
+ */
+function extractReferencesFromSchema(schema: any, imports: string[]): void {
+  if (!schema) return;
+  
+  // Handle direct $ref
+  if (schema.$ref) {
+    const typeName = TypeMapper.extractTypeFromRef(schema.$ref);
+    const importPath = `${TypeMapper.toSnakeCase(typeName)}.f.dart`;
+    if (!imports.includes(importPath)) {
+      imports.push(importPath);
+    }
+  }
+  
+  // Handle arrays with $ref items
+  if (schema.type === 'array' && schema.items) {
+    extractReferencesFromSchema(schema.items, imports);
+  }
+  
+  // Handle objects with additionalProperties
+  if (schema.type === 'object' && schema.additionalProperties) {
+    extractReferencesFromSchema(schema.additionalProperties, imports);
+  }
+  
+  // Handle composition (allOf, oneOf, anyOf)
+  ['allOf', 'oneOf', 'anyOf'].forEach(key => {
+    if (schema[key] && Array.isArray(schema[key])) {
+      schema[key].forEach((subSchema: any) => {
+        extractReferencesFromSchema(subSchema, imports);
+      });
+    }
+  });
 }

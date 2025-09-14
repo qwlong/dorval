@@ -2,20 +2,20 @@
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-part 'list_pets_params.f.freezed.dart';
-part 'list_pets_params.f.g.dart';
+part 'get_pets_params.f.freezed.dart';
+part 'get_pets_params.f.g.dart';
 
-/// Query parameters for listPets
+/// Query parameters for getPets
 @freezed
-class ListPetsParams with _$ListPetsParams {
-  const factory ListPetsParams({
+class GetPetsParams with _$GetPetsParams {
+  const factory GetPetsParams({
     /// How many items to return at one time (max 100)
     int? limit,
 
     /// The offset for pagination
     int? offset,
-  }) = _ListPetsParams;
+  }) = _GetPetsParams;
 
-  factory ListPetsParams.fromJson(Map<String, dynamic> json) =>
-      _$ListPetsParamsFromJson(json);
+  factory GetPetsParams.fromJson(Map<String, dynamic> json) =>
+      _$GetPetsParamsFromJson(json);
 }

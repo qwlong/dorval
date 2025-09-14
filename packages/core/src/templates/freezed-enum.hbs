@@ -1,7 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
 {{#if description}}
-/// {{description}}
+{{dartDoc description indent=0}}
 {{/if}}
 enum {{enumName}} {
 {{#each values}}

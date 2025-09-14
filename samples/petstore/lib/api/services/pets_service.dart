@@ -16,8 +16,8 @@ class PetsService {
     const path = '/pets';
     
     // Build query parameters
+    // Use standard toJson for simple parameters
     final paramsJson = params?.toJson() ?? <String, dynamic>{};
-    // Remove null values from query parameters
     final queryParameters = <String, dynamic>{
       for (final entry in paramsJson.entries)
         if (entry.value != null) entry.key: entry.value,
@@ -139,8 +139,8 @@ class PetsService {
     const path = '/pets/findByStatus';
     
     // Build query parameters
+    // Use standard toJson for simple parameters
     final paramsJson = params?.toJson() ?? <String, dynamic>{};
-    // Remove null values from query parameters
     final queryParameters = <String, dynamic>{
       for (final entry in paramsJson.entries)
         if (entry.value != null) entry.key: entry.value,

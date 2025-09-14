@@ -13,7 +13,8 @@ part '{{fileName}}.f.g.dart';
 {{/if}}
 @freezed
 class {{className}} with _${{className}} {
-  const factory {{className}}({
+  {{#if hasComplexNestedQueryParams}}const {{className}}._();
+  {{/if}}const factory {{className}}({
     {{#each properties}}
     {{#if description}}
 {{{dartDoc description indent=4}}}
@@ -29,5 +30,40 @@ class {{className}} with _${{className}} {
   }) = _{{className}};
 
   factory {{className}}.fromJson(Map<String, dynamic> json) =>
-      _${{className}}FromJson(json);
+      _${{className}}FromJson(json);{{#if hasComplexNestedQueryParams}}
+  
+  /// Convert to query parameters for API calls
+  /// Flattens nested objects into key[nestedKey]=value format
+  Map<String, dynamic> toQueryParameters() {
+    final json = toJson();
+    final result = <String, dynamic>{};
+    
+    void flatten(String prefix, dynamic value) {
+      if (value == null) return;
+      
+      if (value is Map<String, dynamic>) {
+        // Flatten nested objects: key[nestedKey]=value
+        value.forEach((nestedKey, nestedValue) {
+          final newKey = prefix.isEmpty ? nestedKey : '$prefix[$nestedKey]';
+          flatten(newKey, nestedValue);
+        });
+      } else if (value is List) {
+        if (value.isEmpty) return;
+        // Handle lists: key[0]=value1, key[1]=value2
+        for (var i = 0; i < value.length; i++) {
+          final newKey = '$prefix[$i]';
+          flatten(newKey, value[i]);
+        }
+      } else {
+        // Primitive values (String, int, double, bool, DateTime, etc.)
+        result[prefix] = value;
+      }
+    }
+    
+    json.forEach((key, value) {
+      flatten(key, value);
+    });
+    
+    return result;
+  }{{/if}}
 }

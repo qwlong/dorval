@@ -23,8 +23,7 @@ module.exports = {
           baseUrl: 'https://petstore.swagger.io/v1',
           interceptors: []
         },
-        methodNaming: 'operationId',
-        
+        methodNaming: 'methodPath',
         // Custom headers configuration (optional for this sample)
         headers: {
           // Define reusable header classes if needed
@@ -35,7 +34,7 @@ module.exports = {
               required: ['Authorization'],
               description: 'Bearer token authentication'
             },
-            
+
             // Example: API key authentication
             ApiKeyHeader: {
               fields: ['X-API-Key'],

@@ -94,6 +94,69 @@ function extractInlineObjects(
   return inlineTypes;
 }
 
+/**
+ * Extract and generate enum types for inline enum properties
+ */
+function extractInlineEnums(
+  parentName: string,
+  schema: any,
+  schemas: Record<string, any>,
+  processedEnums: Set<string> = new Set()
+): Map<string, string> {
+  const inlineEnums = new Map<string, string>();
+  
+  if (processedEnums.has(parentName)) return inlineEnums;
+  processedEnums.add(parentName);
+  
+  // Handle allOf composition
+  if (schema.allOf && Array.isArray(schema.allOf)) {
+    schema.allOf.forEach((subSchema: any) => {
+      if (subSchema.properties) {
+        Object.entries(subSchema.properties).forEach(([propName, propSchema]: [string, any]) => {
+          // Check if this is an inline enum (has enum array but no $ref)
+          if (propSchema.enum && Array.isArray(propSchema.enum) && !propSchema.$ref) {
+            // Generate a name for the enum type
+            const enumTypeName = `${parentName}${propName.charAt(0).toUpperCase()}${propName.slice(1)}Enum`;
+            
+            // Add to schemas as an enum schema
+            schemas[enumTypeName] = {
+              type: 'string',
+              enum: propSchema.enum,
+              description: propSchema.description || `Enum for ${propName}`
+            };
+            
+            // Map the property name to the enum type name
+            inlineEnums.set(propName, enumTypeName);
+          }
+        });
+      }
+    });
+  }
+  
+  // Handle direct properties
+  if (schema.properties) {
+    Object.entries(schema.properties).forEach(([propName, propSchema]: [string, any]) => {
+      // Check if this is an inline enum (has enum array but no $ref)
+      if (propSchema.enum && Array.isArray(propSchema.enum) && !propSchema.$ref) {
+        // Generate a name for the enum type
+        const enumTypeName = `${parentName}${propName.charAt(0).toUpperCase()}${propName.slice(1)}Enum`;
+        
+        // Add to schemas as an enum schema
+        schemas[enumTypeName] = {
+          type: 'string',
+          enum: propSchema.enum,
+          description: propSchema.description || `Enum for ${propName}`
+        };
+        
+        // Map the property name to the enum type name
+        inlineEnums.set(propName, enumTypeName);
+      }
+    });
+  }
+  
+  return inlineEnums;
+}
+
 export async function generateModels(
   spec: OpenAPIObject,
   _options: DartGeneratorOptions
@@ -110,10 +173,12 @@ export async function generateModels(
   const refResolver = new ReferenceResolver(spec);
   generator.setReferenceResolver(refResolver);
   
-  // First pass: extract inline objects and add them as schemas
+  // First pass: extract inline objects and enums and add them as schemas
   const inlineObjectMappings = new Map<string, Map<string, string>>();
+  const inlineEnumMappings = new Map<string, Map<string, string>>();
   const schemasToProcess = [...Object.entries(schemas)];
   const processedSchemas = new Set<string>();
+  const processedEnums = new Set<string>();
   
   // Keep processing until no new schemas are added
   while (schemasToProcess.length > 0) {
@@ -121,6 +186,7 @@ export async function generateModels(
     if (processedSchemas.has(name)) continue;
     processedSchemas.add(name);
     
+    // Extract inline objects
     const inlineTypes = extractInlineObjects(name, schema, schemas, files, refResolver);
     if (inlineTypes.size > 0) {
       inlineObjectMappings.set(name, inlineTypes);
@@ -128,6 +194,18 @@ export async function generateModels(
       inlineTypes.forEach((typeName) => {
         if (schemas[typeName] && !processedSchemas.has(typeName)) {
           schemasToProcess.push([typeName, schemas[typeName]]);
+        }
+      });
+    }
+    
+    // Extract inline enums
+    const inlineEnums = extractInlineEnums(name, schema, schemas, processedEnums);
+    if (inlineEnums.size > 0) {
+      inlineEnumMappings.set(name, inlineEnums);
+      // Add newly created enum schemas to the processing queue
+      inlineEnums.forEach((enumName) => {
+        if (schemas[enumName] && !processedSchemas.has(enumName)) {
+          schemasToProcess.push([enumName, schemas[enumName]]);
         }
       });
     }
@@ -197,7 +275,8 @@ export async function generateModels(
 
     // Handle regular object schemas
     const inlineTypes = inlineObjectMappings.get(name);
-    const objectResult = getObject(schema, name, { schemas, refResolver, inlineTypes });
+    const inlineEnums = inlineEnumMappings.get(name);
+    const objectResult = getObject(schema, name, { schemas, refResolver, inlineTypes, inlineEnums });
     if (objectResult.definition) {
       files.push({
         path: `models/${toSnakeCase(name)}.f.dart`,

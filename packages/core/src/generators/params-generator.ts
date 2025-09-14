@@ -13,6 +13,7 @@ export interface ParameterModel {
   description?: string;
   properties: ParameterProperty[];
   imports?: string[];
+  hasComplexNestedQueryParams?: boolean;
 }
 
 export interface ParameterProperty {
@@ -54,10 +55,11 @@ export class ParamsGenerator {
       
       // Check if the type needs an import (custom model types)
       const paramType = param.type || 'String';
-      if (!this.isBuiltInType(paramType)) {
+      // Object is a built-in Dart type, don't import it
+      if (paramType !== 'Object' && paramType !== 'Object?' && !this.isBuiltInType(paramType)) {
         // Extract base type from List<Type> or Map<K,V>
         const baseType = this.extractBaseType(paramType);
-        if (!this.isBuiltInType(baseType)) {
+        if (baseType !== 'Object' && !this.isBuiltInType(baseType)) {
           const fileName = TypeMapper.toSnakeCase(baseType) + '.f.dart';
           imports.add(fileName);
         }
@@ -72,12 +74,37 @@ export class ParamsGenerator {
       };
     });
 
+    // Check if any property is a complex type that needs special query param handling
+    const hasComplexNestedQueryParams = properties.some(prop => {
+      const type = prop.type;
+      // Check for model types (not built-in types)
+      if (!this.isBuiltInType(type) && !type.endsWith('?')) {
+        return true;
+      }
+      // Check for nullable model types
+      if (type.endsWith('?')) {
+        const baseType = type.slice(0, -1);
+        if (!this.isBuiltInType(baseType)) {
+          return true;
+        }
+      }
+      // Check for List of models
+      if (type.startsWith('List<')) {
+        const innerType = type.match(/^List<(.+?)>/)![1];
+        if (!this.isBuiltInType(innerType)) {
+          return true;
+        }
+      }
+      return false;
+    });
+
     const model: ParameterModel = {
       className,
       fileName,
       description: `Query parameters for ${methodName}`,
       properties,
-      imports: Array.from(imports)
+      imports: Array.from(imports),
+      hasComplexNestedQueryParams
     };
 
     const content = this.renderParamsModel(model);
@@ -168,7 +195,9 @@ export class ParamsGenerator {
   private isBuiltInType(type: string): boolean {
     const builtInTypes = [
       'String', 'int', 'double', 'bool', 'num', 'dynamic', 'void',
-      'DateTime', 'Uint8List', 'Object', 'Map', 'List', 'Set'
+      'DateTime', 'Uint8List', 'Map', 'List', 'Set'
+      // Note: 'Object' is intentionally not included here
+      // Object type query params need special handling since they can contain anything
     ];
     
     // Check if it's a generic type like List<X> or Map<X,Y>
