@@ -178,15 +178,15 @@ export class ModelGenerator {
       hasDateTimeConverter,
       hasCustomJson,
       hasFieldRename,
-      additionalImports: model.imports.filter(imp => 
-        !imp.includes('dart:') && 
-        !imp.includes('freezed') && 
+      additionalImports: model.imports.filter(imp =>
+        !imp.includes('dart:') &&
+        !imp.includes('freezed') &&
         !imp.includes('json_annotation')
       ),
       hasCustomMethods: false,
       customMethods: []
     };
-    
+
     // Debug: Log first few models
     if (this.debugCount === undefined) {
       this.debugCount = 0;

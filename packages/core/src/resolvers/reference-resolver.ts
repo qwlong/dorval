@@ -458,19 +458,28 @@ export class ReferenceResolver {
       // Handle regular schema
       const schema = propSchema as OpenAPIV3.SchemaObject;
       type = TypeMapper.mapType(schema);
-      
+
       // Check if needs nullable
       const isNullable = TypeMapper.isNullable(schema);
       const hasDefault = schema && schema.default !== undefined;
       const needsNullable = (!isRequired && !hasDefault) || isNullable;
-      
+
       if (needsNullable && !type.endsWith('?')) {
         type = `${type}?`;
       }
-      
+
       // Check for special imports
       if (type.includes('Uint8List')) {
         imports.push('dart:typed_data');
+      }
+
+      // Handle array types with references
+      if (schema.type === 'array' && schema.items && '$ref' in schema.items) {
+        const modelName = this.getSchemaName(schema.items.$ref);
+        if (modelName) {
+          const fileName = TypeMapper.toSnakeCase(modelName);
+          imports.push(`${fileName}.f.dart`);
+        }
       }
     }
     

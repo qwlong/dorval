@@ -48,20 +48,21 @@ export function getObject(
   }
 
   // Handle regular object with properties
-  const imports: string[] = [];
+  const importsSet: Set<string> = new Set();
   const properties = new Map<string, PropertyInfo>();
   const required = item.required || [];
   
   if (item.properties) {
     Object.entries(item.properties).forEach(([propName, propSchema]) => {
-      const propInfo = processProperty(propName, propSchema, required.includes(propName), imports, context?.inlineTypes, context?.inlineEnums);
+      const propInfo = processProperty(propName, propSchema, required.includes(propName), importsSet, context?.inlineTypes, context?.inlineEnums);
       properties.set(propName, propInfo);
     });
   }
 
   // Generate Freezed model
+  const imports = Array.from(importsSet);
   const definition = generateObjectModel(name, properties, imports);
-  
+
   return {
     type: TypeMapper.toDartClassName(name),
     imports,
@@ -78,30 +79,30 @@ function processProperty(
   propName: string,
   propSchema: any,
   isRequired: boolean,
-  imports: string[],
+  importsSet: Set<string>,
   inlineTypes?: Map<string, string>,
   inlineEnums?: Map<string, string>
 ): PropertyInfo {
   const dartName = TypeMapper.toDartPropertyName(propName);
   let dartType = 'dynamic';
-  
+
   // Check if this property has an inline enum mapping
   if (inlineEnums?.has(propName)) {
     const enumTypeName = inlineEnums.get(propName)!;
     dartType = TypeMapper.toDartClassName(enumTypeName);
-    imports.push(`${TypeMapper.toSnakeCase(enumTypeName)}.f.dart`);
+    importsSet.add(`${TypeMapper.toSnakeCase(enumTypeName)}.f.dart`);
   }
   // Check if this property has an inline type mapping
   else if (inlineTypes?.has(propName)) {
     const nestedTypeName = inlineTypes.get(propName)!;
     dartType = TypeMapper.toDartClassName(nestedTypeName);
-    imports.push(`${TypeMapper.toSnakeCase(nestedTypeName)}.f.dart`);
+    importsSet.add(`${TypeMapper.toSnakeCase(nestedTypeName)}.f.dart`);
   }
   // Handle $ref
   else if (propSchema.$ref) {
     const typeName = TypeMapper.extractTypeFromRef(propSchema.$ref);
     dartType = TypeMapper.toDartClassName(typeName);
-    imports.push(`${TypeMapper.toSnakeCase(typeName)}.f.dart`);
+    importsSet.add(`${TypeMapper.toSnakeCase(typeName)}.f.dart`);
   }
   // Handle allOf composition in property
   else if (propSchema.allOf) {
@@ -110,7 +111,7 @@ function processProperty(
       const typeName = TypeMapper.extractTypeFromRef(propSchema.allOf[0].$ref);
       dartType = TypeMapper.toDartClassName(typeName);
       const importPath = `${TypeMapper.toSnakeCase(typeName)}.f.dart`;
-      imports.push(importPath);
+      importsSet.add(importPath);
     } else {
       // Complex allOf at property level - for now use dynamic
       // TODO: Implement property-level allOf merging (root-level allOf is already working in model-generator.ts)
@@ -144,14 +145,14 @@ function processProperty(
       if (singleSchema.$ref) {
         const typeName = TypeMapper.extractTypeFromRef(singleSchema.$ref);
         dartType = TypeMapper.toDartClassName(typeName);
-        imports.push(`${TypeMapper.toSnakeCase(typeName)}.f.dart`);
+        importsSet.add(`${TypeMapper.toSnakeCase(typeName)}.f.dart`);
       } else {
         dartType = getScalarType(singleSchema);
         // Add imports if needed for complex types
         if (dartType.startsWith('List<') && !dartType.includes('Map<String, dynamic>')) {
           const innerType = TypeMapper.extractInnerType(dartType);
           if (!isPrimitiveType(innerType) && innerType !== 'Map<String, dynamic>') {
-            imports.push(`${TypeMapper.toSnakeCase(innerType)}.f.dart`);
+            importsSet.add(`${TypeMapper.toSnakeCase(innerType)}.f.dart`);
           }
         }
       }
@@ -166,7 +167,7 @@ function processProperty(
         if (nonNullSchema.$ref) {
           const typeName = TypeMapper.extractTypeFromRef(nonNullSchema.$ref);
           dartType = TypeMapper.toDartClassName(typeName) + '?';
-          imports.push(`${TypeMapper.toSnakeCase(typeName)}.f.dart`);
+          importsSet.add(`${TypeMapper.toSnakeCase(typeName)}.f.dart`);
         } else {
           dartType = getScalarType(nonNullSchema);
           // For oneOf/anyOf with null, the type is already nullable
@@ -177,7 +178,7 @@ function processProperty(
           if (dartType.startsWith('List<') && !dartType.includes('Map<String, dynamic>')) {
             const innerType = TypeMapper.extractInnerType(dartType);
             if (!isPrimitiveType(innerType) && innerType !== 'Map<String, dynamic>') {
-              imports.push(`${TypeMapper.toSnakeCase(innerType)}.f.dart`);
+              importsSet.add(`${TypeMapper.toSnakeCase(innerType)}.f.dart`);
             }
           }
         }
@@ -198,24 +199,22 @@ function processProperty(
     if (dartType.startsWith('List<') && !dartType.includes('Map<String, dynamic>')) {
       const innerType = TypeMapper.extractInnerType(dartType);
       if (!isPrimitiveType(innerType) && innerType !== 'Map<String, dynamic>') {
-        imports.push(`${TypeMapper.toSnakeCase(innerType)}.f.dart`);
+        importsSet.add(`${TypeMapper.toSnakeCase(innerType)}.f.dart`);
       }
     }
     
     // Check if this is a Map with reference types that need imports
     if (propSchema.type === 'object' && propSchema.additionalProperties) {
-      extractReferencesFromSchema(propSchema.additionalProperties, imports);
+      extractReferencesFromSchema(propSchema.additionalProperties, importsSet);
     }
     
     // Check if this is an array with reference types (not already handled above)
     if (propSchema.type === 'array' && propSchema.items?.$ref && 
         !dartType.includes('Map<String, dynamic>')) {
       const typeName = TypeMapper.extractTypeFromRef(propSchema.items.$ref);
-      // Only add if not already added
+      // Only add if not already added (Set handles deduplication automatically)
       const importPath = `${TypeMapper.toSnakeCase(typeName)}.f.dart`;
-      if (!imports.includes(importPath)) {
-        imports.push(importPath);
-      }
+      importsSet.add(importPath);
     }
   }
   
@@ -472,33 +471,31 @@ function _toPascalCase(str: string): string {
 /**
  * Recursively extract references from schema for imports
  */
-function extractReferencesFromSchema(schema: any, imports: string[]): void {
+function extractReferencesFromSchema(schema: any, importsSet: Set<string>): void {
   if (!schema) return;
-  
+
   // Handle direct $ref
   if (schema.$ref) {
     const typeName = TypeMapper.extractTypeFromRef(schema.$ref);
     const importPath = `${TypeMapper.toSnakeCase(typeName)}.f.dart`;
-    if (!imports.includes(importPath)) {
-      imports.push(importPath);
-    }
+    importsSet.add(importPath);
   }
-  
+
   // Handle arrays with $ref items
   if (schema.type === 'array' && schema.items) {
-    extractReferencesFromSchema(schema.items, imports);
+    extractReferencesFromSchema(schema.items, importsSet);
   }
-  
+
   // Handle objects with additionalProperties
   if (schema.type === 'object' && schema.additionalProperties) {
-    extractReferencesFromSchema(schema.additionalProperties, imports);
+    extractReferencesFromSchema(schema.additionalProperties, importsSet);
   }
-  
+
   // Handle composition (allOf, oneOf, anyOf)
   ['allOf', 'oneOf', 'anyOf'].forEach(key => {
     if (schema[key] && Array.isArray(schema[key])) {
       schema[key].forEach((subSchema: any) => {
-        extractReferencesFromSchema(subSchema, imports);
+        extractReferencesFromSchema(subSchema, importsSet);
       });
     }
   });
