@@ -1,3 +1,10 @@
+## [0.2.5](https://github.com/qwlong/dorval/compare/v0.2.4...v0.2.5) (2025-09-16)
+
+
+### Bug Fixes
+
+* prevent duplicate imports in generated models ([a2d5ffa](https://github.com/qwlong/dorval/commit/a2d5ffa353b435888bbe1380f866da72d2ccdec8))
+
 ## [0.2.4](https://github.com/qwlong/dorval/compare/v0.2.3...v0.2.4) (2025-09-14)
 
 
