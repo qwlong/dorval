@@ -33,6 +33,13 @@ export class TemplateManager {
   }
 
   /**
+   * Get the Handlebars instance for custom helper registration
+   */
+  public getHandlebars(): typeof Handlebars {
+    return this.handlebars;
+  }
+
+  /**
    * Register custom Handlebars helpers
    */
   private registerHelpers(): void {

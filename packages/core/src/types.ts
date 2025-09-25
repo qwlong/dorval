@@ -4,7 +4,7 @@ export type OpenAPIObject = OpenAPIV3.Document;
 
 export type DartClientType = 'dio' | 'http' | 'chopper' | 'retrofit' | 'custom';
 
-export type DartOutputMode = 'single' | 'split' | 'tags';
+export type DartOutputMode = 'single' | 'split' | 'tags' | 'providers';
 
 export interface DartGeneratorOptions {
   input: string | OpenAPIObject;
@@ -19,6 +19,12 @@ export interface DartGeneratorOptions {
         nullSafety?: boolean;
         partFiles?: boolean;
         equatable?: boolean;
+      };
+      providers?: {
+        style?: 'class' | 'extension' | 'separate';
+        autoDispose?: boolean;
+        smartRefresh?: boolean;
+        generateHelpers?: boolean;
       };
       dio?: {
         baseUrl?: string;

@@ -1,0 +1,30 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
+import '../api_client.dart';
+{{#each serviceProviders}}
+import '../services/{{fileName}}_service.dart';
+{{/each}}
+
+/// Dio instance Provider
+final dioProvider = Provider<Dio>((ref) {
+  return Dio(BaseOptions(
+    baseUrl: 'https://api.example.com', // Read from config
+    connectTimeout: const Duration(seconds: 30),
+    receiveTimeout: const Duration(seconds: 30),
+  ));
+});
+
+/// ApiClient Provider
+final apiClientProvider = Provider<ApiClient>((ref) {
+  final dio = ref.watch(dioProvider);
+  return ApiClient(dio);
+});
+
+{{#each serviceProviders}}
+/// {{className}} Service Provider
+final {{camelCaseName}} = Provider<{{className}}>((ref) {
+  final apiClient = ref.watch(apiClientProvider);
+  return {{className}}(apiClient);
+});
+
+{{/each}}

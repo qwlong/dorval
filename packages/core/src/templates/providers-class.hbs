@@ -1,0 +1,262 @@
+{{#each imports}}
+{{{this}}}
+{{/each}}
+
+/// {{className}} - Generated Provider class
+///
+/// GET requests use FutureProvider for automatic caching
+/// POST/PUT/PATCH/DELETE use static methods with automatic data refresh
+class {{className}} {
+{{#each providers}}
+  /// {{#if description}}{{description}}{{else}}{{methodName}}{{/if}}
+  {{#if isFamily}}
+  static final {{name}} = FutureProvider.family{{#if ../config.autoDispose}}.autoDispose{{/if}}<
+    {{returnType}},
+    {{#if paramsClassName}}{{paramsClassName}}{{else}}String{{/if}}
+  >((ref, {{#if paramsClassName}}params{{else}}id{{/if}}) async {
+    final service = ref.watch({{../serviceProviderName}});
+    return service.{{methodName}}(
+      {{#each pathParams}}
+      {{#if ../paramsClassName}}params.{{name}}{{else}}id{{/if}},
+      {{/each}}
+      {{#if hasQueryParams}}
+      {{#each queryParams}}
+      {{name}}: {{#if ../paramsClassName}}params.{{name}}{{else}}null{{/if}},
+      {{/each}}
+      {{/if}}
+      {{#if hasHeaderParams}}
+      {{#each headerParams}}
+      {{name}}: {{#if ../paramsClassName}}params.{{name}}{{else}}null{{/if}},
+      {{/each}}
+      {{/if}}
+    );
+  });
+  {{else}}
+  static final {{name}} = FutureProvider{{#if ../config.autoDispose}}.autoDispose{{/if}}<{{returnType}}>((ref) async {
+    final service = ref.watch({{../serviceProviderName}});
+    return service.{{methodName}}();
+  });
+  {{/if}}
+
+  {{#if hasPagination}}
+  /// Paginated version of {{name}}
+  static final {{name}}Paginated = StateNotifierProvider.family{{#if ../config.autoDispose}}.autoDispose{{/if}}<
+    PaginationNotifier<{{returnType}}>,
+    PaginationState<{{returnType}}>,
+    {{paramsClassName}}
+  >((ref, params) {
+    return PaginationNotifier(
+      ref: ref,
+      fetchPage: (page) async {
+        final service = ref.watch({{../serviceProviderName}});
+        return service.{{methodName}}(
+          {{#each pathParams}}
+          {{#if ../paramsClassName}}params.{{name}}{{/if}},
+          {{/each}}
+          {{#each queryParams}}
+          {{name}}: {{#if (eq name 'page')}}page{{else if (eq name 'limit')}}params.{{name}} ?? 20{{else}}params.{{name}}{{/if}},
+          {{/each}}
+        );
+      },
+    );
+  });
+  {{/if}}
+
+{{/each}}
+
+{{#each methods}}
+  /// {{#if description}}{{description}}{{else}}{{operationId}}{{/if}}
+  static Future<{{returnType}}> {{name}}(
+    WidgetRef ref,
+    {{#each pathParams}}
+    {{type}} {{name}},
+    {{/each}}
+    {{#if requestBody}}
+    {{requestBody.type}} body,
+    {{/if}}
+    {{#if queryParams.length}}
+    {
+      {{#each queryParams}}
+      {{#unless required}}{{type}}?{{else}}required {{type}}{{/unless}} {{name}},
+      {{/each}}
+    }
+    {{/if}}
+  ) async {
+    final service = ref.read({{../serviceProviderName}});
+
+    final result = await service.{{operationId}}(
+      {{#each pathParams}}
+      {{name}},
+      {{/each}}
+      {{#if requestBody}}
+      body,
+      {{/if}}
+      {{#if queryParams.length}}
+      {{#each queryParams}}
+      {{name}}: {{name}},
+      {{/each}}
+      {{/if}}
+    );
+
+    {{#if hasRefreshTargets}}
+    // Refresh related data
+    {{#each refreshTargets}}
+    ref.invalidate({{this}});
+    {{/each}}
+    {{/if}}
+
+    return result;
+  }
+
+{{/each}}
+}
+
+{{#if config.generateHelpers}}
+/// Pagination state
+class PaginationState<T> {
+  final List<T> items;
+  final int currentPage;
+  final bool isLoading;
+  final bool hasMore;
+  final Object? error;
+
+  PaginationState({
+    this.items = const [],
+    this.currentPage = 1,
+    this.isLoading = false,
+    this.hasMore = true,
+    this.error,
+  });
+
+  PaginationState<T> copyWith({
+    List<T>? items,
+    int? currentPage,
+    bool? isLoading,
+    bool? hasMore,
+    Object? error,
+  }) {
+    return PaginationState<T>(
+      items: items ?? this.items,
+      currentPage: currentPage ?? this.currentPage,
+      isLoading: isLoading ?? this.isLoading,
+      hasMore: hasMore ?? this.hasMore,
+      error: error ?? this.error,
+    );
+  }
+}
+
+/// Pagination controller
+class PaginationNotifier<T> extends StateNotifier<PaginationState<T>> {
+  final Ref ref;
+  final Future<List<T>> Function(int page) fetchPage;
+  final int pageSize;
+
+  PaginationNotifier({
+    required this.ref,
+    required this.fetchPage,
+    this.pageSize = 20,
+  }) : super(PaginationState<T>()) {
+    loadFirstPage();
+  }
+
+  Future<void> loadFirstPage() async {
+    state = state.copyWith(isLoading: true, currentPage: 1);
+
+    try {
+      final items = await fetchPage(1);
+      state = state.copyWith(
+        items: items,
+        isLoading: false,
+        hasMore: items.length >= pageSize,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e);
+    }
+  }
+
+  Future<void> loadNextPage() async {
+    if (state.isLoading || !state.hasMore) return;
+
+    state = state.copyWith(isLoading: true);
+
+    try {
+      final nextPage = state.currentPage + 1;
+      final newItems = await fetchPage(nextPage);
+
+      state = state.copyWith(
+        items: [...state.items, ...newItems],
+        currentPage: nextPage,
+        isLoading: false,
+        hasMore: newItems.length >= pageSize,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e);
+    }
+  }
+
+  void refresh() {
+    loadFirstPage();
+  }
+}
+{{/if}}
+
+{{#each providers}}
+{{#if paramsClassName}}
+/// {{paramsClassName}} - Parameter class for {{methodName}}
+class {{paramsClassName}} {
+  {{#each pathParams}}
+  final {{type}} {{name}};
+  {{/each}}
+  {{#each queryParams}}
+  final {{type}}{{#unless required}}?{{/unless}} {{name}};
+  {{/each}}
+  {{#each headerParams}}
+  final {{type}}{{#unless required}}?{{/unless}} {{name}};
+  {{/each}}
+
+  const {{paramsClassName}}({
+    {{#each pathParams}}
+    required this.{{name}},
+    {{/each}}
+    {{#each queryParams}}
+    {{#if required}}required {{/if}}this.{{name}},
+    {{/each}}
+    {{#each headerParams}}
+    {{#if required}}required {{/if}}this.{{name}},
+    {{/each}}
+  });
+
+  @override
+  bool operator ==(Object other) =>
+    identical(this, other) ||
+    other is {{paramsClassName}} &&
+      {{#each pathParams}}
+      {{name}} == other.{{name}}{{#unless @last}} &&{{/unless}}
+      {{/each}}
+      {{#if queryParams.length}}
+      {{#each queryParams}}
+      {{#if ../pathParams.length}} && {{/if}}{{name}} == other.{{name}}{{#unless @last}} &&{{/unless}}
+      {{/each}}
+      {{/if}}
+      {{#if headerParams.length}}
+      {{#each headerParams}}
+      {{#if (or ../pathParams.length ../queryParams.length)}} && {{/if}}{{name}} == other.{{name}}{{#unless @last}} &&{{/unless}}
+      {{/each}}
+      {{/if}};
+
+  @override
+  int get hashCode => Object.hash(
+    {{#each pathParams}}
+    {{name}},
+    {{/each}}
+    {{#each queryParams}}
+    {{name}},
+    {{/each}}
+    {{#each headerParams}}
+    {{name}},
+    {{/each}}
+  );
+}
+
+{{/if}}
+{{/each}}

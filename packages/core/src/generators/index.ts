@@ -7,6 +7,7 @@ import { parseOpenAPISpec } from '../parser';
 import { generateModels } from './models';
 import { generateClient } from './client';
 import { generateServices } from './services';
+import { ProvidersGenerator } from './providers-generator';
 import { writeToDisk } from '../utils';
 
 export async function generateDartCode(options: DartGeneratorOptions): Promise<GeneratedFile[]> {
@@ -15,20 +16,43 @@ export async function generateDartCode(options: DartGeneratorOptions): Promise<G
 
   const files: GeneratedFile[] = [];
 
-  // Generate models
-  const models = await generateModels(spec, options);
-  files.push(...models);
+  // Check if we're generating providers
+  if (options.output.mode === 'providers') {
+    // Generate models first (providers depend on them)
+    const models = await generateModels(spec, options);
+    files.push(...models);
 
-  // Generate API client
-  const client = await generateClient(spec, options);
-  files.push(...client);
+    // Generate API client
+    const client = await generateClient(spec, options);
+    files.push(...client);
 
-  // Generate services - create a deep copy to preserve $refs
-  const freshSpec = typeof options.input === 'object'
-    ? JSON.parse(JSON.stringify(options.input))
-    : await parseOpenAPISpec(options.input);
-  const services = await generateServices(freshSpec, options);
-  files.push(...services);
+    // Generate services
+    const freshSpec = typeof options.input === 'object'
+      ? JSON.parse(JSON.stringify(options.input))
+      : await parseOpenAPISpec(options.input);
+    const services = await generateServices(freshSpec, options);
+    files.push(...services);
+
+    // Generate Riverpod providers
+    const generator = new ProvidersGenerator(options.output.override?.providers);
+    const providers = generator.generateProviders(spec, services as any);
+    files.push(...providers);
+  } else {
+    // Standard generation (models + client + services)
+    const models = await generateModels(spec, options);
+    files.push(...models);
+
+    // Generate API client
+    const client = await generateClient(spec, options);
+    files.push(...client);
+
+    // Generate services - create a deep copy to preserve $refs
+    const freshSpec = typeof options.input === 'object'
+      ? JSON.parse(JSON.stringify(options.input))
+      : await parseOpenAPISpec(options.input);
+    const services = await generateServices(freshSpec, options);
+    files.push(...services);
+  }
 
   // Update models/index.dart to include params and headers exports if they exist
   const modelsIndexFile = files.find(f => f.path === 'models/index.dart');
@@ -64,3 +88,4 @@ export { generateServices } from './services';
 export { ModelGenerator } from './model-generator';
 export { ServiceGenerator } from './service-generator';
 export { EndpointGenerator } from './endpoint-generator';
+export { ProvidersGenerator } from './providers-generator';
