@@ -10,7 +10,7 @@ part '{{fileName}}.f.g.dart';
 /// {{description}}
 {{/if}}
 @freezed
-class {{className}} with _${{className}} {
+sealed class {{className}} with _${{className}} {
   const {{className}}._();
   
 {{#each unions}}

@@ -6,7 +6,7 @@ part 'new_pet.f.freezed.dart';
 part 'new_pet.f.g.dart';
 
 @freezed
-class NewPet with _$NewPet {
+abstract class NewPet with _$NewPet {
   const factory NewPet({
     /// Name of the pet
     required String name,

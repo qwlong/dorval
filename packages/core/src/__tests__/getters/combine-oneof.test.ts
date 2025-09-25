@@ -20,7 +20,7 @@ describe('OneOf Generation', () => {
     expect(result.definition).toBeDefined();
     if (result.definition) {
       expect(result.definition).toContain('@freezed');
-      expect(result.definition).toContain('class MyFeedItem with _$MyFeedItem');
+      expect(result.definition).toContain('sealed class MyFeedItem with _$MyFeedItem');
       expect(result.definition).toContain('factory MyFeedItem.fromJson');
     }
     expect(result.imports).toContain('shift_response_dto_v2.f.dart');
@@ -67,7 +67,7 @@ describe('OneOf Generation', () => {
     expect(result.definition).toBeDefined();
     if (result.definition) {
       expect(result.definition).toContain('@freezed');
-      expect(result.definition).toContain('class UnionType with _$UnionType');
+      expect(result.definition).toContain('sealed class UnionType with _$UnionType');
       expect(result.definition).toContain('factory UnionType.');
     }
     expect(result.imports).toContain('type_a.f.dart');

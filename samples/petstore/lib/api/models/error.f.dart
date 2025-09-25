@@ -4,7 +4,7 @@ part 'error.f.freezed.dart';
 part 'error.f.g.dart';
 
 @freezed
-class Error with _$Error {
+abstract class Error with _$Error {
   const factory Error({
     /// Error code
     required int code,

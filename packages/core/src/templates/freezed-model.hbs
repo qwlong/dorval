@@ -23,7 +23,7 @@ String _dateTimeToJson(DateTime dateTime) => dateTime.toIso8601String();
 @Deprecated('{{deprecationMessage}}')
 {{/if}}
 @freezed
-class {{className}} with _${{className}} {
+abstract class {{className}} with _${{className}} {
   const factory {{className}}({
     {{! DEBUG: Entering properties each loop }}
     {{#each properties}}

@@ -7,7 +7,7 @@ part 'find_pets_by_status_params.f.g.dart';
 
 /// Query parameters for findPetsByStatus
 @freezed
-class FindPetsByStatusParams with _$FindPetsByStatusParams {
+abstract class FindPetsByStatusParams with _$FindPetsByStatusParams {
   const factory FindPetsByStatusParams({
     /// Status values that need to be considered for filter
     required List<String> status,

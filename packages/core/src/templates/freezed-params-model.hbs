@@ -12,7 +12,7 @@ part '{{fileName}}.f.g.dart';
 /// {{description}}
 {{/if}}
 @freezed
-class {{className}} with _${{className}} {
+abstract class {{className}} with _${{className}} {
   {{#if hasComplexNestedQueryParams}}const {{className}}._();
   {{/if}}const factory {{className}}({
     {{#each properties}}

@@ -6,7 +6,7 @@ part 'pet.f.freezed.dart';
 part 'pet.f.g.dart';
 
 @freezed
-class Pet with _$Pet {
+abstract class Pet with _$Pet {
   const factory Pet({
     /// Name of the pet
     required String name,
@@ -18,6 +18,7 @@ class Pet with _$Pet {
 
     /// Image URLs
     List<String>? photoUrls,
+
 
     /// pet status in the store
     @Default('available') String? status,

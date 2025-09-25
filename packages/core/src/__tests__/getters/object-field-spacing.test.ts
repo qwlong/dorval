@@ -53,7 +53,7 @@ part 'job_response_dto.f.freezed.dart';
 part 'job_response_dto.f.g.dart';
 
 @freezed
-class JobResponseDto with _\$JobResponseDto {
+abstract class JobResponseDto with _\$JobResponseDto {
   const factory JobResponseDto({
     /// Job ID
     required String id,
@@ -107,7 +107,7 @@ part 'simple_dto.f.freezed.dart';
 part 'simple_dto.f.g.dart';
 
 @freezed
-class SimpleDto with _\$SimpleDto {
+abstract class SimpleDto with _\$SimpleDto {
   const factory SimpleDto({
     required String id,
 

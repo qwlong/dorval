@@ -368,7 +368,7 @@ part '${fileName}.f.freezed.dart';
 part '${fileName}.f.g.dart';
 
 @freezed
-class ${name} with _\$${name} {
+sealed class ${name} with _\$${name} {
   const ${name}._();
   
   const factory ${name}({

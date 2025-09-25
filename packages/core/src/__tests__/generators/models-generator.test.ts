@@ -48,15 +48,15 @@ describe('Models Generator', () => {
       const productModel = files.find(f => f.path === 'models/product.f.dart');
       
       expect(userModel).toBeDefined();
-      expect(userModel?.content).toContain('class User');
+      expect(userModel?.content).toContain('abstract class User');
       expect(userModel?.content).toContain('required String id');
       expect(userModel?.content).toContain('required String email');
       expect(userModel?.content).toContain('String? name');
       expect(userModel?.content).toContain('int? age');
       expect(userModel?.content).toContain('bool? active');
-      
+
       expect(productModel).toBeDefined();
-      expect(productModel?.content).toContain('class Product');
+      expect(productModel?.content).toContain('abstract class Product');
       expect(productModel?.content).toContain('required String id');
       expect(productModel?.content).toContain('required String title');
       expect(productModel?.content).toContain('required double price');
@@ -335,9 +335,91 @@ describe('Models Generator', () => {
       });
 
       const indexFile = files.find(f => f.path === 'models/index.dart');
-      
+
       expect(indexFile).toBeDefined();
       expect(files.length).toBe(1); // Only index file
+    });
+  });
+
+  describe('Freezed v3 Compatibility', () => {
+    it('should generate abstract class for regular models (Freezed v3)', async () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'Test API', version: '1.0.0' },
+        components: {
+          schemas: {
+            TestModel: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                name: { type: 'string' }
+              },
+              required: ['id']
+            }
+          }
+        },
+        paths: {}
+      };
+
+      const files = await generateModels(spec as any, {
+        input: spec as any,
+        output: { target: './test', mode: 'split', client: 'dio' }
+      });
+
+      const testModel = files.find(f => f.path === 'models/test_model.f.dart');
+
+      expect(testModel).toBeDefined();
+      // Freezed v3 requires abstract class for regular models
+      expect(testModel?.content).toContain('@freezed\nabstract class TestModel with _$TestModel');
+      expect(testModel?.content).not.toContain('@freezed\nclass TestModel'); // Should NOT be plain class
+    });
+
+    it('should generate sealed class for discriminated unions (Freezed v3)', async () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'Test API', version: '1.0.0' },
+        components: {
+          schemas: {
+            PaymentMethod: {
+              oneOf: [
+                {
+                  type: 'object',
+                  required: ['type', 'cardNumber'],
+                  properties: {
+                    type: { type: 'string', enum: ['credit_card'] },
+                    cardNumber: { type: 'string' }
+                  }
+                },
+                {
+                  type: 'object',
+                  required: ['type', 'bankAccount'],
+                  properties: {
+                    type: { type: 'string', enum: ['bank_transfer'] },
+                    bankAccount: { type: 'string' }
+                  }
+                }
+              ],
+              discriminator: {
+                propertyName: 'type'
+              }
+            }
+          }
+        },
+        paths: {}
+      };
+
+      const files = await generateModels(spec as any, {
+        input: spec as any,
+        output: { target: './test', mode: 'split', client: 'dio' }
+      });
+
+      const paymentModel = files.find(f => f.path === 'models/payment_method.f.dart');
+
+      expect(paymentModel).toBeDefined();
+      // Freezed v3 uses sealed class for pattern matching support
+      expect(paymentModel?.content).toContain('@freezed\nsealed class PaymentMethod with _$PaymentMethod');
+      expect(paymentModel?.content).not.toContain('@freezed\nclass PaymentMethod'); // Should NOT be plain class
+      expect(paymentModel?.content).not.toContain('@freezed\nabstract class PaymentMethod'); // Should NOT be abstract class
     });
   });
 });
