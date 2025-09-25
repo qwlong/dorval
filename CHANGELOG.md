@@ -1,3 +1,10 @@
+# [0.3.0](https://github.com/qwlong/dorval/compare/v0.2.5...v0.3.0) (2025-09-25)
+
+
+### Features
+
+* migrate freezed model v2 to v3 ([296bc02](https://github.com/qwlong/dorval/commit/296bc023ff10d46e2d7289928c71609e00f2b0a2))
+
 ## [0.2.5](https://github.com/qwlong/dorval/compare/v0.2.4...v0.2.5) (2025-09-16)
 
 
