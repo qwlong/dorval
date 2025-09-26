@@ -1,3 +1,10 @@
+## [0.3.1](https://github.com/qwlong/dorval/compare/v0.3.0...v0.3.1) (2025-09-26)
+
+
+### Bug Fixes
+
+* align manual-publish workflow with working release workflow ([f3314b8](https://github.com/qwlong/dorval/commit/f3314b8d6c148eece527565209ed57386a7ae1d2))
+
 # [0.3.0](https://github.com/qwlong/dorval/compare/v0.2.5...v0.3.0) (2025-09-25)
 
 
