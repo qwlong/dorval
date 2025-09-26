@@ -258,12 +258,12 @@ After generating the API client, set up your Flutter project:
 # pubspec.yaml
 dependencies:
   dio: ^5.0.0
-  freezed_annotation: ^2.4.1
+  freezed_annotation: ^3.0.0
   json_annotation: ^4.8.1
 
 dev_dependencies:
   build_runner: ^2.4.0
-  freezed: ^2.4.0
+  freezed: ^3.0.0
   json_serializable: ^6.7.0
 ```
 
