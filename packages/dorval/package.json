@@ -1,6 +1,6 @@
 {
   "name": "dorval",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "CLI tool for generating Dart/Flutter API clients from OpenAPI specifications",
   "keywords": [
     "cli",
