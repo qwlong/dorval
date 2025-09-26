@@ -1,3 +1,15 @@
+# [0.4.0](https://github.com/qwlong/dorval/compare/v0.3.2...v0.4.0) (2025-09-26)
+
+
+### Bug Fixes
+
+* update dorval package to use correct @dorval/core version ([f8d6c2e](https://github.com/qwlong/dorval/commit/f8d6c2ecf729584cd725bbd780440d2d8eb2a6db))
+
+
+### Features
+
+* auto-sync @dorval/core dependency version in release process ([9509402](https://github.com/qwlong/dorval/commit/9509402edca624636b79396bcf251ca9acb16b6c))
+
 ## [0.3.1](https://github.com/qwlong/dorval/compare/v0.3.0...v0.3.1) (2025-09-26)
 
 
