@@ -77,6 +77,10 @@ export class ParamsGenerator {
     // Check if any property is a complex type that needs special query param handling
     const hasComplexNestedQueryParams = properties.some(prop => {
       const type = prop.type;
+      // Check for arrays - arrays need special query parameter formatting
+      if (type.startsWith('List<')) {
+        return true;
+      }
       // Check for model types (not built-in types)
       if (!this.isBuiltInType(type) && !type.endsWith('?')) {
         return true;
@@ -84,14 +88,11 @@ export class ParamsGenerator {
       // Check for nullable model types
       if (type.endsWith('?')) {
         const baseType = type.slice(0, -1);
-        if (!this.isBuiltInType(baseType)) {
+        // Check if nullable type is an array
+        if (baseType.startsWith('List<')) {
           return true;
         }
-      }
-      // Check for List of models
-      if (type.startsWith('List<')) {
-        const innerType = type.match(/^List<(.+?)>/)![1];
-        if (!this.isBuiltInType(innerType)) {
+        if (!this.isBuiltInType(baseType)) {
           return true;
         }
       }

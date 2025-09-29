@@ -139,9 +139,13 @@ export class EndpointGenerator {
     const headersModelName = needsHeadersModel ? 
       TypeMapper.toDartClassName(methodName + 'Headers') : undefined;
     
-    // Check if query params contain complex types
+    // Check if query params contain complex types or arrays
     const hasComplexNestedQueryParams = needsParamsModel && parameters.query.some(param => {
       const type = param.type || 'String';
+      // Check for arrays - arrays need special query parameter formatting
+      if (type.startsWith('List<')) {
+        return true;
+      }
       // Check for non-primitive types
       if (!this.isBuiltInType(type)) {
         return true;
@@ -149,14 +153,11 @@ export class EndpointGenerator {
       // Check for nullable non-primitive types
       if (type.endsWith('?')) {
         const baseType = type.slice(0, -1);
-        if (!this.isBuiltInType(baseType)) {
+        // Check if nullable type is an array
+        if (baseType.startsWith('List<')) {
           return true;
         }
-      }
-      // Check for List of non-primitive types
-      if (type.startsWith('List<')) {
-        const innerType = type.match(/^List<(.+?)>/)![1];
-        if (!this.isBuiltInType(innerType)) {
+        if (!this.isBuiltInType(baseType)) {
           return true;
         }
       }
@@ -238,9 +239,13 @@ export class EndpointGenerator {
     const headersModelName = needsHeadersModel ? 
       TypeMapper.toDartClassName(methodName + 'Headers') : undefined;
     
-    // Check if query params contain complex types
+    // Check if query params contain complex types or arrays
     const hasComplexNestedQueryParams = needsParamsModel && parameters.query.some(param => {
       const type = param.type || 'String';
+      // Check for arrays - arrays need special query parameter formatting
+      if (type.startsWith('List<')) {
+        return true;
+      }
       // Check for non-primitive types
       if (!this.isBuiltInType(type)) {
         return true;
@@ -248,14 +253,11 @@ export class EndpointGenerator {
       // Check for nullable non-primitive types
       if (type.endsWith('?')) {
         const baseType = type.slice(0, -1);
-        if (!this.isBuiltInType(baseType)) {
+        // Check if nullable type is an array
+        if (baseType.startsWith('List<')) {
           return true;
         }
-      }
-      // Check for List of non-primitive types
-      if (type.startsWith('List<')) {
-        const innerType = type.match(/^List<(.+?)>/)![1];
-        if (!this.isBuiltInType(innerType)) {
+        if (!this.isBuiltInType(baseType)) {
           return true;
         }
       }

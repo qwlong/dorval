@@ -341,6 +341,213 @@ describe('Models Generator', () => {
     });
   });
 
+  describe('List Type Import Generation', () => {
+    it('should generate correct imports for non-nullable List types', async () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'Test API', version: '1.0.0' },
+        components: {
+          schemas: {
+            Tag: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                name: { type: 'string' }
+              },
+              required: ['id', 'name']
+            },
+            Comment: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                text: { type: 'string' },
+                createdAt: { type: 'string', format: 'date-time' }
+              },
+              required: ['id', 'text', 'createdAt']
+            },
+            Article: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                title: { type: 'string' },
+                tags: {
+                  type: 'array',
+                  items: { $ref: '#/components/schemas/Tag' }
+                },
+                comments: {
+                  type: 'array',
+                  items: { $ref: '#/components/schemas/Comment' }
+                }
+              },
+              required: ['id', 'title', 'tags', 'comments']
+            }
+          }
+        },
+        paths: {}
+      };
+
+      const files = await generateModels(spec as any, {
+        input: spec as any,
+        output: { target: './test', mode: 'split', client: 'dio' }
+      });
+
+      const article = files.find(f => f.path === 'models/article.f.dart');
+      expect(article).toBeDefined();
+
+      // Should import the actual model files, not list_ prefixed files
+      expect(article?.content).toContain("import 'tag.f.dart';");
+      expect(article?.content).toContain("import 'comment.f.dart';");
+
+      // Should NOT have list_ prefix imports
+      expect(article?.content).not.toContain("import 'list_tag.f.dart';");
+      expect(article?.content).not.toContain("import 'list_comment.f.dart';");
+
+      // Should have correct non-nullable List types
+      expect(article?.content).toContain('required List<Tag> tags');
+      expect(article?.content).toContain('required List<Comment> comments');
+    });
+
+    it('should generate correct imports for nullable List types with oneOf', async () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'Test API', version: '1.0.0' },
+        components: {
+          schemas: {
+            Address: {
+              type: 'object',
+              properties: {
+                street: { type: 'string' },
+                city: { type: 'string' },
+                country: { type: 'string' }
+              },
+              required: ['street', 'city', 'country']
+            },
+            PhoneNumber: {
+              type: 'object',
+              properties: {
+                type: { type: 'string', enum: ['home', 'work', 'mobile'] },
+                number: { type: 'string' }
+              },
+              required: ['type', 'number']
+            },
+            Person: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                name: { type: 'string' },
+                addresses: {
+                  oneOf: [
+                    {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/Address' }
+                    },
+                    { type: 'null' }
+                  ]
+                },
+                phoneNumbers: {
+                  oneOf: [
+                    {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/PhoneNumber' }
+                    },
+                    { type: 'null' }
+                  ]
+                }
+              },
+              required: ['id', 'name', 'addresses', 'phoneNumbers']
+            }
+          }
+        },
+        paths: {}
+      };
+
+      const files = await generateModels(spec as any, {
+        input: spec as any,
+        output: { target: './test', mode: 'split', client: 'dio' }
+      });
+
+      const person = files.find(f => f.path === 'models/person.f.dart');
+      expect(person).toBeDefined();
+
+      // Should import the actual model files, not list_ prefixed files
+      expect(person?.content).toContain("import 'address.f.dart';");
+      expect(person?.content).toContain("import 'phone_number.f.dart';");
+
+      // Should NOT have list_ prefix imports
+      expect(person?.content).not.toContain("import 'list_address.f.dart';");
+      expect(person?.content).not.toContain("import 'list_phone_number.f.dart';");
+
+      // Should have correct nullable List types
+      expect(person?.content).toContain('required List<Address>? addresses');
+      expect(person?.content).toContain('required List<PhoneNumber>? phoneNumbers');
+    });
+
+    it('should handle mixed nullable and non-nullable List types', async () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'Test API', version: '1.0.0' },
+        components: {
+          schemas: {
+            Product: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                name: { type: 'string' },
+                price: { type: 'number' }
+              },
+              required: ['id', 'name', 'price']
+            },
+            ShoppingCart: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                items: {
+                  type: 'array',
+                  items: { $ref: '#/components/schemas/Product' }
+                },
+                savedItems: {
+                  oneOf: [
+                    {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/Product' }
+                    },
+                    { type: 'null' }
+                  ]
+                },
+                recentlyViewed: {
+                  type: 'array',
+                  items: { $ref: '#/components/schemas/Product' }
+                }
+              },
+              required: ['id', 'items', 'savedItems']
+            }
+          }
+        },
+        paths: {}
+      };
+
+      const files = await generateModels(spec as any, {
+        input: spec as any,
+        output: { target: './test', mode: 'split', client: 'dio' }
+      });
+
+      const cart = files.find(f => f.path === 'models/shopping_cart.f.dart');
+      expect(cart).toBeDefined();
+
+      // Should only import product.f.dart once
+      const importMatches = (cart?.content || '').match(/import 'product\.f\.dart';/g);
+      expect(importMatches?.length).toBe(1);
+
+      // Should NOT have list_ prefix import
+      expect(cart?.content).not.toContain("import 'list_product.f.dart';");
+
+      // Should have correct types
+      expect(cart?.content).toContain('required List<Product> items');
+      expect(cart?.content).toContain('required List<Product>? savedItems');
+      expect(cart?.content).toContain('List<Product>? recentlyViewed');
+    });
+  });
+
   describe('Freezed v3 Compatibility', () => {
     it('should generate abstract class for regular models (Freezed v3)', async () => {
       const spec = {

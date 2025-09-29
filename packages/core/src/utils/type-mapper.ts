@@ -238,18 +238,21 @@ export class TypeMapper {
    * Extract inner type from List<T> or Map<K,V>
    */
   static extractInnerType(type: string): string {
+    // Remove nullable marker if present for pattern matching
+    const cleanType = type.endsWith('?') ? type.slice(0, -1) : type;
+
     // Match List<Type>
-    const listMatch = type.match(/^List<(.+)>$/);
+    const listMatch = cleanType.match(/^List<(.+)>$/);
     if (listMatch) {
       return listMatch[1];
     }
-    
+
     // Match Map<String, Type>
-    const mapMatch = type.match(/^Map<String,\s*(.+)>$/);
+    const mapMatch = cleanType.match(/^Map<String,\s*(.+)>$/);
     if (mapMatch) {
       return mapMatch[1];
     }
-    
+
     return type;
   }
 

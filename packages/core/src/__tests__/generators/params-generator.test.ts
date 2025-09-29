@@ -204,6 +204,124 @@ describe('ParamsGenerator', () => {
     });
   });
 
+  describe('Array Query Parameters', () => {
+    it('should detect array parameters and include toQueryParameters method', () => {
+      const queryParams: QueryParameter[] = [
+        {
+          dartName: 'teamMemberIds',
+          originalName: 'teamMemberIds',
+          required: false,
+          type: 'List<String>',
+          description: 'List of team member IDs'
+        },
+        {
+          dartName: 'limit',
+          originalName: 'limit',
+          required: true,
+          type: 'int'
+        }
+      ];
+
+      const result = generator.generateQueryParamsModel(
+        'getShiftsSuggestedTimes',
+        queryParams
+      );
+
+      expect(result).toBeDefined();
+      expect(result?.content).toContain('toQueryParameters()');
+      expect(result?.content).toContain('const GetShiftsSuggestedTimesParams._()');
+      expect(result?.content).toContain('List<String>? teamMemberIds');
+    });
+
+    it('should detect nullable array parameters', () => {
+      const queryParams: QueryParameter[] = [
+        {
+          dartName: 'tags',
+          originalName: 'tags',
+          required: false,
+          type: 'List<String>?',
+          description: 'Optional list of tags'
+        }
+      ];
+
+      const result = generator.generateQueryParamsModel(
+        'getItems',
+        queryParams
+      );
+
+      expect(result).toBeDefined();
+      expect(result?.content).toContain('toQueryParameters()');
+      expect(result?.content).toContain('// Handle lists: key[0]=value1, key[1]=value2');
+    });
+
+    it('should handle List of non-primitive types', () => {
+      const queryParams: QueryParameter[] = [
+        {
+          dartName: 'filters',
+          originalName: 'filters',
+          required: false,
+          type: 'List<FilterDto>',
+          description: 'List of filter objects'
+        }
+      ];
+
+      const result = generator.generateQueryParamsModel(
+        'getFiltered',
+        queryParams
+      );
+
+      expect(result).toBeDefined();
+      expect(result?.content).toContain('toQueryParameters()');
+      // Arrays are always treated as complex, even with custom types
+      expect(result?.content).toContain('List<FilterDto>? filters');
+    });
+
+    it('should generate correct query parameter flattening code for arrays', () => {
+      const queryParams: QueryParameter[] = [
+        {
+          dartName: 'ids',
+          originalName: 'ids',
+          required: true,
+          type: 'List<String>'
+        }
+      ];
+
+      const result = generator.generateQueryParamsModel(
+        'getByIds',
+        queryParams
+      );
+
+      const content = result?.content || '';
+
+      // Check for the flattening logic
+      expect(content).toContain('void flatten(String prefix, dynamic value)');
+      expect(content).toContain('if (value is List)');
+      expect(content).toContain('for (var i = 0; i < value.length; i++)');
+      expect(content).toContain('final newKey = \'$prefix[$i]\'');
+    });
+
+    it('should handle empty arrays in toQueryParameters', () => {
+      const queryParams: QueryParameter[] = [
+        {
+          dartName: 'optionalIds',
+          originalName: 'optionalIds',
+          required: false,
+          type: 'List<String>'
+        }
+      ];
+
+      const result = generator.generateQueryParamsModel(
+        'queryWithOptionalArray',
+        queryParams
+      );
+
+      const content = result?.content || '';
+
+      // Should check for empty arrays
+      expect(content).toContain('if (value.isEmpty) return');
+    });
+  });
+
   describe('Complex Query Parameters', () => {
     it('should generate toQueryParameters method for complex types', () => {
       const params: QueryParameter[] = [

@@ -84,6 +84,135 @@ describe('EndpointGenerator', () => {
       expect(endpoint.queryParams).toHaveLength(1);
       expect(endpoint.queryParams[0].type).toBe('List<String>');
     });
+
+    it('should detect array parameters as complex for toQueryParameters', () => {
+      const operation: OpenAPIV3.OperationObject = {
+        operationId: 'getSuggestedTimes',
+        parameters: [
+          {
+            name: 'teamMemberIds',
+            in: 'query',
+            schema: {
+              type: 'array',
+              items: {
+                type: 'string'
+              }
+            }
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'number'
+            }
+          }
+        ],
+        responses: {
+          '200': {
+            description: 'Success',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: {
+                    type: 'object'
+                  }
+                }
+              }
+            }
+          }
+        }
+      };
+
+      const method = generator.generateGetMethod(
+        'getSuggestedTimes',
+        '/api/suggested-times',
+        operation
+      );
+
+      expect(method.hasComplexNestedQueryParams).toBe(true);
+      expect(method.queryParams).toHaveLength(2);
+      // Non-required array parameters are not nullable in OpenAPI processing
+      expect(method.queryParams[0].type).toBe('List<String>');
+    });
+
+    it('should detect required array parameters', () => {
+      const operation: OpenAPIV3.OperationObject = {
+        operationId: 'getByIds',
+        parameters: [
+          {
+            name: 'ids',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'array',
+              items: {
+                type: 'string'
+              }
+            }
+          }
+        ],
+        responses: {
+          '200': {
+            description: 'Success'
+          }
+        }
+      };
+
+      const method = generator.generateGetMethod(
+        'getByIds',
+        '/api/items',
+        operation
+      );
+
+      expect(method.hasComplexNestedQueryParams).toBe(true);
+      expect(method.queryParams[0].type).toBe('List<String>');
+      expect(method.queryParams[0].required).toBe(true);
+    });
+
+    it('should handle mixed array and object parameters', () => {
+      const operation: OpenAPIV3.OperationObject = {
+        operationId: 'complexQuery',
+        parameters: [
+          {
+            name: 'tags',
+            in: 'query',
+            schema: {
+              type: 'array',
+              items: {
+                type: 'string'
+              }
+            }
+          },
+          {
+            name: 'filter',
+            in: 'query',
+            schema: {
+              type: 'object',
+              properties: {
+                start: { type: 'string' },
+                end: { type: 'string' }
+              }
+            }
+          }
+        ],
+        responses: {
+          '200': {
+            description: 'Success'
+          }
+        }
+      };
+
+      const method = generator.generateGetMethod(
+        'complexQuery',
+        '/api/complex',
+        operation
+      );
+
+      expect(method.hasComplexNestedQueryParams).toBe(true);
+      expect(method.needsParamsModel).toBe(true);
+    });
   });
 
   describe('Method Naming', () => {
