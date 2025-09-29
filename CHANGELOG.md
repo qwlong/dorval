@@ -1,3 +1,10 @@
+## [0.4.1](https://github.com/qwlong/dorval/compare/v0.4.0...v0.4.1) (2025-09-29)
+
+
+### Bug Fixes
+
+* handle nullable List types in import generation ([45bfa68](https://github.com/qwlong/dorval/commit/45bfa6852ec8633370f45c7cb1bf057fecaac6ad))
+
 # [0.4.0](https://github.com/qwlong/dorval/compare/v0.3.2...v0.4.0) (2025-09-26)
 
 
