@@ -153,6 +153,18 @@ export class TemplateManager {
       if (!Array.isArray(array)) return '';
       return array.join(separator);
     });
+
+    // Helper to wrap string in quotes, using raw string (r'...') if it contains $
+    // This prevents Dart from trying to parse string interpolation
+    this.handlebars.registerHelper('jsonKeyQuote', (str: string) => {
+      if (!str) return "''";
+      // If string contains $ (e.g., $if, $switch), use raw string literal
+      if (str.includes('$')) {
+        return `r'${str}'`;
+      }
+      // Otherwise use regular string
+      return `'${str}'`;
+    });
   }
 
   /**

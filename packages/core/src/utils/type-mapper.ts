@@ -46,7 +46,8 @@ export class TypeMapper {
 
     // Handle $ref
     if ('$ref' in schema && schema.$ref) {
-      return this.extractTypeFromRef(schema.$ref);
+      const refName = this.extractTypeFromRef(schema.$ref);
+      return this.toDartClassName(refName);
     }
 
     // Cast to non-reference schema for property access
@@ -188,27 +189,54 @@ export class TypeMapper {
    * Convert OpenAPI property name to Dart property name
    */
   static toDartPropertyName(name: string): string {
+    // Special case: preserve names starting with $ (e.g., $if, $switch, $match)
+    // These are valid Dart identifiers even if the part after $ is a keyword
+    // because $ makes them different from the keyword itself
+    if (name.startsWith('$')) {
+      return name;  // Return as-is (e.g., $if, $switch, $else)
+    }
+
     // Handle all uppercase with underscores first (USER_NAME -> userName)
     if (name === name.toUpperCase() && name.includes('_')) {
       const parts = name.toLowerCase().split('_');
       return parts[0] + parts.slice(1).map(p => p.charAt(0).toUpperCase() + p.slice(1)).join('');
     }
-    
-    // First handle underscores and hyphens to create camelCase
+
+    // First, replace invalid characters with separators
+    // Replace common separators and special characters with hyphens temporarily
     let result = name
-      .replace(/[-_]([a-zA-Z])/g, (_, letter) => letter.toUpperCase())
-      .replace(/\.([a-zA-Z])/g, (_, letter) => letter.toUpperCase());
-    
+      .replace(/[^\w.-]/g, '-')  // Replace all non-word chars (except .-) with hyphens
+      .replace(/[-_]([a-zA-Z])/g, (_, letter) => letter.toUpperCase())  // Convert to camelCase
+      .replace(/\.([a-zA-Z])/g, (_, letter) => letter.toUpperCase());   // Handle dots
+
+    // Remove any remaining special characters
+    result = result.replace(/[^\w]/g, '');
+
     // If the result is all uppercase (and not a single char), convert to lowercase
     if (result === result.toUpperCase() && result.length > 1) {
       result = result.toLowerCase();
     }
-    
+
     // Ensure first character is lowercase for camelCase
     if (result.length > 0) {
       result = result.charAt(0).toLowerCase() + result.slice(1);
     }
-    
+
+    // If name starts with a number, prefix with underscore
+    if (result.length > 0 && /^\d/.test(result)) {
+      result = `$${result}`;
+    }
+
+    // If result is empty or invalid, use a default name
+    if (!result || result.length === 0) {
+      result = 'property';
+    }
+
+    // Escape reserved keywords by adding underscore suffix
+    if (this.isDartReservedKeyword(result)) {
+      result = `${result}_`;
+    }
+
     return result;
   }
   

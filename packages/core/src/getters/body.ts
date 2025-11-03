@@ -4,6 +4,7 @@
  */
 
 import { OpenAPIV3 } from 'openapi-types';
+import { TypeMapper } from '../utils/type-mapper';
 
 export interface BodyResult {
   type: string;
@@ -34,9 +35,9 @@ export function getBody(
   // Handle reference
   if ('$ref' in requestBody) {
     const refName = extractTypeFromRef(requestBody.$ref);
-    type = refName;
-    imports.push(`models/${toSnakeCase(refName)}.f.dart`);
-    
+    type = TypeMapper.toDartClassName(refName);
+    imports.push(`models/${TypeMapper.toSnakeCase(refName)}.f.dart`);
+
     // For references, we can't determine if required without resolving
     // Default to required for references
     isOptional = false;
@@ -112,11 +113,11 @@ function processSchema(
   operationName: string
 ): { type: string; imports: string[] } {
   const imports: string[] = [];
-  
+
   if ('$ref' in schema) {
     const refName = extractTypeFromRef(schema.$ref);
-    imports.push(`models/${toSnakeCase(refName)}.f.dart`);
-    return { type: refName, imports };
+    imports.push(`models/${TypeMapper.toSnakeCase(refName)}.f.dart`);
+    return { type: TypeMapper.toDartClassName(refName), imports };
   }
   
   // Inline schema
@@ -171,10 +172,10 @@ function processFormDataSchema(
   
   if ('$ref' in schema) {
     const refName = extractTypeFromRef(schema.$ref);
-    imports.push(`models/${toSnakeCase(refName)}.f.dart`);
-    return { type: refName, imports };
+    imports.push(`models/${TypeMapper.toSnakeCase(refName)}.f.dart`);
+    return { type: TypeMapper.toDartClassName(refName), imports };
   }
-  
+
   // For form data, we typically use FormData type
   imports.push('package:dio/dio.dart');
   

@@ -24,7 +24,7 @@ sealed class {{className}} with _${{className}} {
     /// {{description}}
     {{/if}}
     {{#if jsonKey}}
-    @JsonKey(name: '{{jsonKey}}')
+    @JsonKey(name: {{{jsonKeyQuote jsonKey}}})
     {{/if}}
     {{#if defaultValue}}
     @Default({{{defaultValue}}}) {{{type}}} {{{name}}},

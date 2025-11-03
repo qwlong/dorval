@@ -20,7 +20,7 @@ abstract class {{className}} with _${{className}} {
 {{{dartDoc description indent=4}}}
     {{/if}}
     {{#if jsonKey}}
-    @JsonKey(name: '{{jsonKey}}')
+    @JsonKey(name: {{{jsonKeyQuote jsonKey}}})
     {{/if}}
     {{#if required}}required {{{type}}} {{name}},{{else}}{{{type}}}? {{name}},{{/if}}
 {{#unless @last}}

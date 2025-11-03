@@ -80,7 +80,7 @@ export class ModelGenerator {
       Object.entries(finalProperties).forEach(([propName, propSchema]) => {
         const dartName = TypeMapper.toDartPropertyName(propName);
         const isRequired = requiredFields.has(propName);
-        
+
         // Use ReferenceResolver to handle both direct references and regular schemas
         let dartType: string;
         if (this.refResolver) {
@@ -125,7 +125,8 @@ export class ModelGenerator {
           nullable: !isRequired || propDetails.nullable === true,
           description: propDetails.description,
           defaultValue: propDetails.default,
-          jsonKey: dartName !== propName ? propName : undefined
+          // Always add jsonKey if names differ OR if propName contains $ (for raw string handling)
+          jsonKey: (dartName !== propName || propName.includes('$')) ? propName : undefined
         });
       });
     }

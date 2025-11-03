@@ -137,6 +137,12 @@ describe('TypeMapper', () => {
       expect(TypeMapper.toDartClassName('UserProfile')).toBe('UserProfile');
       expect(TypeMapper.toDartClassName('APIResponse')).toBe('ApiResponse');
     });
+
+    it('should handle complex hyphenated schema names', () => {
+      expect(TypeMapper.toDartClassName('Account-Link-Flow-UpdateInput')).toBe('AccountLinkFlowUpdateInput');
+      expect(TypeMapper.toDartClassName('User-Profile-Data')).toBe('UserProfileData');
+      expect(TypeMapper.toDartClassName('API-Response-V2')).toBe('ApiResponseV2');
+    });
   });
 
   describe('toDartPropertyName', () => {
@@ -162,6 +168,50 @@ describe('TypeMapper', () => {
     it('should handle already camelCase', () => {
       expect(TypeMapper.toDartPropertyName('userName')).toBe('userName');
       expect(TypeMapper.toDartPropertyName('isActive')).toBe('isActive');
+    });
+
+    it('should escape Dart reserved keywords', () => {
+      expect(TypeMapper.toDartPropertyName('is')).toBe('is_');
+      expect(TypeMapper.toDartPropertyName('else')).toBe('else_');
+      expect(TypeMapper.toDartPropertyName('class')).toBe('class_');
+      expect(TypeMapper.toDartPropertyName('for')).toBe('for_');
+      expect(TypeMapper.toDartPropertyName('default')).toBe('default_');
+      expect(TypeMapper.toDartPropertyName('if')).toBe('if_');
+      expect(TypeMapper.toDartPropertyName('return')).toBe('return_');
+      expect(TypeMapper.toDartPropertyName('switch')).toBe('switch_');
+    });
+
+    it('should handle special characters by converting to camelCase', () => {
+      expect(TypeMapper.toDartPropertyName('user@name')).toBe('userName');
+      expect(TypeMapper.toDartPropertyName('user#id')).toBe('userId');
+      expect(TypeMapper.toDartPropertyName('user$price')).toBe('userPrice');
+      expect(TypeMapper.toDartPropertyName('user name')).toBe('userName');
+      expect(TypeMapper.toDartPropertyName('user/path')).toBe('userPath');
+      expect(TypeMapper.toDartPropertyName('user*count')).toBe('userCount');
+      expect(TypeMapper.toDartPropertyName('user&flag')).toBe('userFlag');
+      expect(TypeMapper.toDartPropertyName('user%value')).toBe('userValue');
+    });
+
+    it('should handle names starting with numbers', () => {
+      expect(TypeMapper.toDartPropertyName('123test')).toBe('$123test');
+      expect(TypeMapper.toDartPropertyName('2fa_code')).toBe('$2faCode');
+    });
+
+    it('should handle empty or invalid names', () => {
+      expect(TypeMapper.toDartPropertyName('')).toBe('property');
+      expect(TypeMapper.toDartPropertyName('@#$%')).toBe('property');
+    });
+
+    it('should preserve MongoDB operators starting with $', () => {
+      // MongoDB operators should keep their $ prefix exactly as-is
+      // The $ prefix makes them valid identifiers even if the part after $ is a keyword
+      expect(TypeMapper.toDartPropertyName('$if')).toBe('$if');
+      expect(TypeMapper.toDartPropertyName('$switch')).toBe('$switch');
+      expect(TypeMapper.toDartPropertyName('$else')).toBe('$else');
+      expect(TypeMapper.toDartPropertyName('$match')).toBe('$match');
+      expect(TypeMapper.toDartPropertyName('$eval')).toBe('$eval');
+      expect(TypeMapper.toDartPropertyName('$let')).toBe('$let');
+      expect(TypeMapper.toDartPropertyName('$find')).toBe('$find');
     });
   });
 

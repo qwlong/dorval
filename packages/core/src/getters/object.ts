@@ -233,7 +233,8 @@ function processProperty(
     nullable,
     description: propSchema.description,
     defaultValue: propSchema.default,
-    jsonKey: dartName !== propName ? propName : undefined
+    // Always add jsonKey if names differ OR if propName contains $ (for raw string handling)
+    jsonKey: (dartName !== propName || propName.includes('$')) ? propName : undefined
   };
 }
 
