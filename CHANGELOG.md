@@ -1,3 +1,10 @@
+# [0.5.0](https://github.com/qwlong/dorval/compare/v0.4.1...v0.5.0) (2025-11-03)
+
+
+### Features
+
+* Add support for MongoDB operators and special JSON keys ([af784eb](https://github.com/qwlong/dorval/commit/af784ebe998fb4e030e46bd297cc505d4b154322))
+
 ## [0.4.1](https://github.com/qwlong/dorval/compare/v0.4.0...v0.4.1) (2025-09-29)
 
 
