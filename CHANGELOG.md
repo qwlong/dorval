@@ -1,3 +1,10 @@
+# [0.6.0](https://github.com/qwlong/dorval/compare/v0.5.0...v0.6.0) (2025-11-06)
+
+
+### Features
+
+* improve nullable response handling and clean up debug logs ([14ae8da](https://github.com/qwlong/dorval/commit/14ae8dabfb7d9dae7f5a3a61d1c665d54d40df32))
+
 # [0.5.0](https://github.com/qwlong/dorval/compare/v0.4.1...v0.5.0) (2025-11-03)
 
 
