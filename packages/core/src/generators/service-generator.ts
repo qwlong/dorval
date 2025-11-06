@@ -99,13 +99,11 @@ export class ServiceGenerator {
           // eslint-disable-next-line @typescript-eslint/no-require-imports
           const customBuilder = require('@dorval/custom');
           this.clientBuilder = customBuilder.builder()();
-          console.log('Loaded @dorval/custom client builder');
         } catch {
           // Try relative path
           // eslint-disable-next-line @typescript-eslint/no-require-imports
           const customBuilder = require('../../custom/dist');
           this.clientBuilder = customBuilder.builder()();
-          console.log('Loaded custom client builder from relative path');
         }
       } else if (clientType === 'dio') {
         // Try to load Dio client builder
@@ -113,13 +111,11 @@ export class ServiceGenerator {
           // eslint-disable-next-line @typescript-eslint/no-require-imports
           const dioBuilder = require('@dorval/dio');
           this.clientBuilder = dioBuilder.builder()();
-          console.log('Loaded @dorval/dio client builder');
         } catch {
           // Try relative path
           // eslint-disable-next-line @typescript-eslint/no-require-imports
           const dioBuilder = require('../../dio/dist');
           this.clientBuilder = dioBuilder.builder()();
-          console.log('Loaded dio client builder from relative path');
         }
       } else {
         // Default to Dio
@@ -161,7 +157,6 @@ export class ServiceGenerator {
     if (options.output.override?.headers && options.output.override.headers.definitions) {
       // New headers configuration with custom-matching
       this.headersGenerator = new HeadersGenerator(options.output.override.headers as any);
-      console.log('Initialized HeadersGenerator with config:', options.output.override.headers);
     } else if (options.output.override?.sharedHeaders) {
       // Legacy shared headers configuration - convert to new format
       const convertedDefinitions: { [className: string]: any } = {};
@@ -177,7 +172,6 @@ export class ServiceGenerator {
         matchStrategy: 'exact' as const
       };
       this.headersGenerator = new HeadersGenerator(convertedConfig);
-      console.log('Converted legacy sharedHeaders to new HeadersGenerator config');
     }
     
     // Store the original spec - it should already have $refs preserved from parseOpenAPISpec
@@ -232,7 +226,7 @@ export class ServiceGenerator {
       // Print matching report
       const report = this.headersGenerator.generateReport();
       console.log('\n' + report);
-      console.log(`Total header files generated: ${allHeaderFiles.length} (${consolidatedHeaderFiles.length} consolidated, ${headerFiles.length} endpoint-specific)`);
+      console.log(`\nTotal header files generated: ${allHeaderFiles.length} (${consolidatedHeaderFiles.length} consolidated, ${headerFiles.length} endpoint-specific)`);
     } else {
       // Original behavior
       files.push(...headerFiles);
@@ -387,7 +381,6 @@ export class ServiceGenerator {
           if (matchedClassName) {
             // Found a match - use the consolidated header class
             endpointMethod.headersModelName = matchedClassName;
-            console.log(`Matched endpoint ${path} to header class: ${matchedClassName}`);
           } else {
             // No match - generate endpoint-specific header class
             if (endpointMethod.headersModelName && !generatedParamModels.has(endpointMethod.headersModelName)) {

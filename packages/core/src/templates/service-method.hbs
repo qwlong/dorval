@@ -85,6 +85,23 @@
       
       {{#if returnsVoid}}
       return;
+      {{else if returnsNullable}}
+      // Handle 204 No Content or null response for nullable return type
+      if (response.statusCode == 204 || response.data == null) {
+        return null;
+      }
+
+      {{#if returnsList}}
+      return (response.data as List<dynamic>)
+          .map((item) => {{{itemType}}}.fromJson(item as Map<String, dynamic>))
+          .toList();
+      {{else if returnsModel}}
+      return {{{responseDataType}}}.fromJson(response.data as Map<String, dynamic>);
+      {{else if returnsPrimitive}}
+      return response.data as {{{responseDataType}}};
+      {{else}}
+      return response.data;
+      {{/if}}
       {{else if returnsList}}
       return (response.data as List<dynamic>)
           .map((item) => {{{itemType}}}.fromJson(item as Map<String, dynamic>))

@@ -26,8 +26,9 @@ export interface EndpointMethod {
   bodyParam?: string;
   bodyType?: string;
   returnType: string;
-  responseDataType?: string;
+  responseDataType?: string;      // Non-nullable data type (for use with fromJson)
   returnsVoid: boolean;
+  returnsNullable: boolean;       // Whether return type is nullable (ends with ?)
   returnsList: boolean;
   returnsModel: boolean;
   returnsPrimitive: boolean;
@@ -184,6 +185,7 @@ export class EndpointGenerator {
       returnType: returnType.type,
       responseDataType: returnType.dataType,
       returnsVoid: returnType.isVoid,
+      returnsNullable: returnType.isNullable,
       returnsList: returnType.isList,
       returnsModel: returnType.isModel,
       returnsPrimitive: returnType.isPrimitive,
@@ -286,6 +288,7 @@ export class EndpointGenerator {
       returnType: returnType.type,
       responseDataType: returnType.dataType,
       returnsVoid: returnType.isVoid,
+      returnsNullable: returnType.isNullable,
       returnsList: returnType.isList,
       returnsModel: returnType.isModel,
       returnsPrimitive: returnType.isPrimitive,
@@ -512,6 +515,7 @@ export class EndpointGenerator {
     type: string;
     dataType?: string;
     isVoid: boolean;
+    isNullable: boolean;
     isList: boolean;
     isModel: boolean;
     isPrimitive: boolean;
@@ -521,121 +525,226 @@ export class EndpointGenerator {
       return {
         type: 'void',
         isVoid: true,
+        isNullable: false,
         isList: false,
         isModel: false,
         isPrimitive: false
       };
     }
-    
+
     const content = response.content['application/json'];
     if (!content || !content.schema) {
       return {
         type: 'dynamic',
         isVoid: false,
+        isNullable: false,
         isList: false,
         isModel: false,
         isPrimitive: false
       };
     }
-    
+
     const schema = content.schema;
-    
+
+    // Cast to non-reference schema
+    const schemaObj = schema as OpenAPIV3.SchemaObject;
+
+    // Check if schema is nullable (handles both nullable: true and oneOf patterns)
+    const isNullable = schemaObj.nullable === true || TypeMapper.isNullable(schemaObj);
+
+    // Check for oneOf nullable pattern FIRST (before other checks)
+    if (schemaObj.oneOf && TypeMapper.isNullableOneOf(schemaObj)) {
+      const nonNullSchema = TypeMapper.getNonNullTypeFromOneOf(schemaObj);
+      // Recursively process the non-null schema
+      const baseResult = this.getReturnType({
+        ...response,
+        content: {
+          'application/json': {
+            schema: nonNullSchema
+          }
+        }
+      });
+      // Add nullable marker to the type and set isNullable flag
+      return {
+        ...baseResult,
+        type: baseResult.type.endsWith('?') ? baseResult.type : `${baseResult.type}?`,
+        isNullable: true
+      };
+    }
+
+    // Check for anyOf nullable pattern
+    if (schemaObj.anyOf && Array.isArray(schemaObj.anyOf) && schemaObj.anyOf.length === 2) {
+      const hasNull = schemaObj.anyOf.some((s: any) => s && typeof s === 'object' && s.type === 'null');
+      const nonNullSchema = schemaObj.anyOf.find((s: any) => s && typeof s === 'object' && s.type !== 'null');
+
+      if (hasNull && nonNullSchema) {
+        const baseResult = this.getReturnType({
+          ...response,
+          content: {
+            'application/json': {
+              schema: nonNullSchema as any
+            }
+          }
+        });
+        return {
+          ...baseResult,
+          type: baseResult.type.endsWith('?') ? baseResult.type : `${baseResult.type}?`,
+          isNullable: true
+        };
+      }
+    }
+
+    // Check for single-element oneOf (extract the single schema)
+    if (schemaObj.oneOf && Array.isArray(schemaObj.oneOf) && schemaObj.oneOf.length === 1) {
+      const singleSchema = schemaObj.oneOf[0];
+      const baseResult = this.getReturnType({
+        ...response,
+        content: {
+          'application/json': {
+            schema: singleSchema as any
+          }
+        }
+      });
+      // If the original schema was marked as nullable (e.g., from 204 response),
+      // preserve the nullable flag
+      if (isNullable && !baseResult.type.endsWith('?')) {
+        return {
+          ...baseResult,
+          type: `${baseResult.type}?`,
+          isNullable: true
+        };
+      }
+      return baseResult;
+    }
+
     // Use ReferenceResolver if available
     if (this.referenceResolver && ReferenceResolver.isReference(schema)) {
       const modelName = ReferenceResolver.extractModelNameFromRef(schema.$ref);
+      const type = isNullable ? `${modelName}?` : modelName;
       return {
-        type: modelName,
-        dataType: modelName,
+        type,
+        dataType: modelName, // Always use non-nullable for fromJson
         isVoid: false,
+        isNullable,
         isList: false,
         isModel: true,
         isPrimitive: false
       };
     }
-    
+
     // Legacy fallback: Check if schema has a reference to a model
     if (schema && '$ref' in schema) {
       const modelName = this.getModelNameFromRef((schema as any).$ref);
+      const type = isNullable ? `${modelName}?` : modelName;
       return {
-        type: modelName,
-        dataType: modelName,
+        type,
+        dataType: modelName, // Always use non-nullable for fromJson
         isVoid: false,
+        isNullable,
         isList: false,
         isModel: true,
         isPrimitive: false
       };
     }
-    
-    const schemaObj = schema as OpenAPIV3.SchemaObject;
-    
+
     // Check if it's a list
     const isList = schemaObj.type === 'array';
     let itemType: string | undefined;
     let dataType: string | undefined;
-    
+
     if (isList && schemaObj.items) {
       const items = schemaObj.items as OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject;
       if ('$ref' in items) {
         itemType = this.getModelNameFromRef(items.$ref);
         dataType = `List<${itemType}>`;
       } else {
-        itemType = TypeMapper.mapType(items as OpenAPIV3.SchemaObject);
+        // Try to match item schema with a model
+        const itemSchema = items as OpenAPIV3.SchemaObject;
+        if (itemSchema.type === 'object' && itemSchema.properties) {
+          // Try to find matching schema
+          const matchedModelName = this.findMatchingSchemaName(itemSchema);
+          if (matchedModelName) {
+            itemType = matchedModelName;
+          } else {
+            itemType = TypeMapper.mapType(itemSchema);
+          }
+        } else {
+          itemType = TypeMapper.mapType(itemSchema);
+        }
         dataType = `List<${itemType}>`;
       }
-      
+
+      const type = isNullable ? `${dataType}?` : dataType;
       return {
-        type: dataType,
-        dataType,
+        type,
+        dataType,  // Non-nullable data type for processing
         isVoid: false,
+        isNullable,
         isList: true,
         isModel: false,
         isPrimitive: false,
         itemType
       };
     }
-    
+
     // Check if it's a model (custom class)
-    const isModel = !isList && 
-                    schemaObj.type === 'object' && 
+    const isModel = !isList &&
+                    schemaObj.type === 'object' &&
                     schemaObj.properties !== undefined;
-    
-    if (isModel && schemaObj.title) {
-      // Use the title as the model name if available
-      const modelName = TypeMapper.toDartClassName(schemaObj.title);
-      return {
-        type: modelName,
-        dataType: modelName,
-        isVoid: false,
-        isList: false,
-        isModel: true,
-        isPrimitive: false
-      };
+
+    if (isModel) {
+      // Try to find matching model in schemas
+      let modelName: string | null = null;
+
+      if (schemaObj.title) {
+        modelName = TypeMapper.toDartClassName(schemaObj.title);
+      } else if (this.schemas && schemaObj.required && schemaObj.properties) {
+        // Look for a matching schema by comparing properties and required fields
+        modelName = this.findMatchingSchemaName(schemaObj);
+      }
+
+      if (modelName) {
+        const type = isNullable ? `${modelName}?` : modelName;
+        return {
+          type,
+          dataType: modelName,  // Always use non-nullable for fromJson
+          isVoid: false,
+          isNullable,
+          isList: false,
+          isModel: true,
+          isPrimitive: false
+        };
+      }
     }
-    
+
     // For plain objects without title, check if it's a Map
     if (schemaObj.type === 'object' && !schemaObj.properties) {
       // This is likely a Map<String, dynamic>
       const dartType = 'Map<String, dynamic>';
+      const type = isNullable ? `${dartType}?` : dartType;
       return {
-        type: dartType,
+        type,
         dataType: undefined,
         isVoid: false,
+        isNullable,
         isList: false,
         isModel: false,
         isPrimitive: false
       };
     }
-    
+
     const dartType = TypeMapper.mapType(schemaObj);
-    
+    const type = isNullable ? `${dartType}?` : dartType;
+
     // Check if it's a primitive
     const primitiveTypes = ['String', 'int', 'double', 'bool', 'num'];
     const isPrimitive = primitiveTypes.includes(dartType);
-    
+
     return {
-      type: dartType,
+      type,
       dataType: isModel || isList ? dartType : undefined,
       isVoid: false,
+      isNullable,
       isList,
       isModel,
       isPrimitive,
@@ -652,37 +761,87 @@ export class EndpointGenerator {
     const name = parts[parts.length - 1];
     return TypeMapper.toDartClassName(name);
   }
+
+  /**
+   * Find matching schema name by comparing properties and required fields
+   * This helps identify schemas that have been dereferenced by the OpenAPI parser
+   */
+  private findMatchingSchemaName(schema: OpenAPIV3.SchemaObject): string | null {
+    if (!this.schemas) {
+      return null;
+    }
+
+    const schemaProps = Object.keys(schema.properties || {}).sort();
+    const schemaRequired = (schema.required || []).sort();
+
+    // Search through all schemas to find a match
+    for (const [schemaName, schemaObj] of Object.entries(this.schemas)) {
+      if (schemaObj && typeof schemaObj === 'object' && schemaObj.type === 'object') {
+        const candidateProps = Object.keys(schemaObj.properties || {}).sort();
+        const candidateRequired = (schemaObj.required || []).sort();
+
+        // Compare properties and required fields
+        if (
+          JSON.stringify(schemaProps) === JSON.stringify(candidateProps) &&
+          JSON.stringify(schemaRequired) === JSON.stringify(candidateRequired)
+        ) {
+          return TypeMapper.toDartClassName(schemaName);
+        }
+      }
+    }
+
+    return null;
+  }
   
   /**
    * Get original response from spec to preserve $ref
+   * Also checks if 204 No Content is present
    */
   private getOriginalResponse(method: string, path: string): OpenAPIV3.ResponseObject | null {
     if (!this.originalSpec) {
       return null;
     }
-    
+
     const pathItem = this.originalSpec.paths?.[path];
     if (!pathItem) {
       return null;
     }
-    
+
     const operation = (pathItem as any)[method] as OpenAPIV3.OperationObject;
     if (!operation || !operation.responses) {
       return null;
     }
-    
-    // Check for success status codes
-    const successCodes = ['200', '201', '202', '204'];
+
+    // Check if 204 No Content is defined
+    const has204Response = operation.responses['204'] !== undefined;
+
+    // Check for success status codes (prioritize 200, 201, 202 over 204)
+    const successCodes = ['200', '201', '202'];
     for (const code of successCodes) {
       if (operation.responses[code]) {
         const response = operation.responses[code];
         if ('$ref' in response) continue;
-        
-        
-        return response as OpenAPIV3.ResponseObject;
+
+        // If 204 is also present, mark the response as nullable
+        const responseObj = response as OpenAPIV3.ResponseObject;
+        if (has204Response && responseObj.content) {
+          // Add nullable marker to the schema
+          const content = responseObj.content['application/json'];
+          if (content && content.schema) {
+            const schema = content.schema as any;
+            schema.nullable = true;
+          }
+        }
+
+        return responseObj;
       }
     }
-    
+
+    // If only 204 is present, return void response
+    if (has204Response) {
+      return operation.responses['204'] as OpenAPIV3.ResponseObject;
+    }
+
     return null;
   }
 

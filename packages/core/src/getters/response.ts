@@ -4,6 +4,7 @@
  */
 
 import { OpenAPIV3 } from 'openapi-types';
+import { TypeMapper } from '../utils/type-mapper';
 
 export interface ResponseInfo {
   statusCode: string;
@@ -174,15 +175,48 @@ function processResponse(
 function getResponseType(
   schema: OpenAPIV3.ReferenceObject | OpenAPIV3.SchemaObject,
   operationName: string
-): { type: string; imports: string[] } {
+): { type: string; imports: string[]; nullable?: boolean } {
   const imports: string[] = [];
-  
+
   if ('$ref' in schema) {
     const refName = extractRefName(schema.$ref);
     imports.push(`models/${toSnakeCase(refName)}.f.dart`);
     return { type: refName, imports };
   }
-  
+
+  // Check for oneOf nullable pattern (e.g., oneOf: [Type, null])
+  if (schema.oneOf && TypeMapper.isNullableOneOf(schema)) {
+    const nonNullSchema = TypeMapper.getNonNullTypeFromOneOf(schema);
+    const baseTypeInfo = getResponseType(nonNullSchema, operationName);
+    // Mark as nullable by adding ? to the type
+    const nullableType = baseTypeInfo.type.endsWith('?')
+      ? baseTypeInfo.type
+      : `${baseTypeInfo.type}?`;
+    return {
+      type: nullableType,
+      imports: baseTypeInfo.imports,
+      nullable: true
+    };
+  }
+
+  // Check for anyOf nullable pattern
+  if (schema.anyOf && Array.isArray(schema.anyOf) && schema.anyOf.length === 2) {
+    const hasNull = schema.anyOf.some((s: any) => s && typeof s === 'object' && s.type === 'null');
+    const nonNullSchema = schema.anyOf.find((s: any) => s && typeof s === 'object' && s.type !== 'null');
+
+    if (hasNull && nonNullSchema) {
+      const baseTypeInfo = getResponseType(nonNullSchema as any, operationName);
+      const nullableType = baseTypeInfo.type.endsWith('?')
+        ? baseTypeInfo.type
+        : `${baseTypeInfo.type}?`;
+      return {
+        type: nullableType,
+        imports: baseTypeInfo.imports,
+        nullable: true
+      };
+    }
+  }
+
   // Handle inline schema
   switch (schema.type) {
     case 'object':
@@ -193,7 +227,7 @@ function getResponseType(
         return { type: typeName, imports };
       }
       return { type: 'Map<String, dynamic>', imports };
-    
+
     case 'array':
       if (schema.items) {
         const itemType = getResponseType(schema.items, operationName);
@@ -201,23 +235,23 @@ function getResponseType(
         return { type: `List<${itemType.type}>`, imports };
       }
       return { type: 'List<dynamic>', imports };
-    
+
     case 'string':
       if (schema.format === 'binary') {
         imports.push('dart:typed_data');
         return { type: 'Uint8List', imports };
       }
       return { type: 'String', imports };
-    
+
     case 'integer':
       return { type: 'int', imports };
-    
+
     case 'number':
       return { type: 'double', imports };
-    
+
     case 'boolean':
       return { type: 'bool', imports };
-    
+
     default:
       return { type: 'dynamic', imports };
   }

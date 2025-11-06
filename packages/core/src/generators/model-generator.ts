@@ -11,7 +11,6 @@ import { TemplateManager } from '../templates/template-manager';
 export class ModelGenerator {
   private templateManager: TemplateManager;
   private refResolver?: ReferenceResolver;
-  private debugCount: number = 0;
 
   constructor() {
     this.templateManager = new TemplateManager();
@@ -187,17 +186,6 @@ export class ModelGenerator {
       hasCustomMethods: false,
       customMethods: []
     };
-
-    // Debug: Log first few models
-    if (this.debugCount === undefined) {
-      this.debugCount = 0;
-    }
-    if (this.debugCount++ < 3) {
-      console.log(`DEBUG: Model ${model.name}:`, JSON.stringify({
-        className: templateData.className,
-        propertiesCount: templateData.properties.length
-      }, null, 2));
-    }
 
     return this.templateManager.render('freezed-model', templateData);
   }

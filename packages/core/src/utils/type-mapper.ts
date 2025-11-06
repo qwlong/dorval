@@ -512,12 +512,13 @@ export class TypeMapper {
     if (!schema.oneOf || !this.isNullableOneOf(schema)) {
       return schema;
     }
-    
-    // Find the non-null schema
-    const nonNullSchema = schema.oneOf.find((s: any) => 
-      s && typeof s === 'object' && s.type !== 'null'
+
+    // Find the non-null schema (could be a type or a $ref)
+    // We want schemas that either have a $ref OR have a type that's not 'null'
+    const nonNullSchema = schema.oneOf.find((s: any) =>
+      s && typeof s === 'object' && (s.$ref || (s.type && s.type !== 'null'))
     );
-    
+
     return nonNullSchema || { type: 'string' };
   }
 
