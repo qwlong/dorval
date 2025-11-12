@@ -1,3 +1,10 @@
+# [0.7.0](https://github.com/qwlong/dorval/compare/v0.6.0...v0.7.0) (2025-11-12)
+
+
+### Features
+
+* add empty object handling and fix type casting in service methods ([b93db7b](https://github.com/qwlong/dorval/commit/b93db7b1212c809edc40dcc0d6172c597eda4e87))
+
 # [0.6.0](https://github.com/qwlong/dorval/compare/v0.5.0...v0.6.0) (2025-11-06)
 
 
