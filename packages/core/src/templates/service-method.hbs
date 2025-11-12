@@ -100,8 +100,8 @@
       {{else if returnsPrimitive}}
       return response.data as {{{responseDataType}}};
       {{else}}
-      return response.data;
-      {{/if}}
+      return response.data as {{{returnType}}};
+{{/if}}
       {{else if returnsList}}
       return (response.data as List<dynamic>)
           .map((item) => {{{itemType}}}.fromJson(item as Map<String, dynamic>))
@@ -111,8 +111,8 @@
       {{else if returnsPrimitive}}
       return response.data as {{{returnType}}};
       {{else}}
-      return response.data;
-      {{/if}}
+      return response.data as {{{returnType}}};
+{{/if}}
     } on DioException catch (e) {
       {{#if hasErrorHandling}}
       // Handle specific error responses

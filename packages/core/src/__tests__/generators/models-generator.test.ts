@@ -290,7 +290,7 @@ describe('Models Generator', () => {
   });
 
   describe('Edge Cases', () => {
-    it('should skip empty schemas', async () => {
+    it('should generate typedef for empty object schemas', async () => {
       const spec = {
         openapi: '3.0.0',
         info: { title: 'Test API', version: '1.0.0' },
@@ -298,6 +298,14 @@ describe('Models Generator', () => {
           schemas: {
             EmptyObject: {
               type: 'object'
+            },
+            EmptyObjectWithDescription: {
+              type: 'object',
+              description: 'An empty response object'
+            },
+            EmptyObjectWithAdditionalProperties: {
+              type: 'object',
+              additionalProperties: {}
             },
             ValidObject: {
               type: 'object',
@@ -315,11 +323,29 @@ describe('Models Generator', () => {
         output: { target: './test', mode: 'split', client: 'dio' }
       });
 
+      // Empty object should generate typedef
       const emptyModel = files.find(f => f.path === 'models/empty_object.f.dart');
+      expect(emptyModel).toBeDefined();
+      expect(emptyModel?.content).toContain('typedef EmptyObject = Map<String, dynamic>;');
+      expect(emptyModel?.content).not.toContain('@freezed');
+      expect(emptyModel?.content).not.toContain('abstract class');
+
+      // Empty object with description should include description
+      const emptyWithDesc = files.find(f => f.path === 'models/empty_object_with_description.f.dart');
+      expect(emptyWithDesc).toBeDefined();
+      expect(emptyWithDesc?.content).toContain('/// An empty response object');
+      expect(emptyWithDesc?.content).toContain('typedef EmptyObjectWithDescription = Map<String, dynamic>;');
+
+      // Empty object with additionalProperties should also generate typedef
+      const emptyWithAdditional = files.find(f => f.path === 'models/empty_object_with_additional_properties.f.dart');
+      expect(emptyWithAdditional).toBeDefined();
+      expect(emptyWithAdditional?.content).toContain('typedef EmptyObjectWithAdditionalProperties = Map<String, dynamic>;');
+
+      // Valid object should still generate Freezed model
       const validModel = files.find(f => f.path === 'models/valid_object.f.dart');
-      
-      expect(emptyModel).toBeUndefined();
       expect(validModel).toBeDefined();
+      expect(validModel?.content).toContain('@freezed');
+      expect(validModel?.content).toContain('abstract class ValidObject');
     });
 
     it('should handle schemas with no components', async () => {

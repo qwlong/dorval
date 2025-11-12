@@ -27,11 +27,73 @@ export class ModelGenerator {
    * Generate a Freezed model from OpenAPI schema
    */
   generateModel(name: string, schema: OpenAPIV3.SchemaObject): GeneratedFile {
+    // Check if this is an empty object schema
+    if (this.isEmptyObject(schema)) {
+      return this.generateTypedef(name, schema);
+    }
+
     const dartModel = this.schemaToModel(name, schema);
     const content = this.renderModel(dartModel);
-    
+
     return {
       path: `models/${TypeMapper.toSnakeCase(name)}.f.dart`,
+      content
+    };
+  }
+
+  /**
+   * Check if a schema represents an empty object
+   * Empty objects are defined as:
+   * - type: "object" with no properties
+   * - type: "object" with additionalProperties but no properties
+   */
+  private isEmptyObject(schema: OpenAPIV3.SchemaObject): boolean {
+    // Must be an object type
+    if (schema.type !== 'object') {
+      return false;
+    }
+
+    // Check if has allOf - if so, need to check merged properties
+    if (schema.allOf && schema.allOf.length > 0) {
+      let hasAnyProperties = false;
+      for (const subSchema of schema.allOf) {
+        let resolved: OpenAPIV3.SchemaObject;
+        if ('$ref' in subSchema && this.refResolver) {
+          resolved = this.refResolver.resolveReference(subSchema.$ref) as OpenAPIV3.SchemaObject;
+        } else {
+          resolved = subSchema as OpenAPIV3.SchemaObject;
+        }
+        if (resolved && resolved.properties && Object.keys(resolved.properties).length > 0) {
+          hasAnyProperties = true;
+          break;
+        }
+      }
+      if (hasAnyProperties) {
+        return false;
+      }
+    }
+
+    // Check if properties is undefined, null, or empty object
+    if (!schema.properties || Object.keys(schema.properties).length === 0) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Generate a typedef for empty object schemas
+   */
+  private generateTypedef(name: string, schema: OpenAPIV3.SchemaObject): GeneratedFile {
+    const className = TypeMapper.toDartClassName(name);
+    const fileName = TypeMapper.toSnakeCase(name);
+
+    const content = `// Generated typedef for empty object schema
+${schema.description ? `/// ${schema.description}\n` : ''}typedef ${className} = Map<String, dynamic>;
+`;
+
+    return {
+      path: `models/${fileName}.f.dart`,
       content
     };
   }

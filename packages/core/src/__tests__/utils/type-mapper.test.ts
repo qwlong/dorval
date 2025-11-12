@@ -309,22 +309,4 @@ describe('TypeMapper', () => {
       expect(TypeMapper.isDartReservedKeyword('className')).toBe(false);
     });
   });
-
-  // sanitizeDartIdentifier method is not implemented yet
-  describe.skip('sanitizeDartIdentifier', () => {
-    it('should escape Dart keywords', () => {
-      // expect(TypeMapper.sanitizeDartIdentifier('class')).toBe('class_');
-      // expect(TypeMapper.sanitizeDartIdentifier('enum')).toBe('enum_');
-      // expect(TypeMapper.sanitizeDartIdentifier('default')).toBe('default_');
-    });
-
-    it('should not escape non-keywords', () => {
-      // expect(TypeMapper.sanitizeDartIdentifier('user')).toBe('user');
-      // expect(TypeMapper.sanitizeDartIdentifier('name')).toBe('name');
-    });
-
-    it('should handle empty string', () => {
-      // expect(TypeMapper.sanitizeDartIdentifier('')).toBe('');
-    });
-  });
 });

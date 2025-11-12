@@ -620,6 +620,31 @@ export class EndpointGenerator {
     // Use ReferenceResolver if available
     if (this.referenceResolver && ReferenceResolver.isReference(schema)) {
       const modelName = ReferenceResolver.extractModelNameFromRef(schema.$ref);
+
+      // Check if the referenced schema is an empty object (which becomes a typedef)
+      // Empty objects are typedefs to Map<String, dynamic>, not Freezed models
+      const referencedSchema = this.referenceResolver.resolveReference(schema.$ref);
+      const isEmptyObject = referencedSchema &&
+                           referencedSchema.type === 'object' &&
+                           (!referencedSchema.properties || Object.keys(referencedSchema.properties).length === 0) &&
+                           !referencedSchema.allOf && !referencedSchema.oneOf && !referencedSchema.anyOf;
+
+      if (isEmptyObject) {
+        // This is a typedef to Map<String, dynamic>, not a model with fromJson
+        const dartType = 'Map<String, dynamic>';
+        const type = isNullable ? `${dartType}?` : dartType;
+        return {
+          type,
+          dataType: undefined,
+          isVoid: false,
+          isNullable,
+          isList: false,
+          isModel: false,  // Not a Freezed model, just a typedef
+          isPrimitive: false
+        };
+      }
+
+      // Normal model reference
       const type = isNullable ? `${modelName}?` : modelName;
       return {
         type,
@@ -635,6 +660,31 @@ export class EndpointGenerator {
     // Legacy fallback: Check if schema has a reference to a model
     if (schema && '$ref' in schema) {
       const modelName = this.getModelNameFromRef((schema as any).$ref);
+
+      // Check if the referenced schema is an empty object (without ReferenceResolver)
+      const refName = (schema as any).$ref.split('/').pop();
+      const referencedSchema = this.schemas[refName];
+      const isEmptyObject = referencedSchema &&
+                           referencedSchema.type === 'object' &&
+                           (!referencedSchema.properties || Object.keys(referencedSchema.properties).length === 0) &&
+                           !referencedSchema.allOf && !referencedSchema.oneOf && !referencedSchema.anyOf;
+
+      if (isEmptyObject) {
+        // This is a typedef to Map<String, dynamic>, not a model with fromJson
+        const dartType = 'Map<String, dynamic>';
+        const type = isNullable ? `${dartType}?` : dartType;
+        return {
+          type,
+          dataType: undefined,
+          isVoid: false,
+          isNullable,
+          isList: false,
+          isModel: false,  // Not a Freezed model, just a typedef
+          isPrimitive: false
+        };
+      }
+
+      // Normal model reference
       const type = isNullable ? `${modelName}?` : modelName;
       return {
         type,

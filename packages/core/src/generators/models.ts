@@ -213,12 +213,14 @@ export async function generateModels(
   
   // Generate model for each schema
   Object.entries(schemas).forEach(([name, schema]) => {
-    // Skip empty schemas - check if schema has no properties and no type
-    if (isEmpty(schema) || (schema.type === 'object' && (!schema.properties || Object.keys(schema.properties).length === 0) && !schema.allOf && !schema.oneOf && !schema.anyOf)) {
+    // Skip completely empty schemas (no type, no properties, no composition)
+    if (isEmpty(schema)) {
       console.log(`Skipping empty model: ${name}`);
       return;
     }
-    
+
+    // Note: Empty objects (type: "object" with no properties) are now handled by ModelGenerator
+    // which generates typedef = Map<String, dynamic> for them
 
     // Check if it's an enum
     if (isEnum(schema)) {
@@ -273,15 +275,27 @@ export async function generateModels(
       }
     }
 
-    // Handle regular object schemas
-    const inlineTypes = inlineObjectMappings.get(name);
-    const inlineEnums = inlineEnumMappings.get(name);
-    const objectResult = getObject(schema, name, { schemas, refResolver, inlineTypes, inlineEnums });
-    if (objectResult.definition) {
-      files.push({
-        path: `models/${toSnakeCase(name)}.f.dart`,
-        content: objectResult.definition
-      });
+    // Handle regular object schemas (including empty objects)
+    // First check if it's an empty object - ModelGenerator will handle it
+    const isEmptyObject = schema.type === 'object' &&
+                         (!schema.properties || Object.keys(schema.properties).length === 0) &&
+                         !schema.allOf && !schema.oneOf && !schema.anyOf;
+
+    if (isEmptyObject) {
+      // Empty object - let ModelGenerator create a typedef
+      const file = generator.generateModel(name, schema);
+      files.push(file);
+    } else {
+      // Regular object with properties
+      const inlineTypes = inlineObjectMappings.get(name);
+      const inlineEnums = inlineEnumMappings.get(name);
+      const objectResult = getObject(schema, name, { schemas, refResolver, inlineTypes, inlineEnums });
+      if (objectResult.definition) {
+        files.push({
+          path: `models/${toSnakeCase(name)}.f.dart`,
+          content: objectResult.definition
+        });
+      }
     }
   });
   
