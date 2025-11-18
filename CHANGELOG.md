@@ -1,3 +1,15 @@
+# [0.8.0](https://github.com/qwlong/dorval/compare/v0.7.0...v0.8.0) (2025-11-18)
+
+
+### Bug Fixes
+
+* add missing enum imports in headers model template ([62accf4](https://github.com/qwlong/dorval/commit/62accf4d16a003402a1a143dd56474a8ef468224))
+
+
+### Features
+
+* extract and generate enums from inline parameter schemas ([c7bf024](https://github.com/qwlong/dorval/commit/c7bf024c14f76d325b32c2d3b5f0f9dc67c8e4e3))
+
 # [0.7.0](https://github.com/qwlong/dorval/compare/v0.6.0...v0.7.0) (2025-11-12)
 
 
