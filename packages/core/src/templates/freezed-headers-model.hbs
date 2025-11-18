@@ -1,4 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+{{#each imports}}
+import '../{{this}}';
+{{/each}}
 
 part '{{fileName}}.f.freezed.dart';
 part '{{fileName}}.f.g.dart';
