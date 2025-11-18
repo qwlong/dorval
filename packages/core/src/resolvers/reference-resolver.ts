@@ -355,6 +355,69 @@ export class ReferenceResolver {
   }
 
   /**
+   * Helper method to recursively collect imports from a schema
+   * This handles nested arrays (List<List<Model>>) and complex types
+   */
+  private collectImportsFromSchema(schema: any, imports: string[]): void {
+    if (!schema || typeof schema !== 'object') {
+      return;
+    }
+
+    // Handle $ref - add import for the referenced model
+    if (ReferenceResolver.isReference(schema)) {
+      const modelName = this.getSchemaName(schema.$ref);
+      if (modelName) {
+        const fileName = TypeMapper.toSnakeCase(modelName);
+        const importPath = `${fileName}.f.dart`;
+        // Only add if not already present
+        if (!imports.includes(importPath)) {
+          imports.push(importPath);
+        }
+      }
+      return;
+    }
+
+    const schemaObj = schema as OpenAPIV3.SchemaObject;
+
+    // Handle array types - recursively process items
+    if (schemaObj.type === 'array' && schemaObj.items) {
+      this.collectImportsFromSchema(schemaObj.items, imports);
+      return;
+    }
+
+    // Handle object with additionalProperties (Map<String, T>)
+    if (schemaObj.type === 'object' && schemaObj.additionalProperties) {
+      if (typeof schemaObj.additionalProperties === 'object') {
+        this.collectImportsFromSchema(schemaObj.additionalProperties, imports);
+      }
+      return;
+    }
+
+    // Handle oneOf/anyOf - collect imports from all branches
+    if (schemaObj.oneOf) {
+      for (const subSchema of schemaObj.oneOf) {
+        this.collectImportsFromSchema(subSchema, imports);
+      }
+      return;
+    }
+
+    if (schemaObj.anyOf) {
+      for (const subSchema of schemaObj.anyOf) {
+        this.collectImportsFromSchema(subSchema, imports);
+      }
+      return;
+    }
+
+    // Handle allOf - collect imports from all branches
+    if (schemaObj.allOf) {
+      for (const subSchema of schemaObj.allOf) {
+        this.collectImportsFromSchema(subSchema, imports);
+      }
+      return;
+    }
+  }
+
+  /**
    * Resolve property type and its imports
    */
   resolvePropertyType(propSchema: any, isRequired: boolean): { type: string; imports: string[] } {
@@ -473,13 +536,9 @@ export class ReferenceResolver {
         imports.push('dart:typed_data');
       }
 
-      // Handle array types with references
-      if (schema.type === 'array' && schema.items && '$ref' in schema.items) {
-        const modelName = this.getSchemaName(schema.items.$ref);
-        if (modelName) {
-          const fileName = TypeMapper.toSnakeCase(modelName);
-          imports.push(`${fileName}.f.dart`);
-        }
+      // Handle array types - recursively process items
+      if (schema.type === 'array' && schema.items) {
+        this.collectImportsFromSchema(schema.items, imports);
       }
     }
     

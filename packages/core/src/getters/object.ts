@@ -444,8 +444,32 @@ function _extractInnerType(type: string): string {
 }
 
 function isPrimitiveType(type: string): boolean {
-  return ['String', 'int', 'double', 'bool', 'dynamic', 'DateTime', 'Uint8List'].includes(type) ||
-         type === 'Map<String, dynamic>' || type.startsWith('Map<String, ');
+  // Remove nullable markers for checking
+  const cleanType = type.replace(/\?$/, '');
+
+  // Basic primitive types
+  const basicPrimitives = ['String', 'int', 'double', 'bool', 'dynamic', 'DateTime', 'Uint8List'];
+  if (basicPrimitives.includes(cleanType)) {
+    return true;
+  }
+
+  // Map types (any Map<String, ...> is considered primitive for import purposes)
+  if (cleanType === 'Map<String, dynamic>' || cleanType.startsWith('Map<String, ')) {
+    return true;
+  }
+
+  // List types - recursively check if it's a list of primitives
+  if (cleanType.startsWith('List<')) {
+    // Extract inner type (e.g., List<List<int>> -> List<int>)
+    const innerMatch = cleanType.match(/^List<(.+)>$/);
+    if (innerMatch) {
+      const innerType = innerMatch[1];
+      // Recursively check if inner type is primitive
+      return isPrimitiveType(innerType);
+    }
+  }
+
+  return false;
 }
 
 function _toSnakeCase(str: string): string {

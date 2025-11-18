@@ -53,10 +53,11 @@ describe('Inline Enum in Parameters', () => {
 
       const files = await generateModels(spec, {});
 
-      // Should generate an enum file for the parameter
-      const enumFile = files.find(f => f.path.includes('schedule_view_type_enum'));
+      // Should generate an enum file for the parameter with context-specific name
+      // Format: {Method}{PathContext}{ParamName}Enum = GetSchedulesScheduleViewTypeEnum
+      const enumFile = files.find(f => f.path.includes('get_schedules_schedule_view_type_enum'));
       expect(enumFile).toBeDefined();
-      expect(enumFile?.content).toContain('enum ScheduleViewTypeEnum');
+      expect(enumFile?.content).toContain('enum GetSchedulesScheduleViewTypeEnum');
       expect(enumFile?.content).toContain('roles');
       expect(enumFile?.content).toContain('team_members');
       expect(enumFile?.content).toContain('@JsonValue(\'roles\')');
@@ -116,9 +117,9 @@ describe('Inline Enum in Parameters', () => {
         pathItem
       );
 
-      // The query parameter should use the enum type
+      // The query parameter should use the context-specific enum type
       expect(method.queryParams).toHaveLength(1);
-      expect(method.queryParams[0].type).toBe('ScheduleViewTypeEnum');
+      expect(method.queryParams[0].type).toBe('GetSchedulesScheduleViewTypeEnum');
       expect(method.queryParams[0].dartName).toBe('scheduleViewType');
       expect(method.queryParams[0].required).toBe(true);
     });
@@ -166,18 +167,18 @@ describe('Inline Enum in Parameters', () => {
 
       const files = await generateModels(spec, {});
 
-      // Should generate enum for status
-      const statusEnumFile = files.find(f => f.path.includes('status_enum'));
+      // Should generate context-specific enum for status: GetItemsStatusEnum
+      const statusEnumFile = files.find(f => f.path.includes('get_items_status_enum'));
       expect(statusEnumFile).toBeDefined();
-      expect(statusEnumFile?.content).toContain('enum StatusEnum');
+      expect(statusEnumFile?.content).toContain('enum GetItemsStatusEnum');
       expect(statusEnumFile?.content).toContain('active');
       expect(statusEnumFile?.content).toContain('inactive');
       expect(statusEnumFile?.content).toContain('pending');
 
-      // Should generate enum for sort
-      const sortEnumFile = files.find(f => f.path.includes('sort_enum'));
+      // Should generate context-specific enum for sort: GetItemsSortEnum
+      const sortEnumFile = files.find(f => f.path.includes('get_items_sort_enum'));
       expect(sortEnumFile).toBeDefined();
-      expect(sortEnumFile?.content).toContain('enum SortEnum');
+      expect(sortEnumFile?.content).toContain('enum GetItemsSortEnum');
       expect(sortEnumFile?.content).toContain('asc');
       expect(sortEnumFile?.content).toContain('desc');
     });
@@ -217,18 +218,18 @@ describe('Inline Enum in Parameters', () => {
 
       const files = await generateModels(spec, {});
 
-      // Should generate an enum file for the header parameter
-      const enumFile = files.find(f => f.path.includes('accept_language_enum'));
+      // Should generate context-specific enum for header: GetDataAcceptLanguageEnum
+      const enumFile = files.find(f => f.path.includes('get_data_accept_language_enum'));
       expect(enumFile).toBeDefined();
-      expect(enumFile?.content).toContain('enum AcceptLanguageEnum');
+      expect(enumFile?.content).toContain('enum GetDataAcceptLanguageEnum');
       expect(enumFile?.content).toContain('en');
       expect(enumFile?.content).toContain('es');
       expect(enumFile?.content).toContain('fr');
     });
   });
 
-  describe('Enum Deduplication', () => {
-    it('should reuse same enum when parameter appears in multiple endpoints', async () => {
+  describe('Context-Specific Enum Names', () => {
+    it('should generate different context-specific enums when same parameter appears in different methods', async () => {
       const spec = {
         openapi: '3.0.0',
         info: { title: 'Test API', version: '1.0.0' },
@@ -279,9 +280,15 @@ describe('Inline Enum in Parameters', () => {
 
       const files = await generateModels(spec, {});
 
-      // Should only have one StatusEnum file (not duplicated)
-      const statusEnumFiles = files.filter(f => f.path.includes('status_enum'));
-      expect(statusEnumFiles).toHaveLength(1);
+      // Should generate TWO different context-specific enum files (one for GET, one for POST)
+      const getEnumFile = files.find(f => f.path.includes('get_items_status_enum'));
+      const postEnumFile = files.find(f => f.path.includes('post_items_status_enum'));
+
+      expect(getEnumFile).toBeDefined();
+      expect(getEnumFile?.content).toContain('enum GetItemsStatusEnum');
+
+      expect(postEnumFile).toBeDefined();
+      expect(postEnumFile?.content).toContain('enum PostItemsStatusEnum');
     });
   });
 
@@ -341,9 +348,9 @@ describe('Inline Enum in Parameters', () => {
         pathItem
       );
 
-      // The query parameter should use the enum type
+      // The query parameter should use the context-specific enum type
       expect(method.queryParams).toHaveLength(1);
-      expect(method.queryParams[0].type).toBe('ScheduleViewTypeEnum');
+      expect(method.queryParams[0].type).toBe('PostShiftsScheduleViewTypeEnum');
       expect(method.queryParams[0].dartName).toBe('scheduleViewType');
       expect(method.queryParams[0].required).toBe(true);
     });

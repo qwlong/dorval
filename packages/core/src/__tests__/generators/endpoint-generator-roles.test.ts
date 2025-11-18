@@ -438,8 +438,9 @@ describe('EndpointGenerator - Roles API Example', () => {
       );
 
       expect(endpoint.queryParams).toHaveLength(1);
-      // Inline enum parameters should use the generated enum type
-      expect(endpoint.queryParams[0].type).toBe('StatusEnum');
+      // Inline enum parameters should use context-specific enum type
+      // Path: /roles/filter, Method: get -> GetRolesFilterStatusEnum
+      expect(endpoint.queryParams[0].type).toBe('GetRolesFilterStatusEnum');
       expect(endpoint.queryParams[0].dartName).toBe('status');
     });
 

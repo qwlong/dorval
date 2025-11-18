@@ -124,7 +124,7 @@ export class EndpointGenerator {
     pathItem?: OpenAPIV3.PathItemObject
   ): EndpointMethod {
     const methodName = this.getMethodName(operationId, 'get', path);
-    const parameters = this.extractParameters(operation, pathItem);
+    const parameters = this.extractParameters(operation, pathItem, path, 'get');
     
     // Always try to get original response from spec to preserve $ref
     const response = this.getOriginalResponse('get', path) || this.getSuccessResponse(operation);
@@ -215,7 +215,7 @@ export class EndpointGenerator {
     pathItem?: OpenAPIV3.PathItemObject
   ): EndpointMethod {
     const methodName = this.getMethodName(operationId, method, path);
-    const parameters = this.extractParameters(operation, pathItem);
+    const parameters = this.extractParameters(operation, pathItem, path, method);
     const requestBody = this.extractRequestBody(operation);
     
     // Try to get original response from spec to preserve $ref
@@ -348,7 +348,9 @@ export class EndpointGenerator {
    */
   private extractParameters(
     operation: OpenAPIV3.OperationObject,
-    pathItem?: OpenAPIV3.PathItemObject
+    pathItem: OpenAPIV3.PathItemObject | undefined,
+    endpointPath: string,
+    httpMethod: string
   ): {
     all: MethodParameter[];
     path: PathParameter[];
@@ -359,16 +361,16 @@ export class EndpointGenerator {
     const path: PathParameter[] = [];
     const query: QueryParameter[] = [];
     const header: HeaderParameter[] = [];
-    
+
     // Combine operation and path-level parameters
     const parameters = [
       ...(pathItem?.parameters || []),
       ...(operation.parameters || [])
     ];
-    
+
     parameters.forEach(param => {
       let p: OpenAPIV3.ParameterObject;
-      
+
       if ('$ref' in param) {
         // Resolve the reference
         const ref = (param as OpenAPIV3.ReferenceObject).$ref;
@@ -383,7 +385,7 @@ export class EndpointGenerator {
       }
       // Use camelCase for all parameter names
       const dartName = TypeMapper.toCamelCase(p.name);
-      const dartType = this.getParameterType(p);
+      const dartType = this.getParameterType(p, endpointPath, httpMethod);
       
       const methodParam: MethodParameter = {
         name: dartName,
@@ -897,8 +899,15 @@ export class EndpointGenerator {
 
   /**
    * Get parameter type
+   *
+   * IMPORTANT: This must match the enum naming logic in models.ts processParametersForEnums()
+   * Format: {Method}{PathContext}{ParamName}Enum
    */
-  private getParameterType(param: OpenAPIV3.ParameterObject): string {
+  private getParameterType(
+    param: OpenAPIV3.ParameterObject,
+    endpointPath: string,
+    httpMethod: string
+  ): string {
     if (!param.schema) {
       return 'String';
     }
@@ -908,9 +917,22 @@ export class EndpointGenerator {
     // Check if this parameter has an inline enum
     // If so, return the enum type name that was generated in models.ts
     if (schema.enum && Array.isArray(schema.enum) && !('$ref' in schema)) {
-      // Use the same naming logic as in processParametersForEnums
+      // ALWAYS use context-specific naming to match processParametersForEnums()
+      // Format: {Method}{PathContext}{ParamName}Enum
+      const pathContext = endpointPath
+        .split('/')
+        .filter(p => p)
+        .join('_')
+        .replace(/-/g, '_');
+
+      const methodPrefix = TypeMapper.toDartClassName(httpMethod);
+      const pathPart = TypeMapper.toDartClassName(pathContext);
       const paramName = TypeMapper.toDartClassName(param.name);
-      return `${paramName}Enum`;
+
+      // Format: {Method}{PathContext}{ParamName}Enum
+      const uniqueEnumTypeName = `${methodPrefix}${pathPart}${paramName}Enum`;
+
+      return uniqueEnumTypeName;
     }
 
     return TypeMapper.mapType(schema);

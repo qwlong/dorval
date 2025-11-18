@@ -187,6 +187,10 @@ function extractParameterInlineEnums(
 
 /**
  * Process a list of parameters and extract inline enums
+ *
+ * Always generates context-specific enum names to avoid conflicts
+ * Format: {Method}{PathContext}{ParamName}Enum
+ * Example: GetV1LaborTargetsTypeEnum (for GET /v1/labor-targets with type parameter)
  */
 function processParametersForEnums(
   parameters: any[],
@@ -203,32 +207,40 @@ function processParametersForEnums(
     const schema = paramObj.schema;
     // Check if this parameter has an inline enum (not a reference)
     if (schema.enum && Array.isArray(schema.enum) && !('$ref' in schema)) {
-      // Generate a unique name for the enum type
-      // Use PascalCase for the parameter name
-      const paramName = TypeMapper.toDartClassName(paramObj.name);
-      const enumTypeName = `${paramName}Enum`;
+      // ALWAYS use context to avoid any naming conflicts
+      // Convert context like "/v1/labor-targets_get" to "GetV1LaborTargetsType"
+      // Format: {Method}{PathContext}{ParamName}Enum
+      const contextParts = contextName.split('_');
+      const method = contextParts.pop() || ''; // Extract method (last part)
+      const pathContext = contextParts
+        .join('_')
+        .split('/')
+        .filter(p => p)
+        .join('_')
+        .replace(/-/g, '_');
 
-      // Check if this enum already exists (avoid duplicates)
-      if (schemas[enumTypeName]) {
-        // Check if it's the same enum
-        const existing = schemas[enumTypeName];
+      const methodPrefix = TypeMapper.toDartClassName(method);
+      const pathPart = TypeMapper.toDartClassName(pathContext);
+      const paramName = TypeMapper.toDartClassName(paramObj.name);
+
+      // Format: {Method}{PathContext}{ParamName}Enum
+      const uniqueEnumTypeName = `${methodPrefix}${pathPart}${paramName}Enum`;
+
+      // Check if this exact enum already exists
+      if (schemas[uniqueEnumTypeName]) {
+        const existing = schemas[uniqueEnumTypeName];
         if (JSON.stringify(existing.enum) === JSON.stringify(schema.enum)) {
-          // Same enum, skip
+          // Exact same enum already exists, skip
           return;
         }
-        // Different enum with same name - add a suffix based on context
-        const contextSuffix = contextName.split('/').filter(p => p).join('_').replace(/-/g, '_');
-        const uniqueEnumTypeName = `${paramName}${TypeMapper.toDartClassName(contextSuffix)}Enum`;
-        schemas[uniqueEnumTypeName] = {
-          type: schema.type || 'string',
-          enum: schema.enum,
-          description: paramObj.description || `Enum for ${paramObj.name} parameter`
-        };
+        // Different enum values but same name+context - this shouldn't happen
+        // but if it does, log a warning
+        console.warn(`Enum name conflict: ${uniqueEnumTypeName} with different values`);
         return;
       }
 
-      // Add to schemas as an enum schema
-      schemas[enumTypeName] = {
+      // Add to schemas with context-specific name
+      schemas[uniqueEnumTypeName] = {
         type: schema.type || 'string',
         enum: schema.enum,
         description: paramObj.description || `Enum for ${paramObj.name} parameter`
