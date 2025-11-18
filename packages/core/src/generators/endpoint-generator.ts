@@ -902,8 +902,17 @@ export class EndpointGenerator {
     if (!param.schema) {
       return 'String';
     }
-    
+
     const schema = param.schema as OpenAPIV3.SchemaObject;
+
+    // Check if this parameter has an inline enum
+    // If so, return the enum type name that was generated in models.ts
+    if (schema.enum && Array.isArray(schema.enum) && !('$ref' in schema)) {
+      // Use the same naming logic as in processParametersForEnums
+      const paramName = TypeMapper.toDartClassName(param.name);
+      return `${paramName}Enum`;
+    }
+
     return TypeMapper.mapType(schema);
   }
 

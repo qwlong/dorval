@@ -104,10 +104,10 @@ function extractInlineEnums(
   processedEnums: Set<string> = new Set()
 ): Map<string, string> {
   const inlineEnums = new Map<string, string>();
-  
+
   if (processedEnums.has(parentName)) return inlineEnums;
   processedEnums.add(parentName);
-  
+
   // Handle allOf composition
   if (schema.allOf && Array.isArray(schema.allOf)) {
     schema.allOf.forEach((subSchema: any) => {
@@ -117,14 +117,14 @@ function extractInlineEnums(
           if (propSchema.enum && Array.isArray(propSchema.enum) && !propSchema.$ref) {
             // Generate a name for the enum type
             const enumTypeName = `${parentName}${propName.charAt(0).toUpperCase()}${propName.slice(1)}Enum`;
-            
+
             // Add to schemas as an enum schema
             schemas[enumTypeName] = {
               type: 'string',
               enum: propSchema.enum,
               description: propSchema.description || `Enum for ${propName}`
             };
-            
+
             // Map the property name to the enum type name
             inlineEnums.set(propName, enumTypeName);
           }
@@ -132,7 +132,7 @@ function extractInlineEnums(
       }
     });
   }
-  
+
   // Handle direct properties
   if (schema.properties) {
     Object.entries(schema.properties).forEach(([propName, propSchema]: [string, any]) => {
@@ -140,21 +140,101 @@ function extractInlineEnums(
       if (propSchema.enum && Array.isArray(propSchema.enum) && !propSchema.$ref) {
         // Generate a name for the enum type
         const enumTypeName = `${parentName}${propName.charAt(0).toUpperCase()}${propName.slice(1)}Enum`;
-        
+
         // Add to schemas as an enum schema
         schemas[enumTypeName] = {
           type: 'string',
           enum: propSchema.enum,
           description: propSchema.description || `Enum for ${propName}`
         };
-        
+
         // Map the property name to the enum type name
         inlineEnums.set(propName, enumTypeName);
       }
     });
   }
-  
+
   return inlineEnums;
+}
+
+/**
+ * Extract inline enums from path parameters (query, header, path, etc.)
+ */
+function extractParameterInlineEnums(
+  spec: OpenAPIObject,
+  schemas: Record<string, any>
+): void {
+  if (!spec.paths) return;
+
+  Object.entries(spec.paths).forEach(([pathKey, pathItem]) => {
+    if (!pathItem) return;
+
+    // Process path-level parameters
+    if (pathItem.parameters) {
+      processParametersForEnums(pathItem.parameters, pathKey, schemas);
+    }
+
+    // Process operation-level parameters
+    const operations = ['get', 'post', 'put', 'patch', 'delete', 'options', 'head', 'trace'];
+    operations.forEach(method => {
+      const operation = (pathItem as any)[method];
+      if (operation && operation.parameters) {
+        processParametersForEnums(operation.parameters, `${pathKey}_${method}`, schemas);
+      }
+    });
+  });
+}
+
+/**
+ * Process a list of parameters and extract inline enums
+ */
+function processParametersForEnums(
+  parameters: any[],
+  contextName: string,
+  schemas: Record<string, any>
+): void {
+  parameters.forEach((param) => {
+    // Skip references - they should already be in components/parameters
+    if ('$ref' in param) return;
+
+    const paramObj = param as any;
+    if (!paramObj.schema) return;
+
+    const schema = paramObj.schema;
+    // Check if this parameter has an inline enum (not a reference)
+    if (schema.enum && Array.isArray(schema.enum) && !('$ref' in schema)) {
+      // Generate a unique name for the enum type
+      // Use PascalCase for the parameter name
+      const paramName = TypeMapper.toDartClassName(paramObj.name);
+      const enumTypeName = `${paramName}Enum`;
+
+      // Check if this enum already exists (avoid duplicates)
+      if (schemas[enumTypeName]) {
+        // Check if it's the same enum
+        const existing = schemas[enumTypeName];
+        if (JSON.stringify(existing.enum) === JSON.stringify(schema.enum)) {
+          // Same enum, skip
+          return;
+        }
+        // Different enum with same name - add a suffix based on context
+        const contextSuffix = contextName.split('/').filter(p => p).join('_').replace(/-/g, '_');
+        const uniqueEnumTypeName = `${paramName}${TypeMapper.toDartClassName(contextSuffix)}Enum`;
+        schemas[uniqueEnumTypeName] = {
+          type: schema.type || 'string',
+          enum: schema.enum,
+          description: paramObj.description || `Enum for ${paramObj.name} parameter`
+        };
+        return;
+      }
+
+      // Add to schemas as an enum schema
+      schemas[enumTypeName] = {
+        type: schema.type || 'string',
+        enum: schema.enum,
+        description: paramObj.description || `Enum for ${paramObj.name} parameter`
+      };
+    }
+  });
 }
 
 export async function generateModels(
@@ -172,7 +252,11 @@ export async function generateModels(
   // Create ReferenceResolver with the full spec
   const refResolver = new ReferenceResolver(spec);
   generator.setReferenceResolver(refResolver);
-  
+
+  // Extract inline enums from path parameters BEFORE processing schemas
+  // This ensures parameter enums are added to schemas and processed like any other enum
+  extractParameterInlineEnums(spec, schemas);
+
   // First pass: extract inline objects and enums and add them as schemas
   const inlineObjectMappings = new Map<string, Map<string, string>>();
   const inlineEnumMappings = new Map<string, Map<string, string>>();

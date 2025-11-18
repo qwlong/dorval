@@ -438,8 +438,9 @@ describe('EndpointGenerator - Roles API Example', () => {
       );
 
       expect(endpoint.queryParams).toHaveLength(1);
-      expect(endpoint.queryParams[0].type).toBe('String');
-      // Note: enum values are not stored in EndpointMethod currently
+      // Inline enum parameters should use the generated enum type
+      expect(endpoint.queryParams[0].type).toBe('StatusEnum');
+      expect(endpoint.queryParams[0].dartName).toBe('status');
     });
 
     it('should handle operations with no parameters', () => {
