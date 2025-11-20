@@ -355,4 +355,193 @@ describe('Inline Enum in Parameters', () => {
       expect(method.queryParams[0].required).toBe(true);
     });
   });
+
+  describe('Array Parameter with Enum Items', () => {
+    it('should extract and generate enum from array parameter items', async () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'Test API', version: '1.0.0' },
+        paths: {
+          '/v1/internal/time-entries': {
+            get: {
+              operationId: 'getV1InternalTimeEntries',
+              parameters: [
+                {
+                  name: 'statuses',
+                  required: false,
+                  in: 'query',
+                  description: 'status of the time entry',
+                  schema: {
+                    type: 'array',
+                    items: {
+                      type: 'string',
+                      enum: ['started', 'ended', 'approved']
+                    }
+                  }
+                }
+              ],
+              responses: {
+                '200': {
+                  description: 'Success',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'string' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        components: {
+          schemas: {}
+        }
+      };
+
+      const files = await generateModels(spec, {});
+
+      // Should generate an enum file for the array parameter items
+      // Format: {Method}{PathContext}{ParamName}Enum = GetV1InternalTimeEntriesStatusesEnum
+      const enumFile = files.find(f => f.path.includes('get_v1_internal_time_entries_statuses_enum'));
+      expect(enumFile).toBeDefined();
+      expect(enumFile?.content).toContain('enum GetV1InternalTimeEntriesStatusesEnum');
+      expect(enumFile?.content).toContain('started');
+      expect(enumFile?.content).toContain('ended');
+      expect(enumFile?.content).toContain('approved');
+      expect(enumFile?.content).toContain('@JsonValue(\'started\')');
+      expect(enumFile?.content).toContain('@JsonValue(\'ended\')');
+      expect(enumFile?.content).toContain('@JsonValue(\'approved\')');
+    });
+
+    it('should use List<EnumType> in endpoint generator for array parameters', async () => {
+      const spec: any = {
+        openapi: '3.0.0',
+        info: { title: 'Test API', version: '1.0.0' },
+        paths: {
+          '/v1/internal/time-entries': {
+            get: {
+              operationId: 'getV1InternalTimeEntries',
+              parameters: [
+                {
+                  name: 'statuses',
+                  required: false,
+                  in: 'query',
+                  description: 'status of the time entry',
+                  schema: {
+                    type: 'array',
+                    items: {
+                      type: 'string',
+                      enum: ['started', 'ended', 'approved']
+                    }
+                  }
+                }
+              ],
+              responses: {
+                '200': {
+                  description: 'Success',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'string' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      };
+
+      const generator = new EndpointGenerator();
+      generator.setOriginalSpec(spec);
+
+      const pathItem = spec.paths['/v1/internal/time-entries'];
+      const operation = pathItem.get;
+
+      const method = generator.generateGetMethod(
+        'getV1InternalTimeEntries',
+        '/v1/internal/time-entries',
+        operation,
+        pathItem
+      );
+
+      // The query parameter should use List<EnumType> for array with enum items
+      expect(method.queryParams).toHaveLength(1);
+      expect(method.queryParams[0].type).toBe('List<GetV1InternalTimeEntriesStatusesEnum>');
+      expect(method.queryParams[0].dartName).toBe('statuses');
+      expect(method.queryParams[0].required).toBe(false);
+    });
+
+    it('should handle multiple array parameters with different enum items', async () => {
+      const spec = {
+        openapi: '3.0.0',
+        info: { title: 'Test API', version: '1.0.0' },
+        paths: {
+          '/items': {
+            get: {
+              operationId: 'getItems',
+              parameters: [
+                {
+                  name: 'statuses',
+                  in: 'query',
+                  schema: {
+                    type: 'array',
+                    items: {
+                      type: 'string',
+                      enum: ['active', 'inactive', 'pending']
+                    }
+                  }
+                },
+                {
+                  name: 'categories',
+                  in: 'query',
+                  schema: {
+                    type: 'array',
+                    items: {
+                      type: 'string',
+                      enum: ['electronics', 'clothing', 'food']
+                    }
+                  }
+                }
+              ],
+              responses: {
+                '200': {
+                  description: 'Success'
+                }
+              }
+            }
+          }
+        },
+        components: {
+          schemas: {}
+        }
+      };
+
+      const files = await generateModels(spec, {});
+
+      // Should generate separate enum for each array parameter
+      const statusesEnumFile = files.find(f => f.path.includes('get_items_statuses_enum'));
+      expect(statusesEnumFile).toBeDefined();
+      expect(statusesEnumFile?.content).toContain('enum GetItemsStatusesEnum');
+      expect(statusesEnumFile?.content).toContain('active');
+      expect(statusesEnumFile?.content).toContain('inactive');
+      expect(statusesEnumFile?.content).toContain('pending');
+
+      const categoriesEnumFile = files.find(f => f.path.includes('get_items_categories_enum'));
+      expect(categoriesEnumFile).toBeDefined();
+      expect(categoriesEnumFile?.content).toContain('enum GetItemsCategoriesEnum');
+      expect(categoriesEnumFile?.content).toContain('electronics');
+      expect(categoriesEnumFile?.content).toContain('clothing');
+      expect(categoriesEnumFile?.content).toContain('food');
+    });
+  });
 });

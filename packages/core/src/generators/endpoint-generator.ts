@@ -914,25 +914,33 @@ export class EndpointGenerator {
 
     const schema = param.schema as OpenAPIV3.SchemaObject;
 
+    // Generate enum type name (used for both direct enums and array item enums)
+    const pathContext = endpointPath
+      .split('/')
+      .filter(p => p)
+      .join('_')
+      .replace(/-/g, '_');
+
+    const methodPrefix = TypeMapper.toDartClassName(httpMethod);
+    const pathPart = TypeMapper.toDartClassName(pathContext);
+    const paramName = TypeMapper.toDartClassName(param.name);
+
+    // Format: {Method}{PathContext}{ParamName}Enum
+    const uniqueEnumTypeName = `${methodPrefix}${pathPart}${paramName}Enum`;
+
     // Check if this parameter has an inline enum
     // If so, return the enum type name that was generated in models.ts
     if (schema.enum && Array.isArray(schema.enum) && !('$ref' in schema)) {
-      // ALWAYS use context-specific naming to match processParametersForEnums()
-      // Format: {Method}{PathContext}{ParamName}Enum
-      const pathContext = endpointPath
-        .split('/')
-        .filter(p => p)
-        .join('_')
-        .replace(/-/g, '_');
-
-      const methodPrefix = TypeMapper.toDartClassName(httpMethod);
-      const pathPart = TypeMapper.toDartClassName(pathContext);
-      const paramName = TypeMapper.toDartClassName(param.name);
-
-      // Format: {Method}{PathContext}{ParamName}Enum
-      const uniqueEnumTypeName = `${methodPrefix}${pathPart}${paramName}Enum`;
-
       return uniqueEnumTypeName;
+    }
+
+    // Check if this parameter is an array with enum items
+    // Example: { type: 'array', items: { type: 'string', enum: ['started', 'ended'] } }
+    if (schema.type === 'array' && schema.items &&
+        (schema.items as any).enum && Array.isArray((schema.items as any).enum) &&
+        !('$ref' in schema.items)) {
+      // Return List<EnumType> for array parameters with enum items
+      return `List<${uniqueEnumTypeName}>`;
     }
 
     return TypeMapper.mapType(schema);

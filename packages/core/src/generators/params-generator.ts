@@ -50,21 +50,29 @@ export class ParamsGenerator {
     
     const properties: ParameterProperty[] = queryParams.map(param => {
       // Check if the dartName was escaped (ends with underscore due to keyword)
-      const needsJsonKey = param.dartName !== param.originalName || 
+      const needsJsonKey = param.dartName !== param.originalName ||
                            param.dartName.endsWith('_');
-      
+
       // Check if the type needs an import (custom model types)
       const paramType = param.type || 'String';
-      // Object is a built-in Dart type, don't import it
-      if (paramType !== 'Object' && paramType !== 'Object?' && !this.isBuiltInType(paramType)) {
-        // Extract base type from List<Type> or Map<K,V>
-        const baseType = this.extractBaseType(paramType);
-        if (baseType !== 'Object' && !this.isBuiltInType(baseType)) {
-          const fileName = TypeMapper.toSnakeCase(baseType) + '.f.dart';
-          imports.add(fileName);
-        }
+
+      // Extract base type from List<Type>?, Map<K,V>?, etc.
+      let baseType = this.extractBaseType(paramType);
+
+      // For types like List<EnumType>?, we need to extract the inner type again
+      // extractBaseType('List<EnumType>?') returns 'List<EnumType>'
+      // extractBaseType('List<EnumType>') returns 'EnumType'
+      if (baseType.startsWith('List<') || baseType.startsWith('Map<')) {
+        baseType = this.extractBaseType(baseType);
       }
-      
+
+      // Check if the base type needs an import
+      // Object is a built-in Dart type, don't import it
+      if (baseType !== 'Object' && !this.isBuiltInType(baseType)) {
+        const fileName = TypeMapper.toSnakeCase(baseType) + '.f.dart';
+        imports.add(fileName);
+      }
+
       return {
         name: param.dartName,
         type: paramType,
