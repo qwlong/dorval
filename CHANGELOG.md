@@ -1,3 +1,10 @@
+# [0.9.0](https://github.com/qwlong/dorval/compare/v0.8.0...v0.9.0) (2025-11-20)
+
+
+### Features
+
+* support enum types in array parameter items ([2584a78](https://github.com/qwlong/dorval/commit/2584a78f4e642de9a6f7f9983a2445336140c88d))
+
 # [0.8.0](https://github.com/qwlong/dorval/compare/v0.7.0...v0.8.0) (2025-11-18)
 
 
