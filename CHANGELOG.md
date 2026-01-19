@@ -1,3 +1,10 @@
+## [0.9.2](https://github.com/qwlong/dorval/compare/v0.9.1...v0.9.2) (2026-01-19)
+
+
+### Bug Fixes
+
+* update README with 396 tests and improved header consolidation docs ([9218100](https://github.com/qwlong/dorval/commit/92181009918b721e658b25013be30d715e1e3885))
+
 ## [0.9.1](https://github.com/qwlong/dorval/compare/v0.9.0...v0.9.1) (2026-01-19)
 
 
