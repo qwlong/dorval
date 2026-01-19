@@ -1,3 +1,10 @@
+## [0.9.1](https://github.com/qwlong/dorval/compare/v0.9.0...v0.9.1) (2026-01-19)
+
+
+### Bug Fixes
+
+* generate correct Freezed discriminated unions with unionKey annotation ([304dc80](https://github.com/qwlong/dorval/commit/304dc8094a0c1964579c5e8839cbf02d26253ac6))
+
 # [0.9.0](https://github.com/qwlong/dorval/compare/v0.8.0...v0.9.0) (2025-11-20)
 
 
