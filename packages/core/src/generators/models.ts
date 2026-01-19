@@ -49,6 +49,7 @@ function extractDiscriminatorInfo(schema: any): any {
       propertyName: discriminatorProperty,
       discriminatorProperty,
       values: discriminatorValues,
+      unionProperty,
       unionSchemas,
       compositionType
     };

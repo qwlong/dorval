@@ -649,8 +649,9 @@ describe('Models Generator', () => {
       const paymentModel = files.find(f => f.path === 'models/payment_method.f.dart');
 
       expect(paymentModel).toBeDefined();
-      // Freezed v3 uses sealed class for pattern matching support
-      expect(paymentModel?.content).toContain('@freezed\nsealed class PaymentMethod with _$PaymentMethod');
+      // Freezed v3 uses sealed class for pattern matching support with unionKey annotation
+      expect(paymentModel?.content).toContain("@Freezed(unionKey: 'type')");
+      expect(paymentModel?.content).toContain('sealed class PaymentMethod with _$PaymentMethod');
       expect(paymentModel?.content).not.toContain('@freezed\nclass PaymentMethod'); // Should NOT be plain class
       expect(paymentModel?.content).not.toContain('@freezed\nabstract class PaymentMethod'); // Should NOT be abstract class
     });

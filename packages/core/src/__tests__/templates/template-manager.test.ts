@@ -165,27 +165,27 @@ describe('Template-based Code Generation', () => {
       };
       
       const result = templateManager.render('freezed-union', unionData);
-      
+
       // Check imports
       expect(result).toContain("import 'shift_response_dto_v2.f.dart';");
       expect(result).toContain("import 'my_feed_time_off_request_item.f.dart';");
-      
-      // Check Freezed union structure
-      expect(result).toContain('@freezed');
+
+      // Check Freezed union structure - now uses @Freezed(unionKey: ...) and @FreezedUnionValue
+      expect(result).toContain("@Freezed(unionKey: 'itemType')");
       expect(result).toContain('class MyFeedItem with _$MyFeedItem');
       expect(result).toContain('const MyFeedItem._();');
-      
-      // Check factory constructors
+
+      // Check factory constructors with FreezedUnionValue annotations (no discriminator field, public class names)
+      expect(result).toContain("@FreezedUnionValue('shift')");
       expect(result).toContain('const factory MyFeedItem.shift({');
-      expect(result).toContain("@Default('shift') String itemType,");
       expect(result).toContain('required ShiftResponseDtoV2 item,');
-      expect(result).toContain('}) = _MyFeedItemShift;');
-      
+      expect(result).toContain('}) = MyFeedItemShift;');
+
+      expect(result).toContain("@FreezedUnionValue('time_off_request')");
       expect(result).toContain('const factory MyFeedItem.timeOffRequest({');
-      expect(result).toContain("@Default('time_off_request') String itemType,");
       expect(result).toContain('required MyFeedTimeOffRequestItem item,');
-      expect(result).toContain('}) = _MyFeedItemTimeOffRequest;');
-      
+      expect(result).toContain('}) = MyFeedItemTimeOffRequest;');
+
       // Check fromJson factory
       expect(result).toContain('factory MyFeedItem.fromJson(Map<String, dynamic> json)');
       expect(result).toContain('_$MyFeedItemFromJson(json)');
@@ -245,25 +245,25 @@ describe('Template-based Code Generation', () => {
       };
       
       const result = templateManager.render('freezed-union', unionData);
-      
+
       // Check imports
       expect(result).toContain("import 'string_value.f.dart';");
       expect(result).toContain("import 'number_value.f.dart';");
       expect(result).toContain("import 'boolean_value.f.dart';");
-      
-      // Check Freezed union structure
-      expect(result).toContain('@freezed');
+
+      // Check Freezed union structure - uses @Freezed(unionKey: ...) even without explicit discriminator
+      expect(result).toContain('@Freezed(unionKey:');
       expect(result).toContain('class ValueType with _$ValueType');
       expect(result).toContain('const ValueType._();');
-      
-      // Check factory constructors (no discriminator)
+
+      // Check factory constructors (public class names)
       expect(result).toContain('const factory ValueType.stringValue(');
       expect(result).toContain('String value');
-      expect(result).toContain('}) = _ValueTypeStringValue;');
-      
+      expect(result).toContain('}) = ValueTypeStringValue;');
+
       expect(result).toContain('const factory ValueType.numberValue(');
       expect(result).toContain('double value');
-      expect(result).toContain('}) = _ValueTypeNumberValue;');
+      expect(result).toContain('}) = ValueTypeNumberValue;');
     });
   });
 

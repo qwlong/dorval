@@ -19,7 +19,7 @@ describe('OneOf Generation', () => {
     expect(result.isSealed).toBe(true);
     expect(result.definition).toBeDefined();
     if (result.definition) {
-      expect(result.definition).toContain('@freezed');
+      expect(result.definition).toContain("@Freezed(unionKey: 'itemType')");
       expect(result.definition).toContain('sealed class MyFeedItem with _$MyFeedItem');
       expect(result.definition).toContain('factory MyFeedItem.fromJson');
     }
@@ -66,6 +66,7 @@ describe('OneOf Generation', () => {
     expect(result.type).toBe('UnionType');
     expect(result.definition).toBeDefined();
     if (result.definition) {
+      // Without discriminator, uses simple @freezed annotation (not unionKey)
       expect(result.definition).toContain('@freezed');
       expect(result.definition).toContain('sealed class UnionType with _$UnionType');
       expect(result.definition).toContain('factory UnionType.');

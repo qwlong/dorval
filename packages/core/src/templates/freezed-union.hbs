@@ -9,16 +9,13 @@ part '{{fileName}}.f.g.dart';
 {{#if description}}
 /// {{description}}
 {{/if}}
-@freezed
+@Freezed(unionKey: '{{discriminatorProperty}}')
 sealed class {{className}} with _${{className}} {
   const {{className}}._();
-  
-{{#each unions}}
-  const factory {{../className}}.{{factoryName}}({
-    {{#if discriminatorValue}}
-    @Default('{{discriminatorValue}}') String {{discriminatorProperty}},
 
-    {{/if}}
+{{#each unions}}
+  @FreezedUnionValue('{{discriminatorValue}}')
+  const factory {{../className}}.{{factoryName}}({
     {{#each properties}}
     {{#if description}}
     /// {{description}}
@@ -33,7 +30,7 @@ sealed class {{className}} with _${{className}} {
     {{/if}}
 
     {{/each}}
-  }) = _{{../className}}{{pascalFactoryName}};
+  }) = {{../className}}{{pascalFactoryName}};
 {{#unless @last}}
 
 {{/unless}}

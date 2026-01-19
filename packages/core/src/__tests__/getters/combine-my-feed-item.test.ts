@@ -34,20 +34,20 @@ describe('MyFeedItem oneOf Generation', () => {
     expect(result.imports).toContain('shift_response_dto_v2.f.dart');
     expect(result.imports).toContain('my_feed_time_off_request_item.f.dart');
     
-    // Check the basic structure
-    expect(definition).toContain('@freezed');
+    // Check the basic structure - now uses @Freezed(unionKey: ...) and @FreezedUnionValue
+    expect(definition).toContain("@Freezed(unionKey: 'itemType')");
     expect(definition).toContain('class MyFeedItem with _$MyFeedItem');
     expect(definition).toContain('const MyFeedItem._();');
-    
-    // Check factory constructors
+
+    // Check factory constructors with FreezedUnionValue annotations (no discriminator field, public class names)
+    expect(definition).toContain("@FreezedUnionValue('shift')");
     expect(definition).toContain('const factory MyFeedItem.shift({');
-    expect(definition).toContain("@Default('shift') String itemType,");
-    expect(definition).toContain('}) = _MyFeedItemShift;');
-    
+    expect(definition).toContain('}) = MyFeedItemShift;');
+
+    expect(definition).toContain("@FreezedUnionValue('time_off_request')");
     expect(definition).toContain('const factory MyFeedItem.timeOffRequest({');
-    expect(definition).toContain("@Default('time_off_request') String itemType,");
-    expect(definition).toContain('}) = _MyFeedItemTimeOffRequest;');
-    
+    expect(definition).toContain('}) = MyFeedItemTimeOffRequest;');
+
     // Check fromJson factory
     expect(definition).toContain('factory MyFeedItem.fromJson(Map<String, dynamic> json)');
   });
