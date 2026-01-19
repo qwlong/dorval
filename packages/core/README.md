@@ -14,6 +14,8 @@ Core library for generating type-safe Dart/Flutter API clients from OpenAPI spec
 - 📝 **Full OpenAPI 3.0 support** - Handle complex schemas, references, and more
 - 🎨 **Customizable generation** - Control naming, organization, and features
 - ✅ **Null safety** - Full support for Dart's sound null safety
+- 🔀 **Smart header consolidation** - Reduce duplicate header classes with definitions
+- 🎭 **Discriminated unions** - Proper Freezed union types with `@Freezed(unionKey)` and `@FreezedUnionValue`
 
 ## Installation
 

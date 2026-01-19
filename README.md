@@ -186,10 +186,13 @@ export default {
 2. **Run the generator:**
 
 ```bash
-# Using config file
+# Using config file (auto-detects dorval.config.ts/js/mjs/cjs in current directory)
 dorval generate
 
-# Using command line options
+# Specify a custom config file
+dorval generate -c ./my-custom-config.js
+
+# Using command line options (overrides config file)
 dorval generate -i ./petstore.yaml -o ./lib/api
 
 # Watch mode (coming soon)
@@ -427,7 +430,7 @@ This project reuses the OpenAPI parsing infrastructure from Orval while implemen
 - **Custom file naming** - `.f.dart` extension for Freezed models
 - **Automated CI/CD** - GitHub Actions with semantic-release
 - **Dual package support** - Both CommonJS and ES Modules
-- **Comprehensive test suite** - 68 tests with 100% pass rate
+- **Comprehensive test suite** - 396 tests with 100% pass rate
 
 ### 🚧 In Progress
 - **Watch mode** - Auto-regeneration on spec changes
@@ -623,7 +626,11 @@ export default {
 
 #### Header Consolidation Configuration
 
-Dorval can intelligently consolidate duplicate header classes across your API:
+Dorval can intelligently consolidate duplicate header classes across your API. Instead of generating a separate header class for each endpoint (which could result in 100+ nearly identical classes), you can define common header patterns that will be reused.
+
+##### How `definitions` Works
+
+The `definitions` object lets you define reusable header classes that match common patterns in your API:
 
 ```typescript
 export default {
@@ -633,29 +640,35 @@ export default {
       target: './lib/api',
       override: {
         headers: {
-          // Define common header patterns
           definitions: {
-            BasicAuth: {
+            // Public endpoints - API key only
+            PublicHeaders: {
               fields: ['x-api-key'],
-              required: ['x-api-key']
+              required: ['x-api-key'],
+              description: 'Public API authentication'
             },
-            UserContext: {
-              fields: ['x-api-key', 'x-user-id', 'x-session-id'],
-              required: ['x-api-key', 'x-user-id']  // x-session-id is optional
+
+            // Authenticated user endpoints
+            AuthHeaders: {
+              fields: ['x-api-key', 'authorization'],
+              required: ['x-api-key', 'authorization'],
+              description: 'Authenticated user headers'
             },
-            AdminContext: {
-              fields: ['x-api-key', 'x-admin-id', 'x-permission-level'],
-              required: ['x-api-key', 'x-admin-id', 'x-permission-level']
+
+            // Multi-tenant endpoints (most common pattern)
+            TenantHeaders: {
+              fields: ['x-api-key', 'authorization', 'x-tenant-id'],
+              required: ['x-api-key', 'authorization', 'x-tenant-id'],
+              description: 'Multi-tenant context headers'
+            },
+
+            // Admin endpoints with optional impersonation
+            AdminHeaders: {
+              fields: ['x-api-key', 'authorization', 'x-tenant-id', 'x-impersonate-user'],
+              required: ['x-api-key', 'authorization'],  // tenant and impersonate are optional
+              description: 'Admin headers with optional impersonation'
             }
-          },
-          
-          // Enable automatic matching
-          customMatch: true,
-          matchStrategy: 'exact',  // Matches must have exact same fields and required status
-          
-          // Auto-consolidate common patterns
-          customConsolidate: true,
-          consolidationThreshold: 3  // Create shared class if 3+ endpoints use same headers
+          }
         }
       }
     }
@@ -663,11 +676,93 @@ export default {
 }
 ```
 
-**Benefits:**
-- **Reduces duplication**: Instead of 85 header classes, you might only need 5-10
-- **Order-independent**: Headers with same fields but different order are recognized as identical
-- **Required-aware**: Distinguishes between required and optional fields
-- **Smart naming**: Auto-generates meaningful names for consolidated classes
+##### Generated Output
+
+With the above configuration, Dorval generates:
+
+**1. Consolidated header classes** (in `models/headers/`):
+```dart
+// tenant_headers.f.dart
+@freezed
+abstract class TenantHeaders with _$TenantHeaders {
+  const factory TenantHeaders({
+    @JsonKey(name: 'x-api-key')
+    required String xApiKey,
+
+    @JsonKey(name: 'authorization')
+    required String authorization,
+
+    @JsonKey(name: 'x-tenant-id')
+    required String xTenantId,
+  }) = _TenantHeaders;
+
+  factory TenantHeaders.fromJson(Map<String, dynamic> json) =>
+      _$TenantHeadersFromJson(json);
+}
+```
+
+**2. Services use the consolidated headers**:
+```dart
+// Instead of 100+ unique header classes, services reuse the definitions:
+class UsersService {
+  Future<List<User>> getUsers({
+    GetUsersParams? params,
+    TenantHeaders? headers,  // Reused across many endpoints!
+  }) async { ... }
+}
+```
+
+##### Matching Logic
+
+Dorval matches endpoints to header definitions by:
+
+1. **Extracting headers** from each endpoint in the OpenAPI spec
+2. **Comparing fields** with each definition (order-independent)
+3. **Checking required status** matches
+4. **Selecting the best match** or generating endpoint-specific class if no match
+
+##### Example: Before vs After
+
+**Before consolidation** (without definitions):
+```
+models/headers/
+├── get_users_headers.f.dart
+├── post_users_headers.f.dart
+├── get_orders_headers.f.dart
+├── post_orders_headers.f.dart
+├── get_products_headers.f.dart
+├── ... (100+ nearly identical files!)
+```
+
+**After consolidation** (with definitions):
+```
+models/headers/
+├── public_headers.f.dart      # Used by public endpoints
+├── auth_headers.f.dart        # Used by authenticated endpoints
+├── tenant_headers.f.dart      # Used by most endpoints
+├── admin_headers.f.dart       # Used by admin endpoints
+└── index.dart
+```
+
+**Result: 100+ header classes → 4 reusable classes!**
+
+##### Advanced Options
+
+```typescript
+headers: {
+  definitions: { ... },
+
+  // Enable automatic matching (default: true)
+  customMatch: true,
+
+  // Match strategy
+  matchStrategy: 'exact',  // 'exact' | 'subset' | 'fuzzy'
+
+  // Auto-create shared classes for common patterns not in definitions
+  customConsolidate: true,
+  consolidationThreshold: 3  // Min endpoints to trigger auto-consolidation
+}
+```
 
 **Match Strategies:**
 - `exact`: Fields and required status must match exactly (recommended)
@@ -720,12 +815,12 @@ Options:
 
 ### ✅ Completed Features
 
-- ✅ **Comprehensive test suite** - 68 tests, 100% passing
+- ✅ **Comprehensive test suite** - 396 tests, 100% passing
 - ✅ **CI/CD pipeline** - GitHub Actions with automated testing
 - ✅ **Semantic release** - Automated versioning and npm publishing
 - ✅ **Smart header consolidation** - Reduces duplicate header classes
 - ✅ **Proper response type mapping** - Models correctly typed
-- ✅ **OneOf with discriminator** - Generates proper Freezed union types
+- ✅ **OneOf with discriminator** - Generates proper Freezed union types with `@Freezed(unionKey)` and `@FreezedUnionValue`
 - ✅ **Inline object handling** - Generates nested classes instead of Map
 - ✅ **Query parameter flattening** - Complex objects properly serialized
 
