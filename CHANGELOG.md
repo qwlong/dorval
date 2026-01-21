@@ -1,3 +1,10 @@
+## [0.10.2](https://github.com/qwlong/dorval/compare/v0.10.1...v0.10.2) (2026-01-21)
+
+
+### Bug Fixes
+
+* move enum description comment before @JsonValue annotation ([7de2b57](https://github.com/qwlong/dorval/commit/7de2b576470bd50a990a088158e1f826fbef0e85))
+
 ## [0.10.1](https://github.com/qwlong/dorval/compare/v0.10.0...v0.10.1) (2026-01-21)
 
 
