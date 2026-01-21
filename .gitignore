@@ -65,3 +65,6 @@ packages/core/test
 
 # Project specific
 CLAUDE.md
+# Temporary generated files
+flow-api.openapi.json
+generated-*.zip

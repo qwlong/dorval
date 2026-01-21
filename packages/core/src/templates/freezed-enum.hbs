@@ -5,12 +5,14 @@ import 'package:json_annotation/json_annotation.dart';
 {{/if}}
 enum {{enumName}} {
 {{#each values}}
-  @JsonValue('{{value}}')
-  {{name}}{{#unless @last}},{{/unless}}
 {{#if description}}
   /// {{description}}
 {{/if}}
+  @JsonValue('{{value}}')
+  {{name}}{{#unless @last}},{{/unless}}
+{{#unless @last}}
 
+{{/unless}}
 {{/each}}
 }
 
