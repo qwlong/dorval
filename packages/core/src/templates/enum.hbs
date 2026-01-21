@@ -11,12 +11,12 @@ enum {{enumName}} {
   
   const {{enumName}}(this.value);
   
-  static {{enumName}}? fromValue(String? value) {
-    if (value == null) return null;
-    
+  static {{enumName}} fromValue(String? value) {
+    if (value == null) return {{enumName}}.unknown;
+
     return {{enumName}}.values.firstWhere(
       (e) => e.value == value,
-      orElse: () => throw ArgumentError('Invalid {{enumName}} value: $value'),
+      orElse: () => {{enumName}}.unknown,
     );
   }
   

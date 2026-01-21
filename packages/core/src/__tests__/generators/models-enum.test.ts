@@ -20,8 +20,11 @@ describe('Enum Generation', () => {
     expect(result.content).toContain("@JsonValue('sold')");
     expect(result.content).toContain('sold');
     expect(result.content).toContain('Pet status in the store');
-    expect(result.content).toContain('PetStatus? fromValue(String? value)');
+    expect(result.content).toContain('PetStatus fromValue(String? value)');
     expect(result.content).toContain('extension PetStatusExtension on PetStatus');
+    // Should have unknown fallback value
+    expect(result.content).toContain("@JsonValue('unknown')");
+    expect(result.content).toContain('unknown');
   });
 
   it('should handle enum values with special characters', () => {
@@ -66,6 +69,42 @@ describe('Enum Generation', () => {
     expect(result.content).toContain('@JsonValue');
     expect(result.content).toContain('extension TestEnumExtension on TestEnum');
     expect(result.content).toContain('String get value');
-    expect(result.content).toContain('TestEnum? fromValue(String? value)');
+    expect(result.content).toContain('TestEnum fromValue(String? value)');
+    // Should return unknown for unrecognized values
+    expect(result.content).toContain('return TestEnum.unknown');
+  });
+
+  it('should add unknown fallback value for forward compatibility', () => {
+    const result = generator.generateEnum(
+      'StatusEnum',
+      ['active', 'inactive'],
+      'Status values'
+    );
+
+    // Should have unknown value added automatically
+    expect(result.content).toContain("@JsonValue('unknown')");
+    expect(result.content).toContain('unknown');
+
+    // fromValue should return non-nullable type
+    expect(result.content).toContain('StatusEnum fromValue(String? value)');
+    expect(result.content).not.toContain('StatusEnum? fromValue');
+
+    // Should return unknown for null input
+    expect(result.content).toContain('if (value == null) return StatusEnum.unknown');
+
+    // Should return unknown for unrecognized values
+    expect(result.content).toContain('return StatusEnum.unknown');
+  });
+
+  it('should not add duplicate unknown if already present', () => {
+    const result = generator.generateEnum(
+      'MyEnum',
+      ['value1', 'unknown', 'value2'],
+      undefined
+    );
+
+    // Count occurrences of @JsonValue('unknown')
+    const matches = result.content.match(/@JsonValue\('unknown'\)/g);
+    expect(matches?.length).toBe(1);
   });
 });

@@ -343,7 +343,18 @@ ${schema.description ? `/// ${schema.description}\n` : ''}typedef ${className} =
         description: undefined
       };
     });
-    
+
+    // Add 'unknown' fallback value for forward compatibility
+    // This ensures that if the backend adds new enum values, the client won't crash
+    const hasUnknown = enumValues.some(v => v.name === 'unknown');
+    if (!hasUnknown) {
+      enumValues.push({
+        name: 'unknown',
+        value: 'unknown',
+        description: 'Unknown value for forward compatibility'
+      });
+    }
+
     const templateData = {
       enumName,
       description,
