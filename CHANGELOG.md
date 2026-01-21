@@ -1,3 +1,10 @@
+## [0.10.1](https://github.com/qwlong/dorval/compare/v0.10.0...v0.10.1) (2026-01-21)
+
+
+### Bug Fixes
+
+* skip redundant case 'unknown' in enum fromValue switch ([8920c42](https://github.com/qwlong/dorval/commit/8920c42f9181198e2dd58c76b1be6c364e0f8989))
+
 # [0.10.0](https://github.com/qwlong/dorval/compare/v0.9.2...v0.10.0) (2026-01-21)
 
 
