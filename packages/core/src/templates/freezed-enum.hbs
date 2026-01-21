@@ -29,8 +29,10 @@ extension {{enumName}}Extension on {{enumName}} {
     if (value == null) return {{enumName}}.unknown;
     switch (value) {
 {{#each values}}
+{{#unless (eq name "unknown")}}
       case '{{value}}':
         return {{../enumName}}.{{name}};
+{{/unless}}
 {{/each}}
       default:
         return {{enumName}}.unknown;
