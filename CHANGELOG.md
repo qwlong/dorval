@@ -1,3 +1,10 @@
+# [0.10.0](https://github.com/qwlong/dorval/compare/v0.9.2...v0.10.0) (2026-01-21)
+
+
+### Features
+
+* add unknown fallback value to enums for forward compatibility ([bf8813c](https://github.com/qwlong/dorval/commit/bf8813ccbeab218cdb009c4b41712990115fcf76))
+
 ## [0.9.2](https://github.com/qwlong/dorval/compare/v0.9.1...v0.9.2) (2026-01-19)
 
 
