@@ -9,6 +9,20 @@ import { ReferenceResolver } from '../resolvers';
 import { TemplateManager } from '../templates/template-manager';
 import { buildEnumMembers, scalarTypeOfEnumSchema, uniqueEnumMemberName } from '../getters/enum';
 
+/**
+ * A `///` comment for a description, one prefix per line - an unprefixed
+ * second line would be read as Dart code.
+ */
+function docComment(description?: string): string {
+  if (!description) {
+    return '';
+  }
+  return description
+    .split(/\r?\n/)
+    .map(line => (line.trim() ? `/// ${line.trimEnd()}` : '///'))
+    .join('\n') + '\n';
+}
+
 export class ModelGenerator {
   private templateManager: TemplateManager;
   private refResolver?: ReferenceResolver;
@@ -90,7 +104,7 @@ export class ModelGenerator {
     const fileName = TypeMapper.toSnakeCase(name);
 
     const content = `// Generated typedef for empty object schema
-${schema.description ? `/// ${schema.description}\n` : ''}typedef ${className} = Map<String, dynamic>;
+${docComment(schema.description)}typedef ${className} = Map<String, dynamic>;
 `;
 
     return {
@@ -119,7 +133,25 @@ ${schema.description ? `/// ${schema.description}\n` : ''}typedef ${className} =
 import '${targetFile}';
 export '${targetFile}';
 
-${schema.description ? `/// ${schema.description}\n` : ''}typedef ${className} = ${targetClass};
+${docComment(schema.description)}typedef ${className} = ${targetClass};
+`;
+
+    return {
+      path: `models/${fileName}.f.dart`,
+      content
+    };
+  }
+
+  /**
+   * Emit a typedef for a schema that constrains nothing (`{}`), so `$ref`s to
+   * it, direct or through an alias, still resolve to a file.
+   */
+  generateAnyTypedef(name: string, schema: OpenAPIV3.SchemaObject): GeneratedFile {
+    const className = TypeMapper.toDartClassName(name);
+    const fileName = TypeMapper.toSnakeCase(name);
+
+    const content = `// Generated typedef: the schema allows any value
+${docComment(schema.description)}typedef ${className} = dynamic;
 `;
 
     return {
@@ -138,7 +170,7 @@ ${schema.description ? `/// ${schema.description}\n` : ''}typedef ${className} =
     const dartType = scalarTypeOfEnumSchema(schema, TypeMapper.mapType.bind(TypeMapper));
 
     const content = `// Generated typedef: the enum values have no @JsonValue representation
-${schema.description ? `/// ${schema.description}\n` : ''}typedef ${className} = ${dartType};
+${docComment(schema.description)}typedef ${className} = ${dartType};
 `;
 
     return {

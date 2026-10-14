@@ -9,7 +9,7 @@ import { OpenAPIParser } from '../parser/openapi-parser';
 import { ReferenceResolver } from '../resolvers';
 import { combineSchemas } from '../getters/combine';
 import { getObject } from '../getters/object';
-import { hasComposition, hasDiscriminatedUnion, isEnum, isRefAlias, isRepresentableEnum, isEmpty } from '../utils/assertion';
+import { hasComposition, hasDiscriminatedUnion, isEnum, isRefAlias, isRefExtension, isRepresentableEnum, isEmpty } from '../utils/assertion';
 import { TypeMapper } from '../utils';
 
 // Helper functions
@@ -299,13 +299,21 @@ export async function generateModels(
   await parser.parseWithoutDereference(spec);
   const schemas = parser.getSchemas();
 
-  // getSchemas() drops every schema whose body is a `$ref`. At the top level
-  // one of those is an alias, and referring properties still name it, so it
-  // needs a file of its own - put those back.
+  // getSchemas() drops every schema whose body is a `$ref`, but referring
+  // properties still name it, so it needs a file of its own - put those back.
+  // OpenAPI 3.0 ignores keywords beside a `$ref`, so there it is always an
+  // alias; 3.1 applies both, which an `allOf` of the two expresses.
+  const siblingsIgnored = String(spec.openapi ?? '').startsWith('3.0');
   const specSchemas = (spec.components?.schemas ?? {}) as Record<string, any>;
   Object.entries(specSchemas).forEach(([name, schema]) => {
-    if (!schemas[name] && isRefAlias(schema)) {
-      schemas[name] = schema;
+    if (schemas[name]) {
+      return;
+    }
+    if (isRefAlias(schema) || (siblingsIgnored && isRefExtension(schema))) {
+      schemas[name] = siblingsIgnored ? { $ref: schema.$ref, description: schema.description } : schema;
+    } else if (isRefExtension(schema)) {
+      const { $ref, description, ...extension } = schema;
+      schemas[name] = { description, allOf: [{ $ref }, extension] };
     }
   });
   
@@ -365,9 +373,10 @@ export async function generateModels(
       return;
     }
 
-    // Skip completely empty schemas (no type, no properties, no composition)
+    // A schema with no type, properties or composition allows any value, and
+    // `$ref`s to it still need a file to import
     if (isEmpty(schema)) {
-      console.log(`Skipping empty model: ${name}`);
+      files.push(generator.generateAnyTypedef(name, schema));
       return;
     }
 
