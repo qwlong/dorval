@@ -4,6 +4,7 @@
  */
 
 import { TemplateManager } from '../templates/template-manager';
+import { TypeMapper } from '../utils/type-mapper';
 
 // Separator type matching Orval
 type Separator = 'allOf' | 'anyOf' | 'oneOf';
@@ -210,7 +211,7 @@ function handleNullablePattern(schemas: any[]): CombineResult {
   }
   
   return {
-    type: `${baseType}?`,
+    type: TypeMapper.toNullable(baseType),
     imports
   };
 }
@@ -426,7 +427,7 @@ function generateFreezedClass(
     
     return {
       name: dartName,
-      type: dartType + (nullable && !dartType.endsWith('?') ? '?' : ''),
+      type: nullable ? TypeMapper.toNullable(dartType) : dartType,
       required: isRequired,
       nullable,
       description: propSchema.description,
