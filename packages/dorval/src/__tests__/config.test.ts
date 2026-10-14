@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { mkdtemp, rm, writeFile, readdir } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile, readdir, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { loadConfig, createTypeScriptLoader } from '../config';
@@ -22,6 +22,17 @@ describe('Config', () => {
 
   it('should throw error for non-existent config file', async () => {
     await expect(loadConfig('./non-existent-config.js')).rejects.toThrow();
+  });
+
+  it('should throw error when no config found', async () => {
+    const empty = await mkdtemp(join(tmpdir(), 'dorval-empty-'));
+    try {
+      vi.spyOn(process, 'cwd').mockReturnValue(empty);
+      await expect(loadConfig()).rejects.toThrow('No configuration file found');
+    } finally {
+      vi.restoreAllMocks();
+      await rm(empty, { recursive: true, force: true });
+    }
   });
 });
 
@@ -51,12 +62,9 @@ describe('a TypeScript config file', () => {
 
   it('should handle a typescript package that cannot transpile', async () => {
     // What TypeScript 7 does: the compiler moved to a native binary and the
-    // main entry exports only `version`, so cosmiconfig's loader dies on
-    // `typescript.findConfigFile is not a function`
-    const primary = vi.fn(() => {
-      throw new TypeError('typescript.findConfigFile is not a function');
-    });
-    const loader = createTypeScriptLoader(primary);
+    // main entry exports only `version`, so cosmiconfig's loader cannot run
+    const primary = vi.fn();
+    const loader = createTypeScriptLoader(primary, async () => false);
     const load = () => loader(join(dir, 'dorval.config.ts'), TS_CONFIG);
 
     const canStripTypes = typeof (await import('node:module') as any).stripTypeScriptTypes === 'function';
@@ -71,7 +79,20 @@ describe('a TypeScript config file', () => {
       await expect(load()).rejects.toThrow(/Use Node 22\.13 or newer/);
     }
 
-    expect(primary).toHaveBeenCalled();
+    expect(primary).not.toHaveBeenCalled();
+  });
+
+  it('should run a config that throws once and surface its own error', async () => {
+    const counter = join(dir, 'runs.txt');
+    const throwing = `
+import { appendFileSync } from 'node:fs';
+appendFileSync(${JSON.stringify(counter)}, 'x');
+throw new Error('boom from config');
+`;
+    await writeFile(join(dir, 'dorval.config.ts'), throwing);
+
+    await expect(loadConfig(join(dir, 'dorval.config.ts'))).rejects.toThrow('boom from config');
+    expect(await readFile(counter, 'utf8')).toBe('x');
   });
 
 });

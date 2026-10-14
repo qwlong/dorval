@@ -17,7 +17,23 @@ async function stripTypesWithNode(content: string): Promise<string | undefined> 
   const nodeModule = await import('node:module');
   const strip = (nodeModule as any).stripTypeScriptTypes;
 
-  return typeof strip === 'function' ? strip(content, { mode: 'transform' }) : undefined;
+  // Only 'strip' is accepted on every Node that has the API - newer releases
+  // reject 'transform' - and a config file has no enums or namespaces to need it
+  return typeof strip === 'function' ? strip(content, { mode: 'strip' }) : undefined;
+}
+
+/**
+ * Whether the installed `typescript` package still has the JavaScript API
+ * cosmiconfig's loader drives. False when it is missing, or is TypeScript 7.
+ */
+async function hasTypeScriptApi(): Promise<boolean> {
+  try {
+    const imported = await import('typescript');
+    const typescript = (imported as any).default ?? imported;
+    return typeof typescript.transpileModule === 'function' && typeof typescript.findConfigFile === 'function';
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -26,36 +42,40 @@ async function stripTypesWithNode(content: string): Promise<string | undefined> 
  * cosmiconfig's own loader drives the `typescript` package, and TypeScript 7
  * moved the compiler to a native binary - its main entry exports `version` and
  * nothing else, so that loader dies on `typescript.findConfigFile is not a
- * function`. Try it first anyway, so nothing changes where it already works,
- * and fall back to Node's built-in type stripping when it cannot run.
+ * function`. Keep using it wherever that API exists, and fall back to Node's
+ * built-in type stripping only when it does not. Errors thrown by the config
+ * itself propagate unchanged and the config runs once.
  */
-export function createTypeScriptLoader(primary: Loader = defaultLoaders['.ts']): Loader {
+export function createTypeScriptLoader(
+  primary: Loader = defaultLoaders['.ts'],
+  canUseTypeScript: () => Promise<boolean> = hasTypeScriptApi
+): Loader {
   return async (filepath, content) => {
-    try {
-      return await primary(filepath, content);
-    } catch (error) {
-      const stripped = await stripTypesWithNode(content);
-      if (stripped === undefined) {
-        // Node below 22.13 has no type stripping either, so say what happened
-        // rather than surfacing a bare `findConfigFile is not a function`
-        throw new Error(
-          `Could not load ${filepath}.\n` +
-          `The installed typescript package could not transpile it: ${(error as Error).message}\n` +
-          `TypeScript 7 moved the compiler to a native binary and its JavaScript API is gone, ` +
-          `and this Node (${process.version}) has no built-in type stripping to fall back on.\n` +
-          `Use Node 22.13 or newer, install typescript 5.x, or write the config as .mjs, .js or .json.`
-        );
-      }
+    if (await canUseTypeScript()) {
+      return primary(filepath, content);
+    }
 
-      // Written next to the config so its relative imports still resolve
-      const compiled = join(dirname(filepath), `.dorval-config-${randomBytes(6).toString('hex')}.mjs`);
-      try {
-        await writeFile(compiled, stripped);
-        const loaded = await import(pathToFileURL(compiled).href);
-        return loaded.default ?? loaded;
-      } finally {
-        await rm(compiled, { force: true });
-      }
+    const stripped = await stripTypesWithNode(content);
+    if (stripped === undefined) {
+      // Node below 22.13 has no type stripping either, so say what happened
+      // rather than surfacing a bare `findConfigFile is not a function`
+      throw new Error(
+        `Could not load ${filepath}.\n` +
+        `The typescript package is missing or has no JavaScript API to transpile it with ` +
+        `(TypeScript 7 moved the compiler to a native binary), ` +
+        `and this Node (${process.version}) has no built-in type stripping to fall back on.\n` +
+        `Use Node 22.13 or newer, install typescript 5.x, or write the config as .mjs, .js or .json.`
+      );
+    }
+
+    // Written next to the config so its relative imports still resolve
+    const compiled = join(dirname(filepath), `.dorval-config-${randomBytes(6).toString('hex')}.mjs`);
+    try {
+      await writeFile(compiled, stripped);
+      const loaded = await import(pathToFileURL(compiled).href);
+      return loaded.default ?? loaded;
+    } finally {
+      await rm(compiled, { force: true });
     }
   };
 }
