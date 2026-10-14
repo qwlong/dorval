@@ -223,6 +223,35 @@ export function shouldCreateInterface(schema: OpenAPIV3.SchemaObject): boolean {
 }
 
 /**
+ * Keywords beside a `$ref` that extend the target's shape. Anything else there -
+ * metadata like `id` (what nestjs-zod emits when a DTO is aliased under a new
+ * name), or a constraint like `nullable` or `minLength` - leaves the Dart type
+ * the target's, so the schema is still just another name for it.
+ */
+const REF_EXTENDING_KEYS = new Set([
+  'properties', 'additionalProperties', 'patternProperties', 'required', 'allOf'
+]);
+
+/**
+ * Whether a schema is nothing but another name for the one it references.
+ */
+export function isRefAlias(schema: any): boolean {
+  if (!schema || typeof schema !== 'object' || typeof schema.$ref !== 'string') {
+    return false;
+  }
+
+  return !Object.keys(schema).some(key => REF_EXTENDING_KEYS.has(key));
+}
+
+/**
+ * Whether a schema references another and adds to its shape. OpenAPI 3.1 lets
+ * keywords sit beside `$ref` and both apply, which is what `allOf` spells.
+ */
+export function isRefExtension(schema: any): boolean {
+  return !!schema && typeof schema === 'object' && typeof schema.$ref === 'string' && !isRefAlias(schema);
+}
+
+/**
  * Check if schema is empty (no meaningful content)
  */
 export function isEmpty(schema: any): boolean {

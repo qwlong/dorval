@@ -9,7 +9,7 @@ import { OpenAPIParser } from '../parser/openapi-parser';
 import { ReferenceResolver } from '../resolvers';
 import { combineSchemas } from '../getters/combine';
 import { getObject } from '../getters/object';
-import { hasComposition, hasDiscriminatedUnion, isEnum, isRepresentableEnum, isEmpty } from '../utils/assertion';
+import { hasComposition, hasDiscriminatedUnion, isEnum, isRefAlias, isRefExtension, isRepresentableEnum, isEmpty } from '../utils/assertion';
 import { TypeMapper } from '../utils';
 
 // Helper functions
@@ -298,6 +298,24 @@ export async function generateModels(
   const parser = new OpenAPIParser();
   await parser.parseWithoutDereference(spec);
   const schemas = parser.getSchemas();
+
+  // getSchemas() drops every schema whose body is a `$ref`, but referring
+  // properties still name it, so it needs a file of its own - put those back.
+  // OpenAPI 3.0 ignores keywords beside a `$ref`, so there it is always an
+  // alias; 3.1 applies both, which an `allOf` of the two expresses.
+  const siblingsIgnored = String(spec.openapi ?? '').startsWith('3.0');
+  const specSchemas = (spec.components?.schemas ?? {}) as Record<string, any>;
+  Object.entries(specSchemas).forEach(([name, schema]) => {
+    if (schemas[name]) {
+      return;
+    }
+    if (isRefAlias(schema) || (siblingsIgnored && isRefExtension(schema))) {
+      schemas[name] = siblingsIgnored ? { $ref: schema.$ref, description: schema.description } : schema;
+    } else if (isRefExtension(schema)) {
+      const { $ref, description, ...extension } = schema;
+      schemas[name] = { description, allOf: [{ $ref }, extension] };
+    }
+  });
   
   // Create ReferenceResolver with the full spec
   const refResolver = new ReferenceResolver(spec);
@@ -347,9 +365,18 @@ export async function generateModels(
   
   // Generate model for each schema
   Object.entries(schemas).forEach(([name, schema]) => {
-    // Skip completely empty schemas (no type, no properties, no composition)
+    // A schema whose body is just a `$ref` is another name for the target, and
+    // referring properties keep that name. Skipping it as "empty" left them
+    // importing a file nobody wrote.
+    if (isRefAlias(schema)) {
+      files.push(generator.generateRefAliasTypedef(name, schema));
+      return;
+    }
+
+    // A schema with no type, properties or composition allows any value, and
+    // `$ref`s to it still need a file to import
     if (isEmpty(schema)) {
-      console.log(`Skipping empty model: ${name}`);
+      files.push(generator.generateAnyTypedef(name, schema));
       return;
     }
 

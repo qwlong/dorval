@@ -9,6 +9,20 @@ import { ReferenceResolver } from '../resolvers';
 import { TemplateManager } from '../templates/template-manager';
 import { buildEnumMembers, scalarTypeOfEnumSchema, uniqueEnumMemberName } from '../getters/enum';
 
+/**
+ * A `///` comment for a description, one prefix per line - an unprefixed
+ * second line would be read as Dart code.
+ */
+function docComment(description?: string): string {
+  if (!description) {
+    return '';
+  }
+  return description
+    .split(/\r?\n/)
+    .map(line => (line.trim() ? `/// ${line.trimEnd()}` : '///'))
+    .join('\n') + '\n';
+}
+
 export class ModelGenerator {
   private templateManager: TemplateManager;
   private refResolver?: ReferenceResolver;
@@ -90,7 +104,54 @@ export class ModelGenerator {
     const fileName = TypeMapper.toSnakeCase(name);
 
     const content = `// Generated typedef for empty object schema
-${schema.description ? `/// ${schema.description}\n` : ''}typedef ${className} = Map<String, dynamic>;
+${docComment(schema.description)}typedef ${className} = Map<String, dynamic>;
+`;
+
+    return {
+      path: `models/${fileName}.f.dart`,
+      content
+    };
+  }
+
+  /**
+   * Emit a typedef for a schema whose whole body is a `$ref`.
+   *
+   * The re-export is load-bearing. Freezed writes its output as a `part of` the
+   * referring model, and a typedef resolves to the underlying class there, so
+   * that class has to be in the referring file's scope. Reaching it through the
+   * alias import alone leaves json_serializable seeing an InvalidType.
+   */
+  generateRefAliasTypedef(name: string, schema: OpenAPIV3.SchemaObject): GeneratedFile {
+    const className = TypeMapper.toDartClassName(name);
+    const fileName = TypeMapper.toSnakeCase(name);
+
+    const targetName = TypeMapper.extractTypeFromRef((schema as any).$ref);
+    const targetClass = TypeMapper.toDartClassName(targetName);
+    const targetFile = `${TypeMapper.toSnakeCase(targetName)}.f.dart`;
+
+    const content = `// Generated typedef: this schema is an alias for another
+import '${targetFile}';
+export '${targetFile}';
+
+${docComment(schema.description)}typedef ${className} = ${targetClass};
+`;
+
+    return {
+      path: `models/${fileName}.f.dart`,
+      content
+    };
+  }
+
+  /**
+   * Emit a typedef for a schema that constrains nothing (`{}`), so `$ref`s to
+   * it, direct or through an alias, still resolve to a file.
+   */
+  generateAnyTypedef(name: string, schema: OpenAPIV3.SchemaObject): GeneratedFile {
+    const className = TypeMapper.toDartClassName(name);
+    const fileName = TypeMapper.toSnakeCase(name);
+
+    const content = `// Generated typedef: the schema allows any value
+${docComment(schema.description)}typedef ${className} = dynamic;
 `;
 
     return {
@@ -109,7 +170,7 @@ ${schema.description ? `/// ${schema.description}\n` : ''}typedef ${className} =
     const dartType = scalarTypeOfEnumSchema(schema, TypeMapper.mapType.bind(TypeMapper));
 
     const content = `// Generated typedef: the enum values have no @JsonValue representation
-${schema.description ? `/// ${schema.description}\n` : ''}typedef ${className} = ${dartType};
+${docComment(schema.description)}typedef ${className} = ${dartType};
 `;
 
     return {
