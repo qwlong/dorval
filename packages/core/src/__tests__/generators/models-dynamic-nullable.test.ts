@@ -4,6 +4,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import * as fs from 'fs/promises';
+import * as os from 'os';
+import * as path from 'path';
+import { generateDartCode } from '../../index';
 import { generateModels } from '../../generators/models';
 import { TypeMapper } from '../../utils/type-mapper';
 
@@ -28,10 +32,53 @@ const spec = {
           tags: { type: 'array', items: { type: 'string' } },
           note: { type: 'string' }
         }
+      },
+      Combined: {
+        allOf: [
+          { type: 'object', properties: { extra: {} } },
+          { type: 'object', properties: { label: { type: 'string' } } }
+        ]
       }
     }
   }
 } as any;
+
+const endpointSpec = {
+  openapi: '3.0.0',
+  info: { title: 'Test API', version: '1.0.0' },
+  paths: {
+    '/search': {
+      get: {
+        operationId: 'search',
+        parameters: [
+          { name: 'filter', in: 'query', required: false, schema: {} },
+          { name: 'limit', in: 'query', required: false, schema: { type: 'integer' } },
+          { name: 'x-any', in: 'header', required: false, schema: {} },
+          { name: 'x-trace-id', in: 'header', required: false, schema: { type: 'string' } }
+        ],
+        responses: { '200': { description: 'OK' } }
+      }
+    }
+  }
+};
+
+async function generateEndpointFile(fileName: string): Promise<string> {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'dorval-dynamic-'));
+  try {
+    const specPath = path.join(dir, 'spec.json');
+    await fs.writeFile(specPath, JSON.stringify(endpointSpec));
+    const files = await generateDartCode({
+      input: specPath,
+      output: { target: dir, mode: 'split', client: 'dio' }
+    } as any);
+
+    const file = files.find(f => f.path.endsWith(fileName));
+    expect(file, `${fileName} in ${files.map(f => f.path).join(', ')}`).toBeDefined();
+    return file!.content;
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+}
 
 async function generate(name: string): Promise<string> {
   const files = await generateModels(spec, {
@@ -72,5 +119,29 @@ describe('dynamic nullability', () => {
 
     expect(content).toContain('String? note');
     expect(content).toContain('List<String>? tags');
+  });
+
+  it('emits no dynamic? for an untyped property inside allOf', async () => {
+    const content = await generate('combined');
+
+    expect(content).not.toContain('dynamic?');
+    expect(content).toContain('dynamic extra');
+    expect(content).toContain('String? label');
+  });
+
+  it('emits no dynamic? for an untyped optional query parameter', async () => {
+    const content = await generateEndpointFile('search_params.f.dart');
+
+    expect(content).not.toContain('dynamic?');
+    expect(content).toContain('dynamic filter');
+    expect(content).toContain('int? limit');
+  });
+
+  it('emits no dynamic? for an untyped optional header', async () => {
+    const content = await generateEndpointFile('search_headers.f.dart');
+
+    expect(content).not.toContain('dynamic?');
+    expect(content).toContain('dynamic xAny');
+    expect(content).toContain('String? xTraceId');
   });
 });

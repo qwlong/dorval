@@ -7,6 +7,7 @@ import * as fs from 'fs/promises';
 import * as fsSync from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import { TypeMapper } from '../utils/type-mapper';
 
 // Get __dirname that works in both CJS and ESM
 declare const __dirname: string | undefined;
@@ -175,6 +176,11 @@ export class TemplateManager {
       
       // Use Handlebars.SafeString to prevent escaping
       return new this.handlebars.SafeString(result);
+    });
+
+    // A template appending `?` itself would turn `dynamic` into `dynamic?`
+    this.handlebars.registerHelper('nullable', (type: string) => {
+      return TypeMapper.toNullable(type);
     });
 
     // Helper to convert to camelCase

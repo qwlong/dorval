@@ -616,7 +616,7 @@ export class EndpointGenerator {
       });
       // If the original schema was marked as nullable (e.g., from 204 response),
       // preserve the nullable flag
-      if (isNullable && !baseResult.type.endsWith('?')) {
+      if (isNullable) {
         return {
           ...baseResult,
           type: TypeMapper.toNullable(baseResult.type),

@@ -236,9 +236,9 @@ export class ReferenceResolver {
   /**
    * Get model type from a schema
    */
-  getModelType(schema: any, nullable: boolean = true): string {
+  getModelType(schema: any, required: boolean = true): string {
     const type = this.getDartType(schema);
-    return nullable ? type : TypeMapper.toNullable(type);
+    return required ? type : TypeMapper.toNullable(type);
   }
   
   /**

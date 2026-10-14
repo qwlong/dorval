@@ -427,7 +427,7 @@ function generateFreezedClass(
     
     return {
       name: dartName,
-      type: dartType + (nullable && !dartType.endsWith('?') ? '?' : ''),
+      type: nullable ? TypeMapper.toNullable(dartType) : dartType,
       required: isRequired,
       nullable,
       description: propSchema.description,

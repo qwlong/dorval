@@ -168,7 +168,7 @@ function processProperty(
         // Check if nonNullSchema is a reference
         if (nonNullSchema.$ref) {
           const typeName = TypeMapper.extractTypeFromRef(nonNullSchema.$ref);
-          dartType = TypeMapper.toDartClassName(typeName) + '?';
+          dartType = TypeMapper.toNullable(TypeMapper.toDartClassName(typeName));
           importsSet.add(`${TypeMapper.toSnakeCase(typeName)}.f.dart`);
         } else {
           // For oneOf/anyOf with null, the type is already nullable
